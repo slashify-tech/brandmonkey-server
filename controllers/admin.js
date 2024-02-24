@@ -1,16 +1,15 @@
 const Clients = require("../models/clients");
 const Employees = require("../models/employee");
 const TicketAssigned = require("../models/ticketRaise");
-const ClientAssigned = require("../models/clientDistribution");
 const EmployeeReview = require("../models/reviewList");
 const csv = require("csvtojson");
 const json2csv = require("json2csv").parse;
 const MomData = require("../models/mom");
-const dotenv = require('dotenv');
+const dotenv = require("dotenv");
 dotenv.config();
 const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-const fs = require('fs');
+const fs = require("fs");
 
 exports.uploadClientBulk = async (req, res) => {
   let ClientData = [];
@@ -21,14 +20,14 @@ exports.uploadClientBulk = async (req, res) => {
       ClientData.push({
         name: response[i]?.Clients,
         Reels: response[i]?.Reels,
-        Flyer: response[i]?.Flyer,
+        Flyers: response[i]?.Flyer,
         "Facebook Ads": response[i]?.FacebookAds,
         "Google Ads": response[i]?.GoogleAds,
         SEO: response[i]?.SEO,
         GMB: response[i]?.GMB,
         "Youtube Management": response[i]?.YoutubeManagement,
-        "Ecommerce": response[i]?.Ecommerce,
-        "social Media Management": response[i]?.SocialMediaManagement,
+        Ecommerce: response[i]?.Ecommerce,
+        "Social Media Management": response[i]?.SocialMediaManagement,
         clientType: response[i]?.ClientType || "regular",
         Videography: response[i]?.Videography,
         Photography: response[i]?.Photography,
@@ -79,6 +78,20 @@ exports.uploadEmployeeBulk = async (req, res) => {
     const response = await csv().fromFile(req.file.path);
 
     for (var i = 0; i < response.length; i++) {
+      const clientDetails = await Promise.all(
+        response[i]?.["Client-Service"].split(",").map(async (client) => {
+          const clientName = client.trim();
+          const existingClient = await Clients.findOne({
+            name: { $regex: new RegExp(clientName.split("-")[0].trim(), "i") },
+          });
+          return {
+            clientName: clientName,
+            progressValue: "0-10",
+            clientType: existingClient ? existingClient.clientType : "regular",
+          };
+        })
+      );
+
       Employee.push({
         employeeId: response[i]?.EmployeeID,
         name: response[i]?.EmployeeName,
@@ -89,6 +102,7 @@ exports.uploadEmployeeBulk = async (req, res) => {
         email: response[i]?.EmailID,
         password: simpleEncrypt(response[i]?.Password, 5),
         services: response[i]?.Services,
+        clients: clientDetails.filter((client) => client.clientName !== ""),
       });
     }
 
@@ -100,54 +114,54 @@ exports.uploadEmployeeBulk = async (req, res) => {
   }
 };
 
-exports.uploadClientandEmployeeBulk = async (req, res) => {
-  let employees = [];
-  try {
-    const response = await csv().fromFile(req.file.path);
+// exports.uploadClientandEmployeeBulk = async (req, res) => {
+//   let employees = [];
+//   try {
+//     const response = await csv().fromFile(req.file.path);
 
-    for (let i = 0; i < response.length; i++) {
-      const employeeName = response[i]?.EmployeeName.split("(")[0].trim();
-      const employee = await Employees.findOne({ name: employeeName });
+//     for (let i = 0; i < response.length; i++) {
+//       const employeeName = response[i]?.EmployeeName.split("(")[0].trim();
+//       const employee = await Employees.findOne({ name: employeeName });
 
-      if (!employee) {
-        return res
-          .status(404)
-          .json({ message: `Employee with name ${employeeName} not found` });
-      }
+//       if (!employee) {
+//         return res
+//           .status(404)
+//           .json({ message: `Employee with name ${employeeName} not found` });
+//       }
 
-      const clientDetails = await Promise.all(
-        response[i]?.["Client-Service"].split(",").map(async (client) => {
-          const clientName = client.trim();
-          const existingClient = await Clients.findOne({
-            name: { $regex: new RegExp(clientName.split("-")[0].trim(), "i") },
-          });
-          return {
-            clientName: clientName,
-            progressValue: "0-10",
-            clientType: existingClient ? existingClient.clientType : "onetime",
-          };
-        })
-      );
+//       const clientDetails = await Promise.all(
+//         response[i]?.["Client-Service"].split(",").map(async (client) => {
+//           const clientName = client.trim();
+//           const existingClient = await Clients.findOne({
+//             name: { $regex: new RegExp(clientName.split("-")[0].trim(), "i") },
+//           });
+//           return {
+//             clientName: clientName,
+//             progressValue: "0-10",
+//             clientType: existingClient ? existingClient.clientType : "regular",
+//           };
+//         })
+//       );
 
-      employees.push({
-        employeeName: employee._id, // Store the employee ID instead of the name
-        clients: clientDetails.filter((client) => client.clientName !== ""),
-      });
-    }
+//       employees.push({
+//         employeeName: employee._id,
+//         clients: clientDetails.filter((client) => client.clientName !== ""),
+//       });
+//     }
 
-    if (employees.length === 0 || employees.some((e) => !e.clients.length)) {
-      return res
-        .status(400)
-        .json({ message: "Clients array must not be empty" });
-    }
+//     if (employees.length === 0 || employees.some((e) => !e.clients.length)) {
+//       return res
+//         .status(400)
+//         .json({ message: "Clients array must not be empty" });
+//     }
 
-    await ClientAssigned.insertMany(employees);
-    res.status(201).json({ message: "Uploaded", employees });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: err.message });
-  }
-};
+//     await Employees.insertMany(employees);
+//     res.status(201).json({ message: "Uploaded", employees });
+//   } catch (err) {
+//     console.log(err);
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 
 exports.assignTicket = async (req, res) => {
   try {
@@ -176,9 +190,9 @@ exports.assignTicket = async (req, res) => {
 
     // Populate the forClients and toEmployee fields to get the actual names
     const populatedTicket = await TicketAssigned.findById(newTicket._id)
-  .populate('forClients', 'name')
-  .populate('toEmployee', 'name')
-  .exec();
+      .populate("forClients", "name")
+      .populate("toEmployee", "name")
+      .exec();
 
     const { name: clientName } = populatedTicket.forClients;
     const { name: employeeName } = populatedTicket.toEmployee;
@@ -202,7 +216,7 @@ exports.assignTicket = async (req, res) => {
     // await sgMail.send(adminMsg);
 
     // const employeeMsg = {
-    //    to: assignedEmployeeEmail, 
+    //    to: assignedEmployeeEmail,
     //   from: "info@brandmonkey.in",
     //   subject: "You have been assigned a new ticket",
     //   text: `You have been assigned a new ticket:
@@ -216,9 +230,9 @@ exports.assignTicket = async (req, res) => {
     const adminMsg = {
       // to: adminEmails,
       to: "minhazashraf590@gmail.com",
-      from: "info@brandmonkey.in", // Replace with your email
+      from: "info@brandmonkey.in",
       subject: "New Ticket Assigned",
-        text: `New Ticket Assigned:
+      text: `New Ticket Assigned:
           For Clients: ${clientName}
           To Employee: ${employeeName}
           Services: ${services}
@@ -226,11 +240,10 @@ exports.assignTicket = async (req, res) => {
     };
     await sgMail.send(adminMsg);
 
-    // Send email to the assigned employee
     const employeeMsg = {
       // to: assignedEmployeeEmail,
       to: "pmrutunjay928@gmail.com",
-      from: "info@brandmonkey.in", // Replace with your email
+      from: "info@brandmonkey.in",
       subject: "You have been assigned a new ticket",
       text: `You have been assigned a new ticket:
         For Clients: ${clientName}
@@ -274,13 +287,13 @@ exports.storeClientDistributionData = async (req, res) => {
 
     const servicesArray = service.split(",");
 
-    let clientDistribution = await ClientAssigned.findOne({
-      employeeName: user._id,
+    let clientDistribution = await Employees.findOne({
+      _id: user._id,
     });
 
     if (!clientDistribution) {
-      clientDistribution = new ClientAssigned({
-        employeeName: user._id,
+      clientDistribution = new Employees({
+        _id: user._id,
         clients: [],
         progressStatus: "start",
       });
@@ -317,9 +330,9 @@ exports.deleteClientDistributionData = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const updatedClientDistribution = await ClientAssigned.findOneAndUpdate(
+    const updatedClientDistribution = await Employees.findOneAndUpdate(
       {
-        employeeName: user._id,
+        _id: user._id,
         "clients._id": clientId,
       },
       {
@@ -346,11 +359,10 @@ exports.addFieldsToClients = async (req, res) => {
   try {
     const { fieldName } = req.body;
     const defaultValue = "NA";
-    // Check if the field exists in the schema
+
     const isFieldInSchema = Clients.schema.paths[fieldName] != null;
 
     if (!isFieldInSchema) {
-      // Update all clients with the new field and default value
       const updatedClients = await Clients.updateMany(
         {},
         { $set: { [fieldName]: defaultValue } }
@@ -431,24 +443,22 @@ exports.updateClientType = async (req, res) => {
       return res.status(404).json({ error: "Client not found" });
     }
 
-    // Toggle clientType for the client
     if (client.clientType.toLowerCase() === "regular") {
       client.clientType = "onetime";
     } else if (client.clientType.toLowerCase() === "onetime") {
       client.clientType = "regular";
     }
 
-    // Save the updated client
     const updatedClient = await client.save();
 
     // Find and update all instances in clientDistributionSchema with a partial clientName match
-    await ClientAssigned.updateMany(
+    await Employees.updateMany(
       { "clients.clientName": { $regex: new RegExp(client.name, "i") } },
       { $set: { "clients.$.clientType": client.clientType } }
     );
 
     // Fetch and return the updated clientDistributionSchema
-    const updatedDistribution = await ClientAssigned.find({
+    const updatedDistribution = await Employees.find({
       "clients.clientName": { $regex: new RegExp(client.name, "i") },
     });
 
@@ -459,29 +469,155 @@ exports.updateClientType = async (req, res) => {
   }
 };
 
-exports.getAllEmployeesAndClients = async (req, res) => {
+// exports.getAllEmployeesAndClients = async (req, res) => { // this one to be changed today
+//   try {
+//     const allEmployees = await Employees.find();
+
+//     const regularEmployees = [];
+//     const oneTimeEmployees = [];
+
+//     for (const employee of allEmployees) {
+//       const clientDistribution = await Employees.findOne({
+//         _id: employee._id,
+//       });
+
+//       if (clientDistribution) {
+//         const regularClients = clientDistribution.clients
+//           .filter((client) => client.clientType === "regular")
+//           .map(({ clientName, progressValue, clientType }) => ({
+//             clientName,
+//             progressValue,
+//             clientType,
+//           }));
+
+//         const oneTimeClients = clientDistribution.clients
+//           .filter((client) => client.clientType === "onetime")
+//           .map(({ clientName, progressValue, clientType }) => ({
+//             clientName,
+//             progressValue,
+//             clientType,
+//           }));
+
+//         if (regularClients.length > 0) {
+//           regularEmployees.push({
+//             employee,
+//             clientDistribution: regularClients,
+//           });
+//         }
+
+//         if (oneTimeClients.length > 0) {
+//           oneTimeEmployees.push({
+//             employee,
+//             clientDistribution: oneTimeClients,
+//           });
+//         }
+//       }
+//     }
+
+//     console.log({ regularEmployees, oneTimeEmployees });
+//     res.status(200).json({ regularEmployees, oneTimeEmployees });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// };
+
+exports.getOneTimeEmployees = async (req, res) => {
+  const { page } = req.query;
+  const limit =3;
   try {
-    const allEmployees = await Employees.find();
+    const allEmployees = await Employees.find().lean();
 
-    const regularEmployees = [];
-    const oneTimeEmployees = [];
+    // Extract employee IDs
+    const employeeIds = allEmployees.map((employee) => employee._id);
 
-    for (const employee of allEmployees) {
-      const clientDistribution = await ClientAssigned.findOne({
-        employeeName: employee._id,
-      });
+    // Fetch client distributions for all employees in a single query
+    const clientDistributions = await Employees.find({ _id: { $in: employeeIds } }).lean();
+
+    const onetimeEmployees = [];
+
+    // Pagination logic
+    let startIndex = 0;
+    let endIndex = allEmployees.length;
+
+    if (page && limit) {
+      const pageNumber = parseInt(page);
+      const pageSize = parseInt(limit);
+      startIndex = (pageNumber - 1) * pageSize;
+      endIndex = pageNumber * pageSize;
+    }
+
+    for (let i = startIndex; i < endIndex; i++) {
+      const employee = allEmployees[i];
+      const clientDistribution = clientDistributions.find((cd) => cd._id.equals(employee._id));
 
       if (clientDistribution) {
         const regularClients = clientDistribution.clients
-          .filter((client) => client.clientType === "regular")
+          .filter((client) => client.clientType === "onetime")
           .map(({ clientName, progressValue, clientType }) => ({
             clientName,
             progressValue,
             clientType,
           }));
 
-        const oneTimeClients = clientDistribution.clients
-          .filter((client) => client.clientType === "onetime")
+        if (regularClients.length > 0) {
+          onetimeEmployees.push({
+            employee,
+            clientDistribution: regularClients,
+          });
+        }
+      }
+    }
+
+    console.log({ onetimeEmployees });
+    res.status(200).json({
+      onetimeEmployees,
+      currentPage: parseInt(page) || 1,
+      hasLastPage: endIndex < allEmployees.length,
+      hasPreviousPage: parseInt(page) > 1,
+      nextPage: parseInt(page) + 1,
+      previousPage: parseInt(page) - 1,
+      lastPage: Math.ceil(allEmployees.length / parseInt(limit)),
+      totalEmployeesCount: allEmployees.length,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+exports.getRegularEmployees = async (req, res) => {
+  const { page } = req.query;
+  const limit =3;
+  try {
+    const allEmployees = await Employees.find().lean();
+
+    // Extract employee IDs
+    const employeeIds = allEmployees.map((employee) => employee._id);
+
+    // Fetch client distributions for all employees in a single query
+    const clientDistributions = await Employees.find({ _id: { $in: employeeIds } }).lean();
+
+    const regularEmployees = [];
+
+    // Pagination logic
+    let startIndex = 0;
+    let endIndex = allEmployees.length;
+
+    if (page && limit) {
+      const pageNumber = parseInt(page);
+      const pageSize = parseInt(limit);
+      startIndex = (pageNumber - 1) * pageSize;
+      endIndex = pageNumber * pageSize;
+    }
+
+    for (let i = startIndex; i < endIndex; i++) {
+      const employee = allEmployees[i];
+      const clientDistribution = clientDistributions.find((cd) => cd._id.equals(employee._id));
+
+      if (clientDistribution) {
+        const regularClients = clientDistribution.clients
+          .filter((client) => client.clientType === "regular")
           .map(({ clientName, progressValue, clientType }) => ({
             clientName,
             progressValue,
@@ -494,22 +630,26 @@ exports.getAllEmployeesAndClients = async (req, res) => {
             clientDistribution: regularClients,
           });
         }
-
-        if (oneTimeClients.length > 0) {
-          oneTimeEmployees.push({
-            employee,
-            clientDistribution: oneTimeClients,
-          });
-        }
       }
     }
 
-    res.status(200).json({ regularEmployees, oneTimeEmployees });
+    console.log({ regularEmployees });
+    res.status(200).json({
+      regularEmployees,
+      currentPage: parseInt(page) || 1,
+      hasLastPage: endIndex < allEmployees.length,
+      hasPreviousPage: parseInt(page) > 1,
+      nextPage: parseInt(page) + 1,
+      previousPage: parseInt(page) - 1,
+      lastPage: Math.ceil(allEmployees.length / parseInt(limit)),
+      totalEmployeesCount: allEmployees.length,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 exports.addEmployeeReview = async (req, res) => {
   try {
@@ -568,21 +708,27 @@ exports.getEmployeeReviews = async (req, res) => {
       if (endIndex < totalReviewsCount) {
         result = {
           nextPage: pageNumber + 1,
-          data: await EmployeeReview.find(query).limit(pageSize).skip(startIndex).populate("employeeData", [
-            "name",
-            "designation",
-            "phoneNumber",
-            "employeeId",
-          ]),
+          data: await EmployeeReview.find(query)
+            .limit(pageSize)
+            .skip(startIndex)
+            .populate("employeeData", [
+              "name",
+              "designation",
+              "phoneNumber",
+              "employeeId",
+            ]),
         };
       } else {
         result = {
-          data: await EmployeeReview.find(query).limit(pageSize).skip(startIndex).populate("employeeData", [
-            "name",
-            "designation",
-            "phoneNumber",
-            "employeeId",
-          ]),
+          data: await EmployeeReview.find(query)
+            .limit(pageSize)
+            .skip(startIndex)
+            .populate("employeeData", [
+              "name",
+              "designation",
+              "phoneNumber",
+              "employeeId",
+            ]),
         };
       }
     } else {
@@ -596,7 +742,7 @@ exports.getEmployeeReviews = async (req, res) => {
       };
     }
 
-    console.log(result);
+    // console.log(result);
 
     res.status(200).json({
       result,
@@ -639,7 +785,6 @@ exports.getMomEntriesByClientId = async (req, res) => {
   try {
     const clientId = req.params.id;
 
-    // Get MOM entries for a specific client using the client ID
     const momEntries = await MomData.find({ clientId });
 
     res.status(200).json(momEntries);
@@ -649,149 +794,170 @@ exports.getMomEntriesByClientId = async (req, res) => {
   }
 };
 
-
-exports.getDashBoardAdmin = async(req, res) => {
+exports.getDashBoardAdmin = async (req, res) => {
   try {
     const totalClients = await Clients.countDocuments({});
-    const totalEmployees  = await Employees.countDocuments({ type: { $ne: "superadmin" } });
+    const totalEmployees = await Employees.countDocuments({
+      type: { $ne: "superadmin" },
+    });
     const totalTickets = await TicketAssigned.countDocuments({});
 
-    console.log(totalClients, totalEmployees, totalTickets);
-    res.status(201).json({totalClients, totalEmployees, totalTickets});
+    // console.log(totalClients, totalEmployees, totalTickets);
+    res.status(201).json({ totalClients, totalEmployees, totalTickets });
   } catch (error) {
-    console.error( error);
+    console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
-}
-
-
-  exports.getResolvedEmployeeTickets = async (req, res) => {
-    try {
-      const {id} = req.query;
-      let tickets;
-      if(id){
-        tickets = await TicketAssigned
-        .find({ ticketraised: false, toEmployee : id })
-        .populate('toEmployee', 'name')
-        .populate('forClients', 'name');
-      }else{
-        tickets = await TicketAssigned
-          .find({ ticketraised: false })
-          .populate('toEmployee', 'name')
-          .populate('forClients', 'name');
-      }
-      res.status(200).json({
-        tickets,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({
-        error: 'Internal Server Error',
-      });
-    }
-  };
-
-
-  exports.acknowlegdeTicketResolve = async (req, res) => {
-    try {
-      const { id, value } = req.query;
-  
-      if (!id || !value) {
-        return res.status(400).json({ error: 'Missing required parameters.' });
-      }
-  
-      const ticket = await TicketAssigned.findById(id).populate('toEmployee', 'name email');
-  
-      if (!ticket) {
-        return res.status(404).json({ error: 'Ticket not found.' });
-      }
-  
-      const employeeName = ticket.toEmployee.name;
-      const employeeEmail = ticket.toEmployee.email;
-  
-      if (value === 'accept') {
-        await TicketAssigned.findByIdAndDelete(id);
-  
-        // Send email to employee for accepted ticket
-        const acceptMsg = {
-          // to: employeeEmail,
-          to : "pmrutunjay928@gmail.com",
-          from: "info@brandmonkey.in",
-          subject: "Ticket Accepted",
-          text: `Dear ${employeeName},\n\nYour resolved ticket has been accepted and deleted successfully.\n\nRegards,\nThe Support Team`,
-        };
-  
-        await sgMail.send(acceptMsg);
-  
-        res.status(200).json({ message: 'Ticket accepted and deleted successfully.' });
-      } else if (value === 'reject') {
-        ticket.revertBack = true;
-        ticket.ticketraised = true;
-        await ticket.save();
-  
-        // Send email to employee for rejected ticket
-        const rejectMsg = {
-          // to: employeeEmail,
-          to : "pmrutunjay928@gmail.com",
-          from: "info@brandmonkey.in",
-          subject: "Ticket Rejected",
-          text: `Dear ${employeeName},\n\nYour resolved ticket has been rejected there are futher issues that have to be solved.\n\nRegards,\nThe Support Team`,
-        };
-  
-        await sgMail.send(rejectMsg);
-  
-        res.status(200).json({ message: 'Ticket rejected and updated successfully.' });
-      } else {
-        res.status(400).json({ error: 'Invalid value.' });
-      }
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
-  };
-
-
-
-  exports.getEmployeeReviewsArray = async (req, res) => {
-    try {
-      const { id } = req.params;
-  
-      if (!id) {
-        return res.status(400).json({ error: 'Missing required parameter: id.' });
-      }
-  
-      const employeeReviews = await EmployeeReview.findById(id);
-  
-      if (!employeeReviews) {
-        return res.status(404).json({ error: 'Employee reviews not found.' });
-      }
-  
-      const reviewsArray = employeeReviews.reviews || [];
-  
-      res.status(200).json({
-        reviews: reviewsArray,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
 };
 
+exports.getResolvedEmployeeTickets = async (req, res) => {
+  try {
+    const { id } = req.query;
+    let tickets;
+    if (id) {
+      tickets = await TicketAssigned.find({
+        ticketraised: false,
+        toEmployee: id,
+      })
+        .populate("toEmployee", "name")
+        .populate("forClients", "name");
+    } else {
+      tickets = await TicketAssigned.find({ ticketraised: false })
+        .populate("toEmployee", "name")
+        .populate("forClients", "name");
+    }
+    res.status(200).json({
+      tickets,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Internal Server Error",
+    });
+  }
+};
+
+exports.acknowlegdeTicketResolve = async (req, res) => {
+  try {
+    const { id, value } = req.query;
+
+    if (!id || !value) {
+      return res.status(400).json({ error: "Missing required parameters." });
+    }
+
+    const ticket = await TicketAssigned.findById(id).populate(
+      "toEmployee",
+      "name email"
+    );
+
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found." });
+    }
+
+    const employeeName = ticket.toEmployee.name;
+    const employeeEmail = ticket.toEmployee.email;
+
+    if (value === "accept") {
+      await TicketAssigned.findByIdAndDelete(id);
+
+      // Send email to employee for accepted ticket
+      const acceptMsg = {
+        // to: employeeEmail,
+        to: "pmrutunjay928@gmail.com",
+        from: "info@brandmonkey.in",
+        subject: "Ticket Accepted",
+        text: `Dear ${employeeName},\n\nYour resolved ticket has been accepted and deleted successfully.\n\nRegards,\nThe Support Team`,
+      };
+
+      await sgMail.send(acceptMsg);
+
+      res
+        .status(200)
+        .json({ message: "Ticket accepted and deleted successfully." });
+    } else if (value === "reject") {
+      ticket.revertBack = true;
+      ticket.ticketraised = true;
+      await ticket.save();
+
+      // Send email to employee for rejected ticket
+      const rejectMsg = {
+        // to: employeeEmail,
+        to: "pmrutunjay928@gmail.com",
+        from: "info@brandmonkey.in",
+        subject: "Ticket Rejected",
+        text: `Dear ${employeeName},\n\nYour resolved ticket has been rejected there are futher issues that have to be solved.\n\nRegards,\nThe Support Team`,
+      };
+
+      await sgMail.send(rejectMsg);
+
+      res
+        .status(200)
+        .json({ message: "Ticket rejected and updated successfully." });
+    } else {
+      res.status(400).json({ error: "Invalid value." });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+exports.getEmployeeReviewsArray = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const itemsPerPage = 1;
+
+    if (!id) {
+      return res.status(400).json({ error: "Missing required parameter: id." });
+    }
+
+    const employeeReviews = await EmployeeReview.findById(id);
+
+    if (!employeeReviews) {
+      return res.status(404).json({ error: "Employee reviews not found." });
+    }
+
+    const reviewsArray = employeeReviews.reviews || [];
+
+    // Calculate pagination parameters
+    const totalItems = reviewsArray.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+
+    // Get the paginated reviews
+    const paginatedReviews = reviewsArray.slice(startIndex, endIndex);
+
+    res.status(200).json({
+      reviews: paginatedReviews,
+      currentPage: page,
+      totalPages,
+      totalItems,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
 
 exports.getTicketsForClient = async (req, res) => {
   try {
     const { id } = req.params;
 
     if (!id) {
-      return res.status(400).json({ error: 'Missing required parameter: id.' });
+      return res.status(400).json({ error: "Missing required parameter: id." });
     }
 
-    const tickets = await TicketAssigned.find({ forClients: id }).populate('toEmployee',"name");
+    const tickets = await TicketAssigned.find({ forClients: id }).populate(
+      "toEmployee",
+      "name"
+    );
 
     res.status(200).json({ tickets });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
@@ -800,7 +966,7 @@ exports.deleteEmployeeData = async (req, res) => {
     const { id } = req.params;
 
     if (!id) {
-      return res.status(400).json({ error: 'Missing required parameter: id.' });
+      return res.status(400).json({ error: "Missing required parameter: id." });
     }
 
     // Delete employee data
@@ -812,10 +978,15 @@ exports.deleteEmployeeData = async (req, res) => {
     // Delete related review list
     await EmployeeReview.findOneAndDelete({ employeeData: id });
 
-    res.status(200).json({ message: 'Employee data, ticket list, and review list deleted successfully.' });
+    res
+      .status(200)
+      .json({
+        message:
+          "Employee data, ticket list, and review list deleted successfully.",
+      });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
@@ -824,45 +995,40 @@ exports.deleteClientData = async (req, res) => {
     const { id } = req.params;
 
     if (!id) {
-      return res.status(400).json({ error: 'Missing required parameter: id.' });
+      return res.status(400).json({ error: "Missing required parameter: id." });
     }
 
-    // Assuming you have a method like findByIdAndDelete in your model
     await Clients.findByIdAndDelete(id);
 
-    res.status(200).json({ message: 'Client data deleted successfully.' });
+    res.status(200).json({ message: "Client data deleted successfully." });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-
 exports.downloadCsvEmployees = async (req, res) => {
   try {
-    let data; // Fetch all data from MongoDB, adjust the query as needed
+    let data;
     let csvData;
-    
-      data = await Employees.find({});
-      csvData = json2csv(data, {
-        fields: [
-          "name",
-          "employeeId",
-          "team",
-          "services",
-          "email",
-          "password",
-          "designation",
-          "type",
-          "phoneNumber"
-        ],
-      }); // Specify the fields you want in the CSV
-    
 
-    // Save the CSV data to a file
+    data = await Employees.find({});
+    csvData = json2csv(data, {
+      fields: [
+        "name",
+        "employeeId",
+        "team",
+        "services",
+        "email",
+        "password",
+        "designation",
+        "type",
+        "phoneNumber",
+      ],
+    });
+
     fs.writeFileSync("exportedData.csv", csvData);
 
-    // Send the CSV file as a response
     res.download("exportedData.csv", "exportedData.csv", (err) => {
       if (err) {
         console.error(err);
@@ -879,12 +1045,11 @@ exports.downloadCsvEmployees = async (req, res) => {
 exports.downloadCsvClients = async (req, res) => {
   try {
     const data = await Clients.find({});
-    
+
     if (data.length === 0) {
       return res.status(404).send("No data found");
     }
 
-    // Get all unique field names present in the data
     const allFields = new Set();
     data.forEach((employee) => {
       Object.keys(employee._doc).forEach((field) => {
@@ -892,24 +1057,19 @@ exports.downloadCsvClients = async (req, res) => {
       });
     });
 
-    // Convert the set of field names to an array
     const fieldsArray = Array.from(allFields);
 
-    // Generate CSV data with all fields dynamically
     const csvData = json2csv(data, { fields: fieldsArray });
 
-    // Save the CSV data to a file
     const fileName = "exportedData.csv";
     fs.writeFileSync(fileName, csvData);
 
-    // Send the CSV file as a response
     res.download(fileName, "exportedData.csv", (err) => {
       if (err) {
         console.error(err);
         res.status(500).send("Internal Server Error");
       }
 
-      // Delete the temporary CSV file after it has been sent
       fs.unlinkSync(fileName);
     });
   } catch (err) {

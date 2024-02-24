@@ -5,7 +5,7 @@ const employeeController = require('../controllers/employee');
 const adminController = require('../controllers/admin');
 const { fileMulter } = require('../multer/multerFile');
 
-router.post('/csvEmployee',fileMulter, adminController.uploadEmployeeBulk);
+router.post('/csvEmployees',fileMulter, adminController.uploadEmployeeBulk);
 router.post('/addEmployee', employeeController.addEmployee);
 
 router.put('/updateProgress/:id', employeeController.updateProgress);

@@ -6,7 +6,7 @@ const adminController = require('../controllers/admin');
 const { fileMulter } = require('../multer/multerFile');
 
 router.post('/csvClients',fileMulter, adminController.uploadClientBulk);
-router.post('/csvClientsAndEmployee',fileMulter, adminController.uploadClientandEmployeeBulk);
+// router.post('/csvClientsAndEmployee',fileMulter, adminController.uploadClientandEmployeeBulk);
 router.post('/addClient', employeeController.addClient);
 router.post('/submitTicket', adminController.assignTicket);
 router.post('/acknowledgeTicket', adminController.acknowlegdeTicketResolve);
@@ -28,7 +28,8 @@ router.get('/getClients', employeeController.getClient);
 router.get('/getmom/:id', adminController.getMomEntriesByClientId);
 router.get('/getOneClient/:id', employeeController.getOneClient);
 router.get('/getTicket', employeeController.getTicket);
-router.get('/employeelistforadmin', adminController.getAllEmployeesAndClients);
+router.get('/employeelistOneTimeforadmin', adminController.getOneTimeEmployees);
+router.get('/employeelistRegularforadmin', adminController.getRegularEmployees);
 router.get('/employeeReviews', adminController.getEmployeeReviews);
 router.get('/employeeReviewsShow/:id', adminController.getEmployeeReviewsArray);
 router.get('/getOneClientTickets/:id', adminController.getTicketsForClient);

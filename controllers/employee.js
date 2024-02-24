@@ -2,13 +2,6 @@ const Clients = require("../models/clients");
 const Employees = require("../models/employee");
 const TicketAssigned = require("../models/ticketRaise");
 const bcrypt = require("bcrypt");
-const {
-  resizeImage,
-  uploadToS3,
-  generateFileName,
-  deleteFromS3,
-} = require("../utils/s3Utils");
-const ClientAssigned = require("../models/clientDistribution");
 const dotenv = require("dotenv");
 
 dotenv.config();
@@ -87,12 +80,12 @@ exports.removeClient = async (req, res, next) => {
 exports.removeEmployee = async (req, res, next) => {
   try {
     const employee = await Employees.findById(req.params.id);
-    console.log(employee);
-    if (employee.image) {
-      await deleteFromS3(employee.image);
-    }
-    console.log(employee);
-    await Employees.findByIdAndDelete(req.query.id);
+
+    // if (employee.image) {
+    //   await deleteFromS3(employee.image);
+    // }
+    // console.log(employee);
+    await Employees.findByIdAndDelete(req.params.id);
     res.status(201).send("deleted");
   } catch (e) {
     console.log(e);
@@ -127,7 +120,7 @@ exports.editClient = async (req, res, next) => {
 exports.getDashBoardEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-    const clients = await ClientAssigned.find({ employeeName: id });
+    const clients = await Employees.find({ employeeName: id });
     const tickets = await TicketAssigned.find({ toEmployee: id });
 
     const totalClients = clients[0].clients.length;
@@ -203,7 +196,6 @@ exports.getClient = async (req, res) => {
       
       const clientsData = await Clients.find(query).limit(pageSize).skip(startIndex);
       
-      // Count the number of tickets raised for each client
       const clientsWithTicketsCount = await Promise.all(clientsData.map(async (client) => {
         const ticketsCount = await TicketAssigned.countDocuments({ forClients: client._id });
         return {
@@ -219,7 +211,6 @@ exports.getClient = async (req, res) => {
     } else {
       const clientsData = await Clients.find(query);
       
-      // Count the number of tickets raised for each client
       const clientsWithTicketsCount = await Promise.all(clientsData.map(async (client) => {
         const ticketsCount = await TicketAssigned.countDocuments({ forClients: client._id });
         return {
@@ -327,7 +318,6 @@ exports.getOneEmployee = async (req, res, next) => {
     const employee = await Employees.findById(id);
 
     if (employee) {
-      // Decrypt the password and include it in the response
       employee.password = simpleDecrypt(employee.password, 5);
 
       res.status(200).json({ employee });
@@ -406,11 +396,11 @@ exports.getOneTicket = async (req, res, next) => {
   }
 };
 
-exports.getClientEmployeeRel = async (req, res) => {
+exports.getClientEmployeeRel = async (req, res) => {// why have i written this
   try {
     const { id } = req.params;
-    const clientAssigned = await ClientAssigned.findOne({ employeeName: id });
-    console.log(clientAssigned);
+    const clientAssigned = await Employees.findOne({ _id: id });
+    // console.log(clientAssigned);
 
     if (clientAssigned) {
       const clientNames = clientAssigned.clients.map((item) =>
@@ -448,6 +438,8 @@ exports.getClientEmployeeRel = async (req, res) => {
   }
 };
 
+
+
 const getClient = async (clientNames) => {
   try {
     const clientData = await Clients.find({
@@ -463,6 +455,8 @@ const getClient = async (clientNames) => {
     throw error;
   }
 };
+
+
 
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -511,7 +505,6 @@ const resolveTicketRequest = async (id) => {
   }
 };
 
-console.log
 
 exports.updateProgress = async (req, res) => {
   const { id } = req.params;
@@ -554,13 +547,15 @@ exports.updateProgress = async (req, res) => {
   }
 };
 
+
+
 exports.updateWork = async (req, res) => {
   const { id } = req.params;
   const { workId } = req.query;
   const { progressValue } = req.body;
 
   try {
-    const updatedEmployee = await ClientAssigned.findOneAndUpdate(
+    const updatedEmployee = await Employees.findOneAndUpdate(
       {
         employeeName: id,
         "clients._id": workId,
@@ -614,4 +609,3 @@ exports.getEmployeeTicket = async (req, res) => {
     });
   }
 };
-
