@@ -1,9 +1,26 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const clientSchema = mongoose.Schema({
-    name : {
-        type : String,
-        required : true
+const clientSchema = mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+    },
+    email: {
+      type: String,
+      required: true,
+    },
+    gst: {
+      type: String,
+      required: true,
+    },
+    phone: {
+      type: String,
+      required: true,
+    },
+    address: {
+      type: String,
+      required: true,
     },
     // Reels : {
     //     type : String,
@@ -57,12 +74,14 @@ const clientSchema = mongoose.Schema({
     //     type : String,
     //     default : "NA"
     // },
-    clientType : {
-        type : String,
-        enum : [ "regular", "onetime"],
-        default : "regular"
-    }
-},{strict:false});
+    clientType: {
+      type: String,
+      enum: ["Regular", "Onetime"],
+      default: "Regular",
+    },
+  },
+  { strict: false }
+);
 
-const Clients = mongoose.model('clients', clientSchema);
+const Clients = mongoose.model("clients", clientSchema);
 module.exports = Clients;

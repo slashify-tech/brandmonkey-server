@@ -28,7 +28,7 @@ exports.uploadClientBulk = async (req, res) => {
         "Youtube Management": response[i]?.YoutubeManagement,
         Ecommerce: response[i]?.Ecommerce,
         "Social Media Management": response[i]?.SocialMediaManagement,
-        clientType: response[i]?.ClientType || "regular",
+        clientType: response[i]?.ClientType || "Regular",
         Videography: response[i]?.Videography,
         Photography: response[i]?.Photography,
         Website: response[i]?.Website,
@@ -87,7 +87,7 @@ exports.uploadEmployeeBulk = async (req, res) => {
           return {
             clientName: clientName,
             progressValue: "0-10",
-            clientType: existingClient ? existingClient.clientType : "regular",
+            clientType: existingClient ? existingClient.clientType : "Regular",
           };
         })
       );
@@ -138,7 +138,7 @@ exports.uploadEmployeeBulk = async (req, res) => {
 //           return {
 //             clientName: clientName,
 //             progressValue: "0-10",
-//             clientType: existingClient ? existingClient.clientType : "regular",
+//             clientType: existingClient ? existingClient.clientType : "Regular",
 //           };
 //         })
 //       );
@@ -443,10 +443,10 @@ exports.updateClientType = async (req, res) => {
       return res.status(404).json({ error: "Client not found" });
     }
 
-    if (client.clientType.toLowerCase() === "regular") {
-      client.clientType = "onetime";
-    } else if (client.clientType.toLowerCase() === "onetime") {
-      client.clientType = "regular";
+    if (client.clientType.toLowerCase() === "Regular") {
+      client.clientType = "Onetime";
+    } else if (client.clientType.toLowerCase() === "Onetime") {
+      client.clientType = "Regular";
     }
 
     const updatedClient = await client.save();
@@ -473,7 +473,7 @@ exports.updateClientType = async (req, res) => {
 //   try {
 //     const allEmployees = await Employees.find();
 
-//     const regularEmployees = [];
+//     const RegularEmployees = [];
 //     const oneTimeEmployees = [];
 
 //     for (const employee of allEmployees) {
@@ -482,8 +482,8 @@ exports.updateClientType = async (req, res) => {
 //       });
 
 //       if (clientDistribution) {
-//         const regularClients = clientDistribution.clients
-//           .filter((client) => client.clientType === "regular")
+//         const RegularClients = clientDistribution.clients
+//           .filter((client) => client.clientType === "Regular")
 //           .map(({ clientName, progressValue, clientType }) => ({
 //             clientName,
 //             progressValue,
@@ -491,17 +491,17 @@ exports.updateClientType = async (req, res) => {
 //           }));
 
 //         const oneTimeClients = clientDistribution.clients
-//           .filter((client) => client.clientType === "onetime")
+//           .filter((client) => client.clientType === "Onetime")
 //           .map(({ clientName, progressValue, clientType }) => ({
 //             clientName,
 //             progressValue,
 //             clientType,
 //           }));
 
-//         if (regularClients.length > 0) {
-//           regularEmployees.push({
+//         if (RegularClients.length > 0) {
+//           RegularEmployees.push({
 //             employee,
-//             clientDistribution: regularClients,
+//             clientDistribution: RegularClients,
 //           });
 //         }
 
@@ -514,8 +514,8 @@ exports.updateClientType = async (req, res) => {
 //       }
 //     }
 
-//     console.log({ regularEmployees, oneTimeEmployees });
-//     res.status(200).json({ regularEmployees, oneTimeEmployees });
+//     console.log({ RegularEmployees, oneTimeEmployees });
+//     res.status(200).json({ RegularEmployees, oneTimeEmployees });
 //   } catch (error) {
 //     console.error(error);
 //     res.status(500).json({ error: "Internal Server Error" });
@@ -552,18 +552,18 @@ exports.getOneTimeEmployees = async (req, res) => {
       const clientDistribution = clientDistributions.find((cd) => cd._id.equals(employee._id));
 
       if (clientDistribution) {
-        const regularClients = clientDistribution.clients
-          .filter((client) => client.clientType === "onetime")
+        const RegularClients = clientDistribution.clients
+          .filter((client) => client.clientType === "Onetime")
           .map(({ clientName, progressValue, clientType }) => ({
             clientName,
             progressValue,
             clientType,
           }));
 
-        if (regularClients.length > 0) {
+        if (RegularClients.length > 0) {
           onetimeEmployees.push({
             employee,
-            clientDistribution: regularClients,
+            clientDistribution: RegularClients,
           });
         }
       }
@@ -598,7 +598,7 @@ exports.getRegularEmployees = async (req, res) => {
     // Fetch client distributions for all employees in a single query
     const clientDistributions = await Employees.find({ _id: { $in: employeeIds } }).lean();
 
-    const regularEmployees = [];
+    const RegularEmployees = [];
 
     // Pagination logic
     let startIndex = 0;
@@ -616,26 +616,26 @@ exports.getRegularEmployees = async (req, res) => {
       const clientDistribution = clientDistributions.find((cd) => cd._id.equals(employee._id));
 
       if (clientDistribution) {
-        const regularClients = clientDistribution.clients
-          .filter((client) => client.clientType === "regular")
+        const RegularClients = clientDistribution.clients
+          .filter((client) => client.clientType === "Regular")
           .map(({ clientName, progressValue, clientType }) => ({
             clientName,
             progressValue,
             clientType,
           }));
 
-        if (regularClients.length > 0) {
-          regularEmployees.push({
+        if (RegularClients.length > 0) {
+          RegularEmployees.push({
             employee,
-            clientDistribution: regularClients,
+            clientDistribution: RegularClients,
           });
         }
       }
     }
 
-    console.log({ regularEmployees });
+    console.log({ RegularEmployees });
     res.status(200).json({
-      regularEmployees,
+      RegularEmployees,
       currentPage: parseInt(page) || 1,
       hasLastPage: endIndex < allEmployees.length,
       hasPreviousPage: parseInt(page) > 1,
@@ -1007,12 +1007,56 @@ exports.deleteClientData = async (req, res) => {
   }
 };
 
+exports.deleteReviewData = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reviewId } = req.query;
+
+    if (!id || !reviewId) {
+      return res.status(400).json({ error: "Missing required parameters: id or reviewId." });
+    }
+
+    const employeeReview = await EmployeeReview.findById(id);
+
+    // Check if the employee review exists
+    if (!employeeReview) {
+      return res.status(404).json({ error: "Employee review not found." });
+    }
+
+    // Find the review with the specified reviewId
+    const review = employeeReview.reviews.find(r => r._id.toString() === reviewId);
+
+    // Check if the review with the specified reviewId exists
+    if (!review) {
+      return res.status(404).json({ error: "Review with specified reviewId not found." });
+    }
+
+    // Remove the review from the array
+    employeeReview.reviews.pull({ _id: review._id });
+
+    // Save the updated document
+    await employeeReview.save();
+
+    res.status(200).json({ message: "Review deleted successfully." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 exports.downloadCsvEmployees = async (req, res) => {
   try {
     let data;
     let csvData;
 
     data = await Employees.find({});
+    // Custom transformation function for the "clients" field
+    const transformClientsField = (value) => {
+      // Assuming "clients" is an array of objects
+      return Array.isArray(value)
+        ? value.map(client => `${client.clientName.trim()}`).join(", ")
+        : value;
+    };
     csvData = json2csv(data, {
       fields: [
         "name",
@@ -1024,6 +1068,11 @@ exports.downloadCsvEmployees = async (req, res) => {
         "designation",
         "type",
         "phoneNumber",
+        "progressPercentage",
+        {
+          label: "clients",
+          value: (row) => transformClientsField(row.clients),
+        },
       ],
     });
 
