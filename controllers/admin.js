@@ -32,6 +32,7 @@ exports.uploadClientBulk = async (req, res) => {
         Videography: response[i]?.Videography,
         Photography: response[i]?.Photography,
         Website: response[i]?.Website,
+        Management : response[i]?.Management,
         "Content Creator": response[i]?.ContentCreator,
       });
     }
@@ -334,6 +335,60 @@ exports.addFieldsToClients = async (req, res) => {
   }
 };
 
+exports.deleteClientAllot = async (req, res) => {
+  const { id } = req.params;
+  const { clientId } = req.query;
+
+  try {
+    // Find the employee by id
+    const employee = await Employees.findById( id );
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // Find the index of the client in the clients array
+    const clientIndex = employee.clients.findIndex((client) => client._id.toString() === clientId);
+
+    if (clientIndex === -1) {
+      return res.status(404).json({ message: "Client not found for the given employee" });
+    }
+
+    // Remove the client from the clients array
+    employee.clients.splice(clientIndex, 1);
+
+    // Save the updated employee
+    await employee.save();
+
+    return res.status(200).json({ message: "Client deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
+exports.deleteMOM = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Find the MOM record by ID
+    const momRecord = await MomData.findById(id);
+
+    if (!momRecord) {
+      return res.status(404).json({ message: "MOM record not found" });
+    }
+
+    // Delete the MOM record
+    await MomData.findByIdAndDelete(id);
+
+    return res.status(200).json({ message: "MOM record deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 exports.editFieldsInClients = async (req, res) => {
   try {
     const { oldFieldName, newFieldName } = req.body;
@@ -394,9 +449,9 @@ exports.updateClientType = async (req, res) => {
       return res.status(404).json({ error: "Client not found" });
     }
 
-    if (client.clientType.toLowerCase() === "Regular") {
+    if (client.clientType.toLowerCase() === "regular") {
       client.clientType = "Onetime";
-    } else if (client.clientType.toLowerCase() === "Onetime") {
+    } else if (client.clientType.toLowerCase() === "onetime") {
       client.clientType = "Regular";
     }
 
@@ -424,7 +479,7 @@ exports.updateClientType = async (req, res) => {
 exports.addEmployeeReview = async (req, res) => {
   try {
     const { employeeData, client, review, goodOrBad } = req.body;
-    console.log(client, review, goodOrBad);
+    // console.log(client, review, goodOrBad);
 
     const existingEmployeeReview = await EmployeeReview.findOne({
       employeeData,

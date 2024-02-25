@@ -40,5 +40,6 @@ router.delete('/acknowlegdeTicketResolve/:id', employeeController.dissolveTicket
 router.delete('/deleteEmployee/:id', adminController.deleteEmployeeData);
 router.delete('/deleteClient/:id', adminController.deleteClientData);
 router.delete('/deleteReviews/:id', adminController.deleteReviewData);
-
+router.delete('/deleteClientAllot/:id',adminController.deleteClientAllot);
+router.delete('/deleteMOM/:id', adminController.deleteMOM);
 module.exports = router;

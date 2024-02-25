@@ -74,6 +74,10 @@ const clientSchema = mongoose.Schema(
     //     type : String,
     //     default : "NA"
     // },
+    // Management : {
+    //   type : String,
+    //   default : "NA"
+    // },
     clientType: {
       type: String,
       enum: ["Regular", "Onetime"],

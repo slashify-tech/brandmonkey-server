@@ -11,7 +11,7 @@ const clientElementSchema = mongoose.Schema({
     },
     clientType : {
       type:String,
-      default : "regular"
+      default : "Regular"
     },
     createdAt: {
       type: Date,
