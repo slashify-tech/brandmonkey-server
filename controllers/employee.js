@@ -120,7 +120,7 @@ exports.editClient = async (req, res, next) => {
 exports.getDashBoardEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-    const clients = await Employees.find({ employeeName: id });
+    const clients = await Employees.find({ _id : id });
     const tickets = await TicketAssigned.find({ toEmployee: id });
 
     const totalClients = clients[0].clients.length;
@@ -558,7 +558,7 @@ exports.updateWork = async (req, res) => {
   try {
     const updatedEmployee = await Employees.findOneAndUpdate(
       {
-        employeeName: id,
+        _id : id,
         "clients._id": workId,
       },
       {

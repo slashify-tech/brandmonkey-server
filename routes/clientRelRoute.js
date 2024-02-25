@@ -21,15 +21,12 @@ router.put("/clientAllocation/:id", adminController.storeClientDistributionData)
 router.put('/clienttype/:id', adminController.updateClientType);
 router.put('/addReview', adminController.addEmployeeReview);
 
-
 router.get('/getClientCSV', adminController.downloadCsvClients);
 router.get('/getEmployeesCSV', adminController.downloadCsvEmployees);
 router.get('/getClients', employeeController.getClient);
 router.get('/getmom/:id', adminController.getMomEntriesByClientId);
 router.get('/getOneClient/:id', employeeController.getOneClient);
 router.get('/getTicket', employeeController.getTicket);
-router.get('/employeelistOneTimeforadmin', adminController.getOneTimeEmployees);
-router.get('/employeelistRegularforadmin', adminController.getRegularEmployees);
 router.get('/employeeReviews', adminController.getEmployeeReviews);
 router.get('/employeeReviewsShow/:id', adminController.getEmployeeReviewsArray);
 router.get('/getOneClientTickets/:id', adminController.getTicketsForClient);

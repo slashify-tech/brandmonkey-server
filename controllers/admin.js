@@ -469,187 +469,6 @@ exports.updateClientType = async (req, res) => {
   }
 };
 
-// exports.getAllEmployeesAndClients = async (req, res) => { // this one to be changed today
-//   try {
-//     const allEmployees = await Employees.find();
-
-//     const RegularEmployees = [];
-//     const oneTimeEmployees = [];
-
-//     for (const employee of allEmployees) {
-//       const clientDistribution = await Employees.findOne({
-//         _id: employee._id,
-//       });
-
-//       if (clientDistribution) {
-//         const RegularClients = clientDistribution.clients
-//           .filter((client) => client.clientType === "Regular")
-//           .map(({ clientName, progressValue, clientType }) => ({
-//             clientName,
-//             progressValue,
-//             clientType,
-//           }));
-
-//         const oneTimeClients = clientDistribution.clients
-//           .filter((client) => client.clientType === "Onetime")
-//           .map(({ clientName, progressValue, clientType }) => ({
-//             clientName,
-//             progressValue,
-//             clientType,
-//           }));
-
-//         if (RegularClients.length > 0) {
-//           RegularEmployees.push({
-//             employee,
-//             clientDistribution: RegularClients,
-//           });
-//         }
-
-//         if (oneTimeClients.length > 0) {
-//           oneTimeEmployees.push({
-//             employee,
-//             clientDistribution: oneTimeClients,
-//           });
-//         }
-//       }
-//     }
-
-//     console.log({ RegularEmployees, oneTimeEmployees });
-//     res.status(200).json({ RegularEmployees, oneTimeEmployees });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ error: "Internal Server Error" });
-//   }
-// };
-
-exports.getOneTimeEmployees = async (req, res) => {
-  const { page } = req.query;
-  const limit =3;
-  try {
-    const allEmployees = await Employees.find().lean();
-
-    // Extract employee IDs
-    const employeeIds = allEmployees.map((employee) => employee._id);
-
-    // Fetch client distributions for all employees in a single query
-    const clientDistributions = await Employees.find({ _id: { $in: employeeIds } }).lean();
-
-    const onetimeEmployees = [];
-
-    // Pagination logic
-    let startIndex = 0;
-    let endIndex = allEmployees.length;
-
-    if (page && limit) {
-      const pageNumber = parseInt(page);
-      const pageSize = parseInt(limit);
-      startIndex = (pageNumber - 1) * pageSize;
-      endIndex = pageNumber * pageSize;
-    }
-
-    for (let i = startIndex; i < endIndex; i++) {
-      const employee = allEmployees[i];
-      const clientDistribution = clientDistributions.find((cd) => cd._id.equals(employee._id));
-
-      if (clientDistribution) {
-        const RegularClients = clientDistribution.clients
-          .filter((client) => client.clientType === "Onetime")
-          .map(({ clientName, progressValue, clientType }) => ({
-            clientName,
-            progressValue,
-            clientType,
-          }));
-
-        if (RegularClients.length > 0) {
-          onetimeEmployees.push({
-            employee,
-            clientDistribution: RegularClients,
-          });
-        }
-      }
-    }
-
-    console.log({ onetimeEmployees });
-    res.status(200).json({
-      onetimeEmployees,
-      currentPage: parseInt(page) || 1,
-      hasLastPage: endIndex < allEmployees.length,
-      hasPreviousPage: parseInt(page) > 1,
-      nextPage: parseInt(page) + 1,
-      previousPage: parseInt(page) - 1,
-      lastPage: Math.ceil(allEmployees.length / parseInt(limit)),
-      totalEmployeesCount: allEmployees.length,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-};
-
-exports.getRegularEmployees = async (req, res) => {
-  const { page } = req.query;
-  const limit =3;
-  try {
-    const allEmployees = await Employees.find().lean();
-
-    // Extract employee IDs
-    const employeeIds = allEmployees.map((employee) => employee._id);
-
-    // Fetch client distributions for all employees in a single query
-    const clientDistributions = await Employees.find({ _id: { $in: employeeIds } }).lean();
-
-    const RegularEmployees = [];
-
-    // Pagination logic
-    let startIndex = 0;
-    let endIndex = allEmployees.length;
-
-    if (page && limit) {
-      const pageNumber = parseInt(page);
-      const pageSize = parseInt(limit);
-      startIndex = (pageNumber - 1) * pageSize;
-      endIndex = pageNumber * pageSize;
-    }
-
-    for (let i = startIndex; i < endIndex; i++) {
-      const employee = allEmployees[i];
-      const clientDistribution = clientDistributions.find((cd) => cd._id.equals(employee._id));
-
-      if (clientDistribution) {
-        const RegularClients = clientDistribution.clients
-          .filter((client) => client.clientType === "Regular")
-          .map(({ clientName, progressValue, clientType }) => ({
-            clientName,
-            progressValue,
-            clientType,
-          }));
-
-        if (RegularClients.length > 0) {
-          RegularEmployees.push({
-            employee,
-            clientDistribution: RegularClients,
-          });
-        }
-      }
-    }
-
-    console.log({ RegularEmployees });
-    res.status(200).json({
-      RegularEmployees,
-      currentPage: parseInt(page) || 1,
-      hasLastPage: endIndex < allEmployees.length,
-      hasPreviousPage: parseInt(page) > 1,
-      nextPage: parseInt(page) + 1,
-      previousPage: parseInt(page) - 1,
-      lastPage: Math.ceil(allEmployees.length / parseInt(limit)),
-      totalEmployeesCount: allEmployees.length,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-};
-
 
 exports.addEmployeeReview = async (req, res) => {
   try {
@@ -1036,6 +855,13 @@ exports.deleteReviewData = async (req, res) => {
 
     // Save the updated document
     await employeeReview.save();
+
+    // Check if the reviews array is empty after deletion
+    if (employeeReview.reviews.length === 0) {
+      // If empty, delete the entire employeeReview document
+      await EmployeeReview.findByIdAndDelete(id);
+      return res.status(200).json({ message: "Employee review and associated review deleted successfully." });
+    }
 
     res.status(200).json({ message: "Review deleted successfully." });
   } catch (error) {
