@@ -485,8 +485,7 @@ const resolveTicketRequest = async (id) => {
       const adminEmails = admins.map((admin) => admin.email);
       // Email to client
       const clientMsg = {
-        // to: adminEmails,// Assuming 'email' is a field in Clients model
-        to: "minhazashraf590@gmail.com",
+        to: adminEmails,// Assuming 'email' is a field in Clients model
         from: "info@brandmonkey.in",
         subject: "Ticket Resolved",
         text: `Dear admin,\n\nThe ticket has been resolved successfully for ${clientName}.\n\nRegards,\n ${employeeName}`,
@@ -494,7 +493,6 @@ const resolveTicketRequest = async (id) => {
 
       await sgMail.send(clientMsg);
 
-      // console.log({ message: "TicketAssigned resolved successfully", ticket });
     } else {
       console.log({
         error: "Issue is not solved hence TicketAssigned cannot be resolved.",

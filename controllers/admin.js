@@ -114,55 +114,6 @@ exports.uploadEmployeeBulk = async (req, res) => {
   }
 };
 
-// exports.uploadClientandEmployeeBulk = async (req, res) => {
-//   let employees = [];
-//   try {
-//     const response = await csv().fromFile(req.file.path);
-
-//     for (let i = 0; i < response.length; i++) {
-//       const employeeName = response[i]?.EmployeeName.split("(")[0].trim();
-//       const employee = await Employees.findOne({ name: employeeName });
-
-//       if (!employee) {
-//         return res
-//           .status(404)
-//           .json({ message: `Employee with name ${employeeName} not found` });
-//       }
-
-//       const clientDetails = await Promise.all(
-//         response[i]?.["Client-Service"].split(",").map(async (client) => {
-//           const clientName = client.trim();
-//           const existingClient = await Clients.findOne({
-//             name: { $regex: new RegExp(clientName.split("-")[0].trim(), "i") },
-//           });
-//           return {
-//             clientName: clientName,
-//             progressValue: "0-10",
-//             clientType: existingClient ? existingClient.clientType : "Regular",
-//           };
-//         })
-//       );
-
-//       employees.push({
-//         employeeName: employee._id,
-//         clients: clientDetails.filter((client) => client.clientName !== ""),
-//       });
-//     }
-
-//     if (employees.length === 0 || employees.some((e) => !e.clients.length)) {
-//       return res
-//         .status(400)
-//         .json({ message: "Clients array must not be empty" });
-//     }
-
-//     await Employees.insertMany(employees);
-//     res.status(201).json({ message: "Uploaded", employees });
-//   } catch (err) {
-//     console.log(err);
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
 exports.assignTicket = async (req, res) => {
   try {
     const { forClients, toEmployee, services, description } = req.body;
@@ -203,33 +154,8 @@ exports.assignTicket = async (req, res) => {
 
     const adminEmails = admins.map((admin) => admin.email);
 
-    // const adminMsg = {
-    //   to: adminEmails,
-    //   from: "info@brandmonkey.in",
-    //   subject: "New Ticket Assigned",
-    //   text: `New Ticket Assigned:
-    //       For Clients: ${clientName}
-    //       To Employee: ${employeeName}
-    //       Services: ${services}
-    //       Description: ${description}`,
-    // };
-    // await sgMail.send(adminMsg);
-
-    // const employeeMsg = {
-    //    to: assignedEmployeeEmail,
-    //   from: "info@brandmonkey.in",
-    //   subject: "You have been assigned a new ticket",
-    //   text: `You have been assigned a new ticket:
-    //     For Clients: ${clientName}
-    //     Services: ${services}
-    //     Description: ${description}`,
-    // };
-
-    // await sgMail.send(employeeMsg);
-
     const adminMsg = {
-      // to: adminEmails,
-      to: "minhazashraf590@gmail.com",
+      to: adminEmails,
       from: "info@brandmonkey.in",
       subject: "New Ticket Assigned",
       text: `New Ticket Assigned:
@@ -241,8 +167,7 @@ exports.assignTicket = async (req, res) => {
     await sgMail.send(adminMsg);
 
     const employeeMsg = {
-      // to: assignedEmployeeEmail,
-      to: "pmrutunjay928@gmail.com",
+       to: assignedEmployeeEmail,
       from: "info@brandmonkey.in",
       subject: "You have been assigned a new ticket",
       text: `You have been assigned a new ticket:
@@ -252,6 +177,32 @@ exports.assignTicket = async (req, res) => {
     };
 
     await sgMail.send(employeeMsg);
+
+    // const adminMsg = {
+    //   // to: adminEmails,
+    //   to: "minhazashraf590@gmail.com",
+    //   from: "info@brandmonkey.in",
+    //   subject: "New Ticket Assigned",
+    //   text: `New Ticket Assigned:
+    //       For Clients: ${clientName}
+    //       To Employee: ${employeeName}
+    //       Services: ${services}
+    //       Description: ${description}`,
+    // };
+    // await sgMail.send(adminMsg);
+
+    // const employeeMsg = {
+    //   // to: assignedEmployeeEmail,
+    //   to: "pmrutunjay928@gmail.com",
+    //   from: "info@brandmonkey.in",
+    //   subject: "You have been assigned a new ticket",
+    //   text: `You have been assigned a new ticket:
+    //     For Clients: ${clientName}
+    //     Services: ${services}
+    //     Description: ${description}`,
+    // };
+
+    // await sgMail.send(employeeMsg);
     res.status(201).json({ message: "Ticket submitted successfully" });
   } catch (error) {
     console.error(error);
@@ -681,8 +632,7 @@ exports.acknowlegdeTicketResolve = async (req, res) => {
 
       // Send email to employee for accepted ticket
       const acceptMsg = {
-        // to: employeeEmail,
-        to: "pmrutunjay928@gmail.com",
+        to: employeeEmail,
         from: "info@brandmonkey.in",
         subject: "Ticket Accepted",
         text: `Dear ${employeeName},\n\nYour resolved ticket has been accepted and deleted successfully.\n\nRegards,\nThe Support Team`,
@@ -700,8 +650,7 @@ exports.acknowlegdeTicketResolve = async (req, res) => {
 
       // Send email to employee for rejected ticket
       const rejectMsg = {
-        // to: employeeEmail,
-        to: "pmrutunjay928@gmail.com",
+        to: employeeEmail,
         from: "info@brandmonkey.in",
         subject: "Ticket Rejected",
         text: `Dear ${employeeName},\n\nYour resolved ticket has been rejected there are futher issues that have to be solved.\n\nRegards,\nThe Support Team`,
