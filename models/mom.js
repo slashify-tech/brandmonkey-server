@@ -8,9 +8,11 @@ const momSchema = mongoose.Schema(
     },
     topicDiscuss: {
       type: String,
+      require : true
     },
     complain: {
       type: String,
+      require : true
     },
     feedback: {
       type: String,

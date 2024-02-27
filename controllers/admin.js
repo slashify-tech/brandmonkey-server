@@ -479,7 +479,6 @@ exports.updateClientType = async (req, res) => {
 exports.addEmployeeReview = async (req, res) => {
   try {
     const { employeeData, client, review, goodOrBad } = req.body;
-    // console.log(client, review, goodOrBad);
 
     const existingEmployeeReview = await EmployeeReview.findOne({
       employeeData,
