@@ -4,26 +4,26 @@ const router = express.Router();
 const employeeController = require('../controllers/employee');
 const adminController = require('../controllers/admin');
 const { fileMulter } = require('../multer/multerFile');
+const { isSuperAdmin, isAdmin } = require("../middleware/is_auth");
 
 router.post('/csvClients',fileMulter, adminController.uploadClientBulk);
-// router.post('/csvClientsAndEmployee',fileMulter, adminController.uploadClientandEmployeeBulk);
-router.post('/addClient', employeeController.addClient);
+router.post('/addClient',isSuperAdmin, employeeController.addClient); //completed
 router.post('/submitTicket', adminController.assignTicket);
 router.post('/acknowledgeTicket', adminController.acknowlegdeTicketResolve);
 router.post('/addmom/:id', adminController.createMomEntry);
 
-router.put('/addservicefield', adminController.addFieldsToClients);
-router.put('/editservicefield', adminController.editFieldsInClients);
-router.put('/deleteservicefield', adminController.deleteFieldsFromClients);
-router.put("/editClient/:id", employeeController.editClient);
-router.put("/editEmployee/:id", employeeController.editEmployee);
-router.put("/clientAllocation/:id", adminController.storeClientDistributionData);
-router.put('/clienttype/:id', adminController.updateClientType);
+router.put('/addservicefield',isSuperAdmin, adminController.addFieldsToClients); //completed
+router.put('/editservicefield',isSuperAdmin, adminController.editFieldsInClients); //completed
+router.put('/deleteservicefield',isSuperAdmin, adminController.deleteFieldsFromClients); //completed
+router.put("/editClient/:id",isSuperAdmin, employeeController.editClient); //completed
+router.put("/editEmployee/:id",isSuperAdmin, employeeController.editEmployee); //completed
+router.put("/clientAllocation/:id",isSuperAdmin, adminController.storeClientDistributionData); //completed
+router.put('/clienttype/:id',isSuperAdmin, adminController.updateClientType); //completed
 router.put('/addReview', adminController.addEmployeeReview);
 
 router.get('/getClientCSV', adminController.downloadCsvClients);
 router.get('/getEmployeesCSV', adminController.downloadCsvEmployees);
-router.get('/getClients', employeeController.getClient);
+router.get('/getClients', isAdmin, employeeController.getClient); //completed
 router.get('/getmom/:id', adminController.getMomEntriesByClientId);
 router.get('/getOneClient/:id', employeeController.getOneClient);
 router.get('/getTicket', employeeController.getTicket);
@@ -37,9 +37,10 @@ router.get('/getDashboardAdmin', adminController.getDashBoardAdmin);
 router.get('/getDashboardEmployee/:id', employeeController.getDashBoardEmployee);
 
 router.delete('/acknowlegdeTicketResolve/:id', employeeController.dissolveTicket);
-router.delete('/deleteEmployee/:id', adminController.deleteEmployeeData);
-router.delete('/deleteClient/:id', adminController.deleteClientData);
+router.delete('/deleteEmployee/:id', isSuperAdmin, adminController.deleteEmployeeData); //completed
+router.delete('/deleteClient/:id', isSuperAdmin, adminController.deleteClientData); //completed
 router.delete('/deleteReviews/:id', adminController.deleteReviewData);
-router.delete('/deleteClientAllot/:id',adminController.deleteClientAllot);
+router.delete('/deleteClientAllot/:id', isSuperAdmin,adminController.deleteClientAllot); //completed
 router.delete('/deleteMOM/:id', adminController.deleteMOM);
+
 module.exports = router;
