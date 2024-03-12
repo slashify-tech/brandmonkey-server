@@ -33,7 +33,8 @@ const ticketSchema = mongoose.Schema({
         type : String,
         enum : ["accept", "start", "processing", "done"],
         default : "accept"
-    }
+    },
+    revertIssue: { type: String },
     
 });
 

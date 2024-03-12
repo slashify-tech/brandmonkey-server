@@ -83,6 +83,7 @@ const clientSchema = mongoose.Schema(
       enum: ["Regular", "Onetime"],
       default: "Regular",
     },
+    colorZone: { type: String },
   },
   { strict: false }
 );

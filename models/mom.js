@@ -17,6 +17,7 @@ const momSchema = mongoose.Schema(
     feedback: {
       type: String,
     },
+    attendies: { type: String },
   },
   { timestamps: true }
 );

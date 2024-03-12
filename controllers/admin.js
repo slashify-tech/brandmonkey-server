@@ -367,7 +367,7 @@ exports.getEmployeeReviews = async (req, res) => {
 exports.createMomEntry = async (req, res) => {
   try {
     const clientId = req.params.id;
-    const { topicDiscuss, complain, feedback } = req.body;
+    const { topicDiscuss, complain, feedback, color  } = req.body;
 
     const momEntry = new MomData({
       clientId,
@@ -375,6 +375,10 @@ exports.createMomEntry = async (req, res) => {
       complain,
       feedback,
     });
+
+    if (color) {
+      await Clients.findByIdAndUpdate(clientId, { colorZone: color });
+    }
 
     const savedMomEntry = await momEntry.save();
 
@@ -480,6 +484,7 @@ exports.acknowlegdeTicketResolve = async (req, res) => {
     } else if (value === "reject") {
       ticket.revertBack = true;
       ticket.ticketraised = true;
+      ticket.revertIssue = revertIssue;
       await ticket.save();
 
       // Send email to employee for rejected ticket
