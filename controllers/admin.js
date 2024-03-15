@@ -11,7 +11,6 @@ const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const fs = require("fs");
 
-
 exports.uploadClientBulk = async (req, res) => {
   let ClientData = [];
   try {
@@ -33,14 +32,17 @@ exports.uploadClientBulk = async (req, res) => {
         Videography: response[i]?.Videography,
         Photography: response[i]?.Photography,
         Website: response[i]?.Website,
-        Management : response[i]?.Management,
+        Management: response[i]?.Management,
         "Content Creator": response[i]?.ContentCreator,
+        GST: response[i]?.GST || "NA",
+        Address: response[i]?.Address || "NA",
+        State: response[i]?.State || "NA",
+        Country: response[i]?.Country || "NA",
       });
     }
 
     await Clients.insertMany(ClientData);
-    res.status(201).json({ message: "uploaded" });
-    res.status(201).json({ ClientData });
+    res.status(201).json({ message: "uploaded", ClientData });
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: err.message });
@@ -95,7 +97,7 @@ exports.uploadEmployeeBulk = async (req, res) => {
       );
 
       Employee.push({
-        employeeId: response[i]?.EmployeeID,
+        employeeId: response[i]?.EmployeeID || "NA",
         name: response[i]?.EmployeeName,
         team: response[i]?.Team,
         type: response[i]?.Type,
@@ -105,6 +107,9 @@ exports.uploadEmployeeBulk = async (req, res) => {
         password: simpleEncrypt(response[i]?.Password, 5),
         services: response[i]?.Services,
         clients: clientDetails.filter((client) => client.clientName !== ""),
+        Gender: response[i]?.Gender || "NA",
+        DateOfJoining: response[i]?.Joining || "NA",
+        DateOfBirth: response[i]?.Birth || "NA",
       });
     }
 
@@ -169,7 +174,7 @@ exports.assignTicket = async (req, res) => {
     await sgMail.send(adminMsg);
 
     const employeeMsg = {
-       to: assignedEmployeeEmail,
+      to: assignedEmployeeEmail,
       from: "info@brandmonkey.in",
       subject: "You have been assigned a new ticket",
       text: `You have been assigned a new ticket:
@@ -227,11 +232,6 @@ exports.resolveTickets = async (req, res) => {
   }
 };
 
-
-
-
-
-
 exports.deleteMOM = async (req, res) => {
   const { id } = req.params;
 
@@ -252,9 +252,6 @@ exports.deleteMOM = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
-
-
 
 exports.addEmployeeReview = async (req, res) => {
   try {
@@ -367,7 +364,7 @@ exports.getEmployeeReviews = async (req, res) => {
 exports.createMomEntry = async (req, res) => {
   try {
     const clientId = req.params.id;
-    const { topicDiscuss, complain, feedback, color  } = req.body;
+    const { topicDiscuss, complain, feedback, color } = req.body;
 
     const momEntry = new MomData({
       clientId,
@@ -568,16 +565,15 @@ exports.getTicketsForClient = async (req, res) => {
   }
 };
 
-
-
-
 exports.deleteReviewData = async (req, res) => {
   try {
     const { id } = req.params;
     const { reviewId } = req.query;
 
     if (!id || !reviewId) {
-      return res.status(400).json({ error: "Missing required parameters: id or reviewId." });
+      return res
+        .status(400)
+        .json({ error: "Missing required parameters: id or reviewId." });
     }
 
     const employeeReview = await EmployeeReview.findById(id);
@@ -588,11 +584,15 @@ exports.deleteReviewData = async (req, res) => {
     }
 
     // Find the review with the specified reviewId
-    const review = employeeReview.reviews.find(r => r._id.toString() === reviewId);
+    const review = employeeReview.reviews.find(
+      (r) => r._id.toString() === reviewId
+    );
 
     // Check if the review with the specified reviewId exists
     if (!review) {
-      return res.status(404).json({ error: "Review with specified reviewId not found." });
+      return res
+        .status(404)
+        .json({ error: "Review with specified reviewId not found." });
     }
 
     // Remove the review from the array
@@ -605,7 +605,12 @@ exports.deleteReviewData = async (req, res) => {
     if (employeeReview.reviews.length === 0) {
       // If empty, delete the entire employeeReview document
       await EmployeeReview.findByIdAndDelete(id);
-      return res.status(200).json({ message: "Employee review and associated review deleted successfully." });
+      return res
+        .status(200)
+        .json({
+          message:
+            "Employee review and associated review deleted successfully.",
+        });
     }
 
     res.status(200).json({ message: "Review deleted successfully." });
@@ -625,7 +630,7 @@ exports.downloadCsvEmployees = async (req, res) => {
     const transformClientsField = (value) => {
       // Assuming "clients" is an array of objects
       return Array.isArray(value)
-        ? value.map(client => `${client.clientName.trim()}`).join(", ")
+        ? value.map((client) => `${client.clientName.trim()}`).join(", ")
         : value;
     };
     csvData = json2csv(data, {

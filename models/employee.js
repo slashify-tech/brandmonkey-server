@@ -36,6 +36,18 @@ const employeeSchema = mongoose.Schema({
     type: String,
     required: true,
   },
+  Gender: {
+    type: String,
+    required: true,
+  },
+  DateOfBirth: {
+    type: String,
+    required: true,
+  },
+  DateOfJoining: {
+    type: String,
+    required: true,
+  },
   name: {
     type: String,
     required: true,
