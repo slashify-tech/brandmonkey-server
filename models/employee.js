@@ -1,31 +1,34 @@
 const mongoose = require("mongoose");
 
-const clientElementSchema = mongoose.Schema({
+const clientElementSchema = mongoose.Schema(
+  {
     clientName: {
-      type:String,
-      required : true
+      type: String,
+      required: true,
     },
     progressValue: {
       type: String,
-      default: "0-10"
+      default: "0-10",
     },
-    clientType : {
-      type:String,
-      default : "Regular"
+    clientType: {
+      type: String,
+      default: "Regular",
     },
     createdAt: {
       type: Date,
-      default: Date.now
+      default: Date.now,
     },
     updatedAt: {
       type: Date,
-      default: Date.now
+      default: Date.now,
     },
-    toEnd : {
-      type:String,
-      default : false
-    }
-  },{ strict: false });
+    toEnd: {
+      type: String,
+      default: false,
+    },
+  },
+  { strict: false }
+);
 
 const employeeSchema = mongoose.Schema({
   team: {
@@ -79,6 +82,14 @@ const employeeSchema = mongoose.Schema({
   clients: [clientElementSchema],
   progressPercentage: {
     type: String,
+    default: 0,
+  },
+  totalTicketsIssued: {
+    type: Number,
+    default: 0,
+  },
+  totalTicketsResolved: {
+    type: Number,
     default: 0,
   },
 });

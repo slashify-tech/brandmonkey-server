@@ -70,6 +70,9 @@ exports.getClient = async (req, res) => {
     let totalClientsCount;
     let endIndex;
 
+     // Initialize page with 1 if not present
+     page = page ? parseInt(page) : 1;
+
     if (search) {
       const searchRegex = new RegExp(search, "i");
       query = {

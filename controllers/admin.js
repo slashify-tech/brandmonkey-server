@@ -10,6 +10,7 @@ dotenv.config();
 const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const fs = require("fs");
+const TicketCount = require("../models/ticketCount");
 
 exports.uploadClientBulk = async (req, res) => {
   let ClientData = [];
@@ -132,6 +133,17 @@ exports.assignTicket = async (req, res) => {
     if (!assignedEmployee) {
       return res.status(404).json({ error: "Assigned employee not found" });
     }
+    // Update totalTicketsIssued in Employees schema
+    assignedEmployee.totalTicketsIssued += 1;
+    await assignedEmployee.save();
+
+    // Find or create the ticket count document
+    let ticketCount = await TicketCount.findOne();
+    if (!ticketCount) {
+      ticketCount = new TicketCount();
+    }
+    ticketCount.TotalTickets += 1;
+    await ticketCount.save();
 
     const assignedEmployeeEmail = assignedEmployee.email;
 
@@ -444,7 +456,7 @@ exports.getResolvedEmployeeTickets = async (req, res) => {
 
 exports.acknowlegdeTicketResolve = async (req, res) => {
   try {
-    const { id, value } = req.query;
+    const { id, value, revertIssue } = req.query;
 
     if (!id || !value) {
       return res.status(400).json({ error: "Missing required parameters." });
@@ -463,6 +475,21 @@ exports.acknowlegdeTicketResolve = async (req, res) => {
     const employeeEmail = ticket.toEmployee.email;
 
     if (value === "accept") {
+      // Update totalTicketsResolved in Employees schema
+      const assignedEmployee = await Employees.findById(ticket.toEmployee);
+      if (assignedEmployee) {
+        assignedEmployee.totalTicketsResolved += 1;
+        await assignedEmployee.save();
+      }
+
+      // Update TotalTicketSolved in ticketCount schema
+      let ticketCount = await TicketCount.findOne();
+      if (!ticketCount) {
+        ticketCount = new TicketCount();
+      }
+      ticketCount.TotalTicketSolved += 1;
+      await ticketCount.save();
+
       await TicketAssigned.findByIdAndDelete(id);
 
       // Send email to employee for accepted ticket
@@ -605,12 +632,9 @@ exports.deleteReviewData = async (req, res) => {
     if (employeeReview.reviews.length === 0) {
       // If empty, delete the entire employeeReview document
       await EmployeeReview.findByIdAndDelete(id);
-      return res
-        .status(200)
-        .json({
-          message:
-            "Employee review and associated review deleted successfully.",
-        });
+      return res.status(200).json({
+        message: "Employee review and associated review deleted successfully.",
+      });
     }
 
     res.status(200).json({ message: "Review deleted successfully." });
