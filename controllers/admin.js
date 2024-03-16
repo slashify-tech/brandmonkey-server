@@ -161,29 +161,29 @@ exports.assignTicket = async (req, res) => {
 
     const adminEmails = admins.map((admin) => admin.email);
 
-    const adminMsg = {
-      to: adminEmails,
-      from: "info@brandmonkey.in",
-      subject: "New Ticket Assigned",
-      text: `New Ticket Assigned:
-          For Clients: ${clientName}
-          To Employee: ${employeeName}
-          Services: ${services}
-          Description: ${description}`,
-    };
-    await sgMail.send(adminMsg);
+    // const adminMsg = {
+    //   to: adminEmails,
+    //   from: "info@brandmonkey.in",
+    //   subject: "New Ticket Assigned",
+    //   text: `New Ticket Assigned:
+    //       For Clients: ${clientName}
+    //       To Employee: ${employeeName}
+    //       Services: ${services}
+    //       Description: ${description}`,
+    // };
+    // await sgMail.send(adminMsg);
 
-    const employeeMsg = {
-      to: assignedEmployeeEmail,
-      from: "info@brandmonkey.in",
-      subject: "You have been assigned a new ticket",
-      text: `You have been assigned a new ticket:
-        For Clients: ${clientName}
-        Services: ${services}
-        Description: ${description}`,
-    };
+    // const employeeMsg = {
+    //   to: assignedEmployeeEmail,
+    //   from: "info@brandmonkey.in",
+    //   subject: "You have been assigned a new ticket",
+    //   text: `You have been assigned a new ticket:
+    //     For Clients: ${clientName}
+    //     Services: ${services}
+    //     Description: ${description}`,
+    // };
 
-    await sgMail.send(employeeMsg);
+    // await sgMail.send(employeeMsg);
 
     // const adminMsg = {
     //   // to: adminEmails,

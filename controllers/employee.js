@@ -32,11 +32,10 @@ function simpleDecrypt(encryptedData, key) {
   return simpleEncrypt(encryptedData, 26 - key);
 }
 
-
 exports.getDashBoardEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-    const clients = await Employees.find({ _id : id });
+    const clients = await Employees.find({ _id: id });
     const tickets = await TicketAssigned.find({ toEmployee: id });
 
     const totalClients = clients[0].clients.length;
@@ -48,7 +47,6 @@ exports.getDashBoardEmployee = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
-
 
 exports.dissolveTicket = async (req, res, next) => {
   try {
@@ -66,7 +64,7 @@ exports.dissolveTicket = async (req, res, next) => {
 
 exports.getClient = async (req, res) => {
   try {
-    const { page, limit, search } = req.query;
+    let { page, limit, search, clientType } = req.query;
     let query = {};
     let result;
     let totalClientsCount;
@@ -79,7 +77,12 @@ exports.getClient = async (req, res) => {
         $or: [{ clientType: searchRegex }, { name: searchRegex }],
       };
     }
-    
+
+    if (clientType) {
+      query.clientType = clientType; // Add filter for clientType
+      limit = 12;
+    }
+
     if (page && limit) {
       const pageNumber = parseInt(page);
       const pageSize = parseInt(limit);
@@ -87,32 +90,42 @@ exports.getClient = async (req, res) => {
       endIndex = pageNumber * pageSize;
 
       totalClientsCount = await Clients.countDocuments(query);
-      
-      const clientsData = await Clients.find(query).limit(pageSize).skip(startIndex);
-      
-      const clientsWithTicketsCount = await Promise.all(clientsData.map(async (client) => {
-        const ticketsCount = await TicketAssigned.countDocuments({ forClients: client._id });
-        return {
-          ...client.toObject(),
-          ticketsCount,
-        };
-      }));
-      
+
+      const clientsData = await Clients.find(query)
+        .limit(pageSize)
+        .skip(startIndex);
+
+      const clientsWithTicketsCount = await Promise.all(
+        clientsData.map(async (client) => {
+          const ticketsCount = await TicketAssigned.countDocuments({
+            forClients: client._id,
+          });
+          return {
+            ...client.toObject(),
+            ticketsCount,
+          };
+        })
+      );
+
       result = {
         nextPage: pageNumber + 1,
         data: clientsWithTicketsCount,
       };
     } else {
       const clientsData = await Clients.find(query);
-      
-      const clientsWithTicketsCount = await Promise.all(clientsData.map(async (client) => {
-        const ticketsCount = await TicketAssigned.countDocuments({ forClients: client._id });
-        return {
-          ...client.toObject(),
-          ticketsCount,
-        };
-      }));
-      
+
+      const clientsWithTicketsCount = await Promise.all(
+        clientsData.map(async (client) => {
+          const ticketsCount = await TicketAssigned.countDocuments({
+            forClients: client._id,
+          });
+          return {
+            ...client.toObject(),
+            ticketsCount,
+          };
+        })
+      );
+
       result = {
         data: clientsWithTicketsCount,
       };
@@ -134,6 +147,88 @@ exports.getClient = async (req, res) => {
   }
 };
 
+
+// exports.getClient = async (req, res) => {
+
+//   try {
+//     const { page, limit, search, clientType } = req.query;
+//     let query = {};
+//     let result;
+//     let totalClientsCount;
+//     let endIndex;
+
+//     if (search) {
+//       const searchRegex = new RegExp(search, "i");
+//       query = {
+//         ...query,
+//         $or: [{ clientType: searchRegex }, { name: searchRegex }],
+//       };
+//     }
+
+//     if (clientType) {
+//       query.clientType = clientType; // Add filter for clientType
+//     }
+
+//     let projection = { _id: 1, name: 1, colorZone: 1 }; // Fields to include in the result
+
+//     if (page && limit) {
+//       const pageNumber = parseInt(page);
+//       const pageSize = parseInt(limit);
+//       const startIndex = (pageNumber - 1) * pageSize;
+//       endIndex = pageNumber * pageSize;
+
+//       totalClientsCount = await Clients.countDocuments(query);
+
+//       const clientsData = await Clients.find(query, projection).limit(pageSize).skip(startIndex);
+
+//       const clientsWithTicketsCount = await Promise.all(clientsData.map(async (client) => {
+//         const ticketsCount = await TicketAssigned.countDocuments({ forClients: client._id });
+//         return {
+//           _id: client._id,
+//           name: client.name,
+//           colorZone: client.colorZone || "#fff",
+//           ticketsCount,
+//         };
+//       }));
+
+//       result = {
+//         nextPage: pageNumber + 1,
+//         data: clientsWithTicketsCount,
+//       };
+//     } else {
+//       const clientsData = await Clients.find(query);
+
+//       const clientsWithTicketsCount = await Promise.all(clientsData.map(async (client) => {
+//         const ticketsCount = await TicketAssigned.countDocuments({ forClients: client._id });
+//         return {
+//           _id: client._id,
+//           name: client.name,
+//           colorZone: client.colorZone || "#fff",
+//           ticketsCount,
+//         };
+//       }));
+
+//       result = {
+//         data: clientsWithTicketsCount,
+//       };
+//     }
+
+//     res.status(200).json({
+//       result,
+//       currentPage: parseInt(page),
+//       hasLastPage: endIndex < totalClientsCount,
+//       hasPreviousPage: parseInt(page) > 1,
+//       nextPage: parseInt(page) + 1,
+//       previousPage: parseInt(page) - 1,
+//       lastPage: Math.ceil(totalClientsCount / parseInt(limit)),
+//       totalClientsCount,
+//     });
+//   } catch (e) {
+//     console.log(e);
+//     res.status(400).send(e);
+//   }
+// };
+
 exports.getOneClient = async (req, res) => {
   try {
     const { id } = req.params;
@@ -148,7 +243,6 @@ exports.getOneClient = async (req, res) => {
     res.status(400).send(e);
   }
 };
-
 
 exports.getEmployee = async (req, res, next) => {
   try {
@@ -268,7 +362,6 @@ exports.getTicket = async (req, res, next) => {
       lastPage: Math.ceil(totalTicketCount / parseInt(limit)),
       totalTicketCount,
     });
-
   } catch (e) {
     console.log(e);
     res.status(400).send(e);
@@ -290,7 +383,8 @@ exports.getOneTicket = async (req, res, next) => {
   }
 };
 
-exports.getClientEmployeeRel = async (req, res) => {// why have i written this
+exports.getClientEmployeeRel = async (req, res) => {
+  // why have i written this
   try {
     const { id } = req.params;
     const clientAssigned = await Employees.findOne({ _id: id });
@@ -332,8 +426,6 @@ exports.getClientEmployeeRel = async (req, res) => {// why have i written this
   }
 };
 
-
-
 const getClient = async (clientNames) => {
   try {
     const clientData = await Clients.find({
@@ -350,12 +442,14 @@ const getClient = async (clientNames) => {
   }
 };
 
-
 exports.getEmployeeTicket = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const tickets = await TicketAssigned.find({ toEmployee: id, ticketraised: true });
+    const tickets = await TicketAssigned.find({
+      toEmployee: id,
+      ticketraised: true,
+    });
 
     console.log(tickets);
     res.status(200).json({
@@ -364,7 +458,7 @@ exports.getEmployeeTicket = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({
-      error: 'Internal Server Error',
+      error: "Internal Server Error",
     });
   }
 };
