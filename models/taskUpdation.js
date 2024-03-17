@@ -6,19 +6,19 @@ const hitsSchema = mongoose.Schema({
 });
 const ActivitySchema = mongoose.Schema(
   {
-    cilentname: {
+    clientName: {
       type: String,
     },
 
-    activityDescription: {
+    activity: {
       type: String,
     },
     timeSlot: {
       type: String,
+      required : true
     },
-    hours: { type: String },
   },
-  { timeStamps: true }
+  { timestamps: true }
 );
 
 const TaskSchema = mongoose.Schema({

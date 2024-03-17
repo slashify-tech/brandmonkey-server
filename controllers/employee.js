@@ -35,13 +35,13 @@ function simpleDecrypt(encryptedData, key) {
 exports.getDashBoardEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-    const clients = await Employees.find({ _id: id });
-    const tickets = await TicketAssigned.find({ toEmployee: id });
+    const employee = await Employees.find({ _id: id });
 
-    const totalClients = clients[0].clients.length;
-    const totalTickets = tickets.length;
-    const totalWorkProgress = parseInt(clients[0].progressPercentage);
-    res.status(201).json({totalClients, totalTickets, totalWorkProgress});
+    const totalClients = employee[0].clients.length;
+    const totalTickets = employee[0].totalTicketsIssued;
+    const totalTicketsResolved = employee[0].totalTicketsResolved;
+    const totalWorkProgress = parseInt(employee[0].progressPercentage);
+    res.status(201).json({ totalClients, totalTickets, totalWorkProgress, totalTicketsResolved });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -70,8 +70,8 @@ exports.getClient = async (req, res) => {
     let totalClientsCount;
     let endIndex;
 
-     // Initialize page with 1 if not present
-     page = page ? parseInt(page) : 1;
+    // Initialize page with 1 if not present
+    page = page ? parseInt(page) : 1;
 
     if (search) {
       const searchRegex = new RegExp(search, "i");
@@ -149,7 +149,6 @@ exports.getClient = async (req, res) => {
     res.status(400).send(e);
   }
 };
-
 
 // exports.getClient = async (req, res) => {
 
@@ -391,7 +390,6 @@ exports.getClientEmployeeRel = async (req, res) => {
   try {
     const { id } = req.params;
     const clientAssigned = await Employees.findOne({ _id: id });
-    // console.log(clientAssigned);
 
     if (clientAssigned) {
       const clientNames = clientAssigned.clients.map((item) =>
@@ -403,10 +401,10 @@ exports.getClientEmployeeRel = async (req, res) => {
       const clientsWithData = clientAssigned.clients.map((client) => {
         const clientInfo = clientData.find(
           (data) =>
-            data.name.toLowerCase() ===
+            data.name.trim().toLowerCase() ===
             client.clientName.split("-")[0].trim().toLowerCase()
         );
-        client.clientType = clientInfo ? clientInfo.clientType : "Unknown";
+        client.clientType = clientInfo;
 
         return {
           clientType: client.clientType,
@@ -436,7 +434,7 @@ const getClient = async (clientNames) => {
     });
 
     return clientData.map((client) => ({
-      name: client.name,
+      name: client.name.trim(),
       clientType: client.clientType,
     }));
   } catch (error) {
@@ -454,7 +452,6 @@ exports.getEmployeeTicket = async (req, res) => {
       ticketraised: true,
     });
 
-    console.log(tickets);
     res.status(200).json({
       tickets,
     });
@@ -463,5 +460,28 @@ exports.getEmployeeTicket = async (req, res) => {
     res.status(500).json({
       error: "Internal Server Error",
     });
+  }
+};
+
+exports.getClientWork = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let { clientName, clientWork } = req.query;
+
+    if (clientWork === "Youtube") {
+      clientWork = "Youtube Management";
+    }
+
+    // Query for clients using the correct field name
+    const client = await Clients.find({ name: clientName });
+
+    if (client.length === 0) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+
+    res.status(200).json({ clientWork: client[0][clientWork] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };

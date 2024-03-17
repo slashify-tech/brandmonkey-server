@@ -1,19 +1,22 @@
-const sgMail = require('@sendgrid/mail');
+const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const Employees = require("../models/employee");
 const TicketAssigned = require("../models/ticketRaise");
 const dotenv = require("dotenv");
+const TicketCount = require("../models/ticketCount");
 
 dotenv.config();
 
 const resolveTicketRequest = async (id) => {
   try {
-    const ticket = await TicketAssigned.findById(id).populate('forClients toEmployee');
+    const ticket = await TicketAssigned.findById(id).populate(
+      "forClients toEmployee"
+    );
 
     if (!ticket) {
       return;
     }
-
+    // Find or create the ticket count document and increment TotalTickets
     if (ticket.progressValue === "done") {
       ticket.ticketraised = false;
 
@@ -26,18 +29,17 @@ const resolveTicketRequest = async (id) => {
       const admins = await Employees.find({
         type: { $in: ["admin", "superadmin"] },
       }).select("email");
-  
+
       const adminEmails = admins.map((admin) => admin.email);
       // Email to client
       const clientMsg = {
-        to: adminEmails,// Assuming 'email' is a field in Clients model
+        to: adminEmails, // Assuming 'email' is a field in Clients model
         from: "info@brandmonkey.in",
         subject: "Ticket Resolved",
         text: `Dear admin,\n\nThe ticket has been resolved successfully for ${clientName}.\n\nRegards,\n ${employeeName}`,
       };
 
-      await sgMail.send(clientMsg);
-
+      // await sgMail.send(clientMsg);
     } else {
       console.log({
         error: "Issue is not solved hence TicketAssigned cannot be resolved.",
@@ -45,17 +47,16 @@ const resolveTicketRequest = async (id) => {
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json("Internal Server Error")
+    res.status(500).json("Internal Server Error");
   }
 };
-
 
 exports.updateProgress = async (req, res) => {
   const { id } = req.params;
   const { progress } = req.query;
 
   try {
-    const ticket = await TicketAssigned.findById(id).populate('forClients toEmployee');
+    const ticket = await TicketAssigned.findById(id);
 
     if (!ticket) {
       return res.status(404).json({ error: "Ticket not found" });
@@ -73,6 +74,7 @@ exports.updateProgress = async (req, res) => {
         break;
       case "done":
         resolveTicketRequest(id);
+
         break;
       default:
         return res
@@ -91,8 +93,6 @@ exports.updateProgress = async (req, res) => {
   }
 };
 
-
-
 exports.updateWork = async (req, res) => {
   const { id } = req.params;
   const { workId } = req.query;
@@ -101,7 +101,7 @@ exports.updateWork = async (req, res) => {
   try {
     const updatedEmployee = await Employees.findOneAndUpdate(
       {
-        _id : id,
+        _id: id,
         "clients._id": workId,
       },
       {

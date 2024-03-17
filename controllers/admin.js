@@ -19,7 +19,7 @@ exports.uploadClientBulk = async (req, res) => {
 
     for (var i = 0; i < response.length; i++) {
       ClientData.push({
-        name: response[i]?.Clients,
+        name: response[i]?.Clients.trim(),
         Reels: response[i]?.Reels,
         Flyers: response[i]?.Flyer,
         "Facebook Ads": response[i]?.FacebookAds,
@@ -126,24 +126,23 @@ exports.assignTicket = async (req, res) => {
   try {
     const { forClients, toEmployee, services, description } = req.body;
 
-    const assignedEmployee = await Employees.findById(toEmployee)
-      .select("email")
-      .exec();
+    // Find the assigned employee and update totalTicketsIssued
+    const assignedEmployee = await Employees.findByIdAndUpdate(
+      toEmployee,
+      { $inc: { totalTicketsIssued: 1 } },
+      { new: true, select: "email" }
+    );
 
     if (!assignedEmployee) {
       return res.status(404).json({ error: "Assigned employee not found" });
     }
-    // Update totalTicketsIssued in Employees schema
-    assignedEmployee.totalTicketsIssued += 1;
-    await assignedEmployee.save();
 
-    // Find or create the ticket count document
-    let ticketCount = await TicketCount.findOne();
-    if (!ticketCount) {
-      ticketCount = new TicketCount();
-    }
-    ticketCount.TotalTickets += 1;
-    await ticketCount.save();
+    // Find or create the ticket count document and increment TotalTickets
+    await TicketCount.findOneAndUpdate(
+      {},
+      { $inc: { TotalTickets: 1 } },
+      { upsert: true, new: true }
+    );
 
     const assignedEmployeeEmail = assignedEmployee.email;
 
@@ -159,10 +158,10 @@ exports.assignTicket = async (req, res) => {
     await newTicket.save();
 
     // Populate the forClients and toEmployee fields to get the actual names
-    const populatedTicket = await TicketAssigned.findById(newTicket._id)
-      .populate("forClients", "name")
-      .populate("toEmployee", "name")
-      .exec();
+    const populatedTicket = await TicketAssigned.populate(newTicket, [
+      { path: "forClients", select: "name" },
+      { path: "toEmployee", select: "name" },
+    ]);
 
     const { name: clientName } = populatedTicket.forClients;
     const { name: employeeName } = populatedTicket.toEmployee;
@@ -306,66 +305,10 @@ exports.addEmployeeReview = async (req, res) => {
 
 exports.getEmployeeReviews = async (req, res) => {
   try {
-    const { page, limit } = req.query;
-    let query = {};
-    let result;
-    let totalReviewsCount;
-    let endIndex;
-    if (page && limit) {
-      const pageNumber = parseInt(page);
-      const pageSize = parseInt(limit);
-      const startIndex = (pageNumber - 1) * pageSize;
-      endIndex = pageNumber * pageSize;
-
-      totalReviewsCount = await EmployeeReview.countDocuments(query);
-      if (endIndex < totalReviewsCount) {
-        result = {
-          nextPage: pageNumber + 1,
-          data: await EmployeeReview.find(query)
-            .limit(pageSize)
-            .skip(startIndex)
-            .populate("employeeData", [
-              "name",
-              "designation",
-              "phoneNumber",
-              "employeeId",
-            ]),
-        };
-      } else {
-        result = {
-          data: await EmployeeReview.find(query)
-            .limit(pageSize)
-            .skip(startIndex)
-            .populate("employeeData", [
-              "name",
-              "designation",
-              "phoneNumber",
-              "employeeId",
-            ]),
-        };
-      }
-    } else {
-      result = {
-        data: await EmployeeReview.find(query).populate("employeeData", [
-          "name",
-          "designation",
-          "phoneNumber",
-          "employeeId",
-        ]),
-      };
-    }
-
-    // console.log(result);
+    const reviews = await EmployeeReview.find();
 
     res.status(200).json({
-      result,
-      currentPage: parseInt(page),
-      hasLastPage: endIndex < totalReviewsCount,
-      hasPreviousPage: parseInt(page) > 1,
-      nextPage: parseInt(page) + 1,
-      previousPage: parseInt(page) - 1,
-      lastPage: Math.ceil(totalReviewsCount / parseInt(limit)),
-      totalReviewsCount,
+      data: reviews,
     });
   } catch (error) {
     console.error(error);
