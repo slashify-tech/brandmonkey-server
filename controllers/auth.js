@@ -1,6 +1,7 @@
-const Users = require("../models/employee"); // Replace with your user model import
+// Replace with your user model import
 const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
+const axios = require("axios");
 const Employees = require("../models/employee");
 
 dotenv.config();
@@ -33,76 +34,78 @@ function simpleDecrypt(encryptedData, key) {
 }
 
 exports.login = async (req, res) => {
-  // if(req.body.googleAccessToken){
-  //     // gogole-auth
-  //     const {googleAccessToken} = req.body;
+  if (req.body.googleAccessToken) {
+    // gogole-auth
+    const { googleAccessToken } = req.body;
 
-  //     axios
-  //         .get("https://www.googleapis.com/oauth2/v3/userinfo", {
-  //         headers: {
-  //             "Authorization": `Bearer ${googleAccessToken}`
-  //         }
-  //     })
-  //         .then(async response => {
-  //             const name = response.data.given_name + " " + response.data.family_name;
-  //             const email = response.data.email;
-  //             const picture = response.data.picture;
-
-  //             const existingUser = await Employee.findOne({email})
-
-  //             if (!existingUser)
-  //                 return res.status(404).json({message: "Employee don't exist!"})
-
-  //             const token = jwt.sign({
-  //                 email: existingUser.email,
-  //                 id: existingUser._id
-  //             }, process.env.SECRET_KEY, {expiresIn: "48h"})
-
-  //             res
-  //                 .status(200)
-  //                 .json({existingUser, token})
-
-  //         })
-  //         .catch(err => {
-  //             res
-  //                 .status(400)
-  //                 .json({message: "Invalid access token!"})
-  //         })
-  // }else{
-  const { email, password } = req.body;
-
-  try {
-    // Fetch user from the database based on the provided email
-    const employee = await Users.findOne({ email });
-
-    // Check if the employee exists
-    if (!employee) {
-      return res.status(404).json({ message: "Employee not found" });
-    }
-
-    // Decrypt the stored encrypted password from the database
-    const decryptedPassword = simpleDecrypt(employee.password, 5);
-
-    // Compare the decrypted password with the provided password
-    if (password === decryptedPassword) {
-      const token = jwt.sign(
-        {
-          email: employee.email,
-          id: employee._id,
+    axios
+      .get("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: {
+          Authorization: `Bearer ${googleAccessToken}`,
         },
-        process.env.SECRET_KEY,
-        { expiresIn: "48h" }
-      );
+      })
+      .then(async (response) => {
+        const name = response.data.given_name + " " + response.data.family_name;
+        const email = response.data.email;
+        const picture = response.data.picture;
+        console.log(name, email);
 
-      res.status(200).json({ employee, token });
-    } else {
-      // Passwords do not match, login failed
-      return res.status(401).json({ message: "Invalid password" });
+        const existingUser = await Employees.findOne({ email });
+        console.log(existingUser);
+
+        if (!existingUser)
+          return res.status(404).json({ message: "Employee don't exist!" });
+
+        const token = jwt.sign(
+          {
+            email: existingUser.email,
+            id: existingUser._id,
+          },
+          process.env.SECRET_KEY,
+          { expiresIn: "48h" }
+        );
+
+        res.status(200).json({ existingUser, token });
+      })
+      .catch((err) => {
+        res.status(400).json({ message: "Invalid access token!" });
+      });
+  } else {
+    const { email, password } = req.body;
+
+    try {
+      // Fetch user from the database based on the provided email
+      const employee = await Employees.findOne({ email });
+
+      // Check if the employee exists
+      if (!employee) {
+        return res.status(404).json({ message: "Employee not found" });
+      }
+
+      // Decrypt the stored encrypted password from the database
+      const decryptedPassword = simpleDecrypt(employee.password, 5);
+
+      // Compare the decrypted password with the provided password
+      if (password === decryptedPassword) {
+        const token = jwt.sign(
+          {
+            email: employee.email,
+            id: employee._id,
+          },
+          process.env.SECRET_KEY,
+          { expiresIn: "48h" }
+        );
+
+        res.status(200).json({ employee, token });
+      } else {
+        // Passwords do not match, login failed
+        return res.status(401).json({ message: "Invalid password" });
+      }
+    } catch (error) {
+      console.error(error);
+      console.log(error);
+      res.status(500).json({ message: "Internal server error" });
     }
-  } catch (error) {
-    console.error(error);
-    console.log(error);
-    res.status(500).json({ message: "Internal server error" });
   }
 };
 

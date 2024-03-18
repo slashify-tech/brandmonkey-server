@@ -360,10 +360,36 @@ exports.getDashBoardAdmin = async (req, res) => {
     const totalEmployees = await Employees.countDocuments({
       type: { $ne: "superadmin" },
     });
-    const totalTickets = await TicketAssigned.countDocuments({});
+    const tickets = await TicketCount.findOne({});
+    const reviewCounts = await EmployeeReview.aggregate([
+      {
+        $unwind: "$reviews", // Deconstruct reviews array
+      },
+      {
+        $group: {
+          _id: "$reviews.goodOrBad", // Group by goodOrBad field
+          count: { $sum: 1 }, // Count the documents in each group
+        },
+      },
+    ]);
 
-    // console.log(totalClients, totalEmployees, totalTickets);
-    res.status(201).json({ totalClients, totalEmployees, totalTickets });
+    const totalGoodReviewsCount =
+      reviewCounts.find((entry) => entry._id === "good")?.count || 0;
+    const totalBadReviewsCount =
+      reviewCounts.find((entry) => entry._id === "bad")?.count || 0;
+
+    const { TotalTickets, TotalTicketSolved } = tickets;
+    const totalReviews = reviewCounts.length;
+
+    res.status(201).json({
+      totalClients,
+      totalEmployees,
+      TotalTickets,
+      TotalTicketSolved,
+      totalReviews,
+      totalGoodReviewsCount,
+      totalBadReviewsCount,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -443,7 +469,7 @@ exports.acknowlegdeTicketResolve = async (req, res) => {
         text: `Dear ${employeeName},\n\nYour resolved ticket has been accepted and deleted successfully.\n\nRegards,\nThe Support Team`,
       };
 
-      await sgMail.send(acceptMsg);
+      // await sgMail.send(acceptMsg);
 
       res
         .status(200)
@@ -451,7 +477,7 @@ exports.acknowlegdeTicketResolve = async (req, res) => {
     } else if (value === "reject") {
       ticket.revertBack = true;
       ticket.ticketraised = true;
-      ticket.revertIssue = revertIssue;
+      ticket.revertIssue = revertIssue || "just do it again";
       await ticket.save();
 
       // Send email to employee for rejected ticket
@@ -462,7 +488,7 @@ exports.acknowlegdeTicketResolve = async (req, res) => {
         text: `Dear ${employeeName},\n\nYour resolved ticket has been rejected there are futher issues that have to be solved.\n\nRegards,\nThe Support Team`,
       };
 
-      await sgMail.send(rejectMsg);
+      // await sgMail.send(rejectMsg);
 
       res
         .status(200)
