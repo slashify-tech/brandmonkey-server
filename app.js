@@ -8,6 +8,7 @@ const morgan = require("morgan");
 const apiRoute = require("./routes/clientRelRoute");
 const userRoutes = require("./routes/auth");
 const employeeRoutes = require("./routes/employeeHandler");
+const authRoutes = require("./routes/auth");
 
 dotenv.config();
 const app = express();
@@ -31,6 +32,7 @@ mongoose
   .catch((err) => console.error("MongoDB connection error:", err));
 
 // Routes
+app.use(authRoutes);
 app.use(userRoutes);
 app.use(apiRoute);
 app.use(employeeRoutes);
