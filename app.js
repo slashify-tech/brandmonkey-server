@@ -8,6 +8,7 @@ const morgan = require("morgan");
 const apiRoute = require("./routes/clientRelRoute");
 const userRoutes = require("./routes/auth");
 const employeeRoutes = require("./routes/employeeHandler");
+const noteRoutes = require("./routes/noteRoute");
 
 dotenv.config();
 const app = express();
@@ -34,6 +35,7 @@ mongoose
 app.use(userRoutes);
 app.use(apiRoute);
 app.use(employeeRoutes);
+app.use(noteRoutes);
 
 // Default route
 app.get("/", (req, res) => {
