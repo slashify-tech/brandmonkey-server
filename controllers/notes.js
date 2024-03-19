@@ -1,17 +1,5 @@
 const Notes = require("../models/notes");
 
-exports.getNotes = async (req, res) => {
-  try {
-    const note = await Notes.findOne({});
-    if (!note) {
-      return res.status(404).json({ message: "No notes found" });
-    }
-    return res.status(200).json({ notes: note.notes });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-};
 exports.getnotes = async (req, res) => {
   try {
     const note = await Notes.findOne({});
@@ -36,7 +24,7 @@ exports.setNotes = async (req, res) => {
     if (!note) {
       note = new Notes({
         notes: notes,
-        author: ""
+        author: "",
       });
     } else {
       note.notes = notes;

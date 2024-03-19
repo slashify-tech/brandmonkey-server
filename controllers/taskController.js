@@ -89,7 +89,7 @@ exports.createTask = async (req, res) => {
         newTask.activity.unshift({
           activity: activity,
           timeSlot,
-          clientname: clientName,
+          clientName: clientName,
         });
       }
 
@@ -118,39 +118,141 @@ exports.createTask = async (req, res) => {
   }
 };
 
-exports.getActivityByEmployeeIdAndDate = async (req, res) => {
+exports.createAdditionalTask = async (req, res) => {
   try {
-    const { employeeId } = req.query;
-    console.log(employeeId);
+    const { employeeId, activity, clientName, timeSlot, _id } = req.body;
+    console.log(employeeId, activity, clientName, timeSlot, _id);
 
-    const today = new Date();
-    const startDate = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate()
-    );
-    const endDate = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate() + 1
-    );
+    let newTask = await Task.findOne({ employeeId });
 
-    console.log(startDate, endDate);
-
-    let activities = await Task.find({
-      employeeId,
-      "activity.createdAt": { $gte: startDate, $lt: endDate },
-    }).select("activity");
-
-    activities = activities[0].activity.filter((item) => {
-      if (item.createdAt < endDate) {
-        return item;
+    if (!newTask) {
+      res.status(404).json({
+        message:
+          "you have not used the set amount of slots use them before creating additional",
+      });
+    } else {
+      if (!newTask.extraActivity) {
+        newTask.extraActivity = [];
       }
-    });
 
-    res.status(200).json(activities);
+      // Check if an activity with the same time slot exists
+      const existingActivityIndex = newTask.extraActivity.findIndex(
+        (act) =>
+          act.timeSlot === timeSlot && act._id.toString() === _id.toString()
+      );
+      console.log(existingActivityIndex);
+      if (existingActivityIndex !== -1) {
+        // Update the existing activity if the time slot matches
+        const existingActivity = newTask.extraActivity[existingActivityIndex];
+        existingActivity.activity = activity;
+        existingActivity.clientName = clientName;
+        existingActivity.timeSlot = timeSlot;
+      } else {
+        // Otherwise, add a new activity
+        newTask.extraActivity.unshift({
+          activity: activity,
+          timeSlot,
+          clientName: clientName,
+        });
+      }
+
+      if (!newTask.hits) {
+        newTask.hits = [];
+      }
+
+      const existingHit = newTask.hits.find(
+        (hit) => hit.clientName === clientName
+      );
+      if (existingHit) {
+        existingHit.noOfHits += 1;
+      } else {
+        newTask.hits.unshift({ clientName, noOfHits: 1 });
+      }
+    }
+
+    await newTask.save();
+
+    res
+      .status(201)
+      .json({ message: "Task created successfully", task: newTask });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+function getDateFormatted() {
+  const currentDate = new Date();
+  const dayOfMonth = currentDate.getDate();
+  const year = currentDate.getFullYear();
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const month = months[currentDate.getMonth()];
+  return `${dayOfMonth} ${month} ${year}`;
+}
+exports.getActivityByEmployeeIdAndDate = async (req, res) => {
+  try {
+    const { employeeId, date } = req.query; // Assuming date is passed as a parameter in the request
+
+    const tasks = await Task.findOne({ employeeId });
+
+    if (!tasks) {
+      return res.status(404).json({ message: "No tasks found for the employee" });
+    }
+
+    let activities;
+    if (date) {
+      activities = tasks.activity.filter(activity => activity.date === date);
+    } else {
+      activities = tasks.activity.filter(activity => activity.date === getDateFormatted());
+    }
+
+    if (activities.length === 0) {
+      return res.status(404).json({ message: "No activities found for the specified date" });
+    }
+
+    res.status(200).json(activities);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+exports.getExtraActivityByEmployeeIdAndDate = async (req, res) => {
+  try {
+    const { employeeId, date } = req.query; // Assuming date is passed as a parameter in the request
+
+    const tasks = await Task.findOne({ employeeId });
+
+    if (!tasks) {
+      return res.status(404).json({ message: "No tasks found for the employee" });
+    }
+
+    let activities;
+    if (date) {
+      activities = tasks.extraActivity.filter(activity => activity.date === date);
+    } else {
+      activities = tasks.extraActivity.filter(activity => activity.date === getDateFormatted());
+    }
+
+    if (activities.length === 0) {
+      return res.status(404).json({ message: "No activities found for the specified date" });
+    }
+
+    res.status(200).json(activities);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ message: "Server Error" });
   }
 };
