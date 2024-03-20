@@ -2,6 +2,7 @@ const Clients = require("../models/clients");
 const Employees = require("../models/employee");
 const TicketAssigned = require("../models/ticketRaise");
 const dotenv = require("dotenv");
+const { getSignedUrlFromS3 } = require('../utils/s3Utils');
 
 dotenv.config();
 
@@ -132,6 +133,17 @@ exports.getClient = async (req, res) => {
       result = {
         data: clientsWithTicketsCount,
       };
+    }
+    if (result.data.length > 0) {
+      for (const client of result.data) {
+        if (Array.isArray(client.name)) {
+          client.clientLogo = await Promise.all(client.name.map(async (image) => {
+            return await getSignedUrlFromS3(image);
+          }));
+        } else if (client.name) {
+          client.clientLogo = await getSignedUrlFromS3(client.name);
+        }
+      }
     }
 
     res.status(200).json({
@@ -286,6 +298,18 @@ exports.getEmployee = async (req, res, next) => {
         data: await Employees.find(query),
       };
     }
+    if (result.data.length > 0) {
+      for (const employee of result.data) {
+        if (Array.isArray(employee.name)) {
+          employee.imageUrl = await Promise.all(employee.name.map(async (image) => {
+            return await getSignedUrlFromS3(image);
+          }));
+        } else if (employee.name) {
+          employee.imageUrl = await getSignedUrlFromS3(employee.name);
+        }
+      }
+    }
+
     res.status(200).json({
       result,
       currentPage: parseInt(page),

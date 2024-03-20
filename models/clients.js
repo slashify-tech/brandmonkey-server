@@ -6,6 +6,10 @@ const clientSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    clientLogo: {
+      type: String,
+      default: "",
+    },
     GST: {
       type: String,
       required: true,
@@ -22,62 +26,62 @@ const clientSchema = mongoose.Schema(
       type: String,
       required: true,
     },
-    Reels: {
-      type: String,
-      default: "NA",
-    },
-    Flyer: {
-      type: String,
-      default: "NA",
-    },
-    "Facebook Ads": {
-      type: String,
-      default: "NA",
-    },
-    "Google Ads": {
-      type: String,
-      default: "NA",
-    },
-    SEO: {
-      type: String,
-      default: "NA",
-    },
-    GMB: {
-      type: String,
-      default: "NA",
-    },
-    "Youtube Management": {
-      type: String,
-      default: "NA",
-    },
-    Ecommerce: {
-      type: String,
-      default: "NA",
-    },
-    "Social Media Management": {
-      type: String,
-      default: "NA",
-    },
-    Photography: {
-      type: String,
-      default: "NA",
-    },
-    Videography: {
-      type: String,
-      default: "NA",
-    },
-    "Content Creator": {
-      type: String,
-      default: "NA",
-    },
-    Website: {
-      type: String,
-      default: "NA",
-    },
-    Management: {
-      type: String,
-      default: "NA",
-    },
+    // Reels: {
+    //   type: String,
+    //   default: "NA",
+    // },
+    // Flyer: {
+    //   type: String,
+    //   default: "NA",
+    // },
+    // "Facebook Ads": {
+    //   type: String,
+    //   default: "NA",
+    // },
+    // "Google Ads": {
+    //   type: String,
+    //   default: "NA",
+    // },
+    // SEO: {
+    //   type: String,
+    //   default: "NA",
+    // },
+    // GMB: {
+    //   type: String,
+    //   default: "NA",
+    // },
+    // "Youtube Management": {
+    //   type: String,
+    //   default: "NA",
+    // },
+    // Ecommerce: {
+    //   type: String,
+    //   default: "NA",
+    // },
+    // "Social Media Management": {
+    //   type: String,
+    //   default: "NA",
+    // },
+    // Photography: {
+    //   type: String,
+    //   default: "NA",
+    // },
+    // Videography: {
+    //   type: String,
+    //   default: "NA",
+    // },
+    // "Content Creator": {
+    //   type: String,
+    //   default: "NA",
+    // },
+    // Website: {
+    //   type: String,
+    //   default: "NA",
+    // },
+    // Management: {
+    //   type: String,
+    //   default: "NA",
+    // },
     clientType: {
       type: String,
       enum: ["Regular", "Onetime"],

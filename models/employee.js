@@ -35,6 +35,10 @@ const employeeSchema = mongoose.Schema({
     type: String,
     required: true,
   },
+  imageUrl: {
+    type: String,
+    default: "",
+  },
   employeeId: {
     type: String,
     required: true,

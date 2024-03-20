@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const hitsSchema = mongoose.Schema({
   clientName: { type: String },
-  noOfHits: { type: String },
+  noOfHits: { type: Number },
 });
 const ActivitySchema = mongoose.Schema(
   {
@@ -51,7 +51,7 @@ const TaskSchema = mongoose.Schema({
   employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "employee" },
   activity: [ActivitySchema],
   extraActivity: [ActivitySchema],
-  hit: [hitsSchema],
+  hits: [hitsSchema],
 });
 
 const Task = mongoose.model("Task", TaskSchema);

@@ -20,9 +20,12 @@ router.put('/updateWork/:id', employeeWorkController.updateWork);
 
 router.get('/getTaskForEmployee', taskController.getActivityByEmployeeIdAndDate);
 router.get('/getExtraTaskForEmployee', taskController.getExtraActivityByEmployeeIdAndDate);
+router.get("/gethitemployee/:id", taskController.getHitsByEmployees);
 router.get('/getEmployees',isAdmin, employeeController.getEmployee); //completed
 router.get('/getOneEmployee/:id', employeeController.getOneEmployee);
 router.get('/getclientemployeedistribution/:id' , employeeController.getClientEmployeeRel);
 router.get('/getclientWork/:id' , employeeController.getClientWork);
+
+router.delete("/deleteHitData/:monthYear", taskController.deleteActivitiesByMonthYear);
 
 module.exports = router;
