@@ -48,7 +48,7 @@ function getDateFormatted() {
 }
 
 const TaskSchema = mongoose.Schema({
-  employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "employee" },
+  employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "employees" },
   activity: [ActivitySchema],
   extraActivity: [ActivitySchema],
   hits: [hitsSchema],

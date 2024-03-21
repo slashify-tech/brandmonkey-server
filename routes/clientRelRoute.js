@@ -4,6 +4,7 @@ const router = express.Router();
 const employeeController = require('../controllers/employee');
 const adminController = require('../controllers/admin');
 const superAdminController = require('../controllers/superAdmin');
+const taskController = require('../controllers/taskController');
 
 const { fileMulter } = require('../multer/multerFile');
 const { isSuperAdmin, isAdmin } = require("../middleware/is_auth");
@@ -25,6 +26,9 @@ router.put('/addReview', adminController.addEmployeeReview);
 
 router.get('/getClientCSV', adminController.downloadCsvClients);
 router.get('/getEmployeesCSV', adminController.downloadCsvEmployees);
+router.get('/getEmployeesSheet/:id', taskController.downloadSingleEmployeeSheet);
+router.get('/getAllEmployeesSheet', taskController.downloadAllEmployeeData);
+router.get('/getAllEmployeesHit', taskController.downloadAllEmployeeHit);
 router.get('/getClients', isAdmin, employeeController.getClient); //completeld authorized
 router.get('/getmom/:id', adminController.getMomEntriesByClientId);
 router.get('/getOneClient/:id', employeeController.getOneClient);

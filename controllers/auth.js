@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 const axios = require("axios");
 const Employees = require("../models/employee");
+const { getSignedUrlFromS3 } = require('../utils/s3Utils');
 
 dotenv.config();
 
@@ -117,6 +118,8 @@ exports.getUser = async (req, res, next) => {
       error.statusCode = 404;
       console.log(error);
     }
+    employee.imageUrl = await getSignedUrlFromS3(employee.name);
+    console.log(employee);
     res.status(200).json({ employee });
   } catch (err) {
     console.log(err);
