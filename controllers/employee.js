@@ -2,7 +2,7 @@ const Clients = require("../models/clients");
 const Employees = require("../models/employee");
 const TicketAssigned = require("../models/ticketRaise");
 const dotenv = require("dotenv");
-const { getSignedUrlFromS3 } = require('../utils/s3Utils');
+const { getSignedUrlFromS3 } = require("../utils/s3Utils");
 
 dotenv.config();
 
@@ -42,7 +42,14 @@ exports.getDashBoardEmployee = async (req, res) => {
     const totalTickets = employee[0].totalTicketsIssued;
     const totalTicketsResolved = employee[0].totalTicketsResolved;
     const totalWorkProgress = parseInt(employee[0].progressPercentage);
-    res.status(201).json({ totalClients, totalTickets, totalWorkProgress, totalTicketsResolved });
+    res
+      .status(201)
+      .json({
+        totalClients,
+        totalTickets,
+        totalWorkProgress,
+        totalTicketsResolved,
+      });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -137,11 +144,15 @@ exports.getClient = async (req, res) => {
     if (result.data.length > 0) {
       for (const client of result.data) {
         if (Array.isArray(client.name)) {
-          client.clientLogo = await Promise.all(client.name.map(async (image) => {
-            return await getSignedUrlFromS3(image);
-          }));
+          client.clientLogo = await Promise.all(
+            client.name.map(async (image) => {
+              return await getSignedUrlFromS3(`${image}` + ".png");
+            })
+          );
         } else if (client.name) {
-          client.clientLogo = await getSignedUrlFromS3(client.name);
+          client.clientLogo = await getSignedUrlFromS3(
+            `${client.name}` + ".png"
+          );
         }
       }
     }
@@ -162,92 +173,12 @@ exports.getClient = async (req, res) => {
   }
 };
 
-// exports.getClient = async (req, res) => {
-
-//   try {
-//     const { page, limit, search, clientType } = req.query;
-//     let query = {};
-//     let result;
-//     let totalClientsCount;
-//     let endIndex;
-
-//     if (search) {
-//       const searchRegex = new RegExp(search, "i");
-//       query = {
-//         ...query,
-//         $or: [{ clientType: searchRegex }, { name: searchRegex }],
-//       };
-//     }
-
-//     if (clientType) {
-//       query.clientType = clientType; // Add filter for clientType
-//     }
-
-//     let projection = { _id: 1, name: 1, colorZone: 1 }; // Fields to include in the result
-
-//     if (page && limit) {
-//       const pageNumber = parseInt(page);
-//       const pageSize = parseInt(limit);
-//       const startIndex = (pageNumber - 1) * pageSize;
-//       endIndex = pageNumber * pageSize;
-
-//       totalClientsCount = await Clients.countDocuments(query);
-
-//       const clientsData = await Clients.find(query, projection).limit(pageSize).skip(startIndex);
-
-//       const clientsWithTicketsCount = await Promise.all(clientsData.map(async (client) => {
-//         const ticketsCount = await TicketAssigned.countDocuments({ forClients: client._id });
-//         return {
-//           _id: client._id,
-//           name: client.name,
-//           colorZone: client.colorZone || "#fff",
-//           ticketsCount,
-//         };
-//       }));
-
-//       result = {
-//         nextPage: pageNumber + 1,
-//         data: clientsWithTicketsCount,
-//       };
-//     } else {
-//       const clientsData = await Clients.find(query);
-
-//       const clientsWithTicketsCount = await Promise.all(clientsData.map(async (client) => {
-//         const ticketsCount = await TicketAssigned.countDocuments({ forClients: client._id });
-//         return {
-//           _id: client._id,
-//           name: client.name,
-//           colorZone: client.colorZone || "#fff",
-//           ticketsCount,
-//         };
-//       }));
-
-//       result = {
-//         data: clientsWithTicketsCount,
-//       };
-//     }
-
-//     res.status(200).json({
-//       result,
-//       currentPage: parseInt(page),
-//       hasLastPage: endIndex < totalClientsCount,
-//       hasPreviousPage: parseInt(page) > 1,
-//       nextPage: parseInt(page) + 1,
-//       previousPage: parseInt(page) - 1,
-//       lastPage: Math.ceil(totalClientsCount / parseInt(limit)),
-//       totalClientsCount,
-//     });
-//   } catch (e) {
-//     console.log(e);
-//     res.status(400).send(e);
-//   }
-// };
-
 exports.getOneClient = async (req, res) => {
   try {
     const { id } = req.params;
     const clients = await Clients.findById(id);
     if (clients) {
+      clients.clientLogo = await getSignedUrlFromS3(`${clients.name}` + ".png");
       res.status(200).json(clients);
     } else {
       res.status(404).jsons("no clients found");
@@ -301,11 +232,15 @@ exports.getEmployee = async (req, res, next) => {
     if (result.data.length > 0) {
       for (const employee of result.data) {
         if (Array.isArray(employee.name)) {
-          employee.imageUrl = await Promise.all(employee.name.map(async (image) => {
-            return await getSignedUrlFromS3(image);
-          }));
+          employee.imageUrl = await Promise.all(
+            employee.name.map(async (image) => {
+              return await getSignedUrlFromS3(`${image}` + ".jpg");
+            })
+          );
         } else if (employee.name) {
-          employee.imageUrl = await getSignedUrlFromS3(employee.name);
+          employee.imageUrl = await getSignedUrlFromS3(
+            `${employee.name}` + ".jpg"
+          );
         }
       }
     }
@@ -333,7 +268,7 @@ exports.getOneEmployee = async (req, res, next) => {
 
     if (employee) {
       employee.password = simpleDecrypt(employee.password, 5);
-
+      employee.imageUrl = await getSignedUrlFromS3(`${employee.name}` + ".jpg");
       res.status(200).json({ employee });
     } else {
       res.status(404).json({ error: "No such employee found" });

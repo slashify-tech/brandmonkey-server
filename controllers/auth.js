@@ -118,8 +118,7 @@ exports.getUser = async (req, res, next) => {
       error.statusCode = 404;
       console.log(error);
     }
-    employee.imageUrl = await getSignedUrlFromS3(employee.name);
-    console.log(employee);
+    employee.imageUrl = await getSignedUrlFromS3(`${employee.name}`+".jpg");
     res.status(200).json({ employee });
   } catch (err) {
     console.log(err);

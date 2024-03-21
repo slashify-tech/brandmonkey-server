@@ -72,6 +72,7 @@ exports.editClient = async (req, res, next) => {
     if (!client) {
       return res.status(404).json("client not found");
     }
+    
     let upadatedClient;
     upadatedClient = { ...req.body };
 
