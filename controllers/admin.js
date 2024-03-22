@@ -360,7 +360,11 @@ exports.getDashBoardAdmin = async (req, res) => {
     const totalEmployees = await Employees.countDocuments({
       type: { $ne: "superadmin" },
     });
+
     const tickets = await TicketCount.findOne({});
+    // Check if tickets object is null before destructuring
+    const TotalTickets = tickets ? tickets.TotalTickets : 0;
+    const TotalTicketSolved = tickets ? tickets.TotalTicketSolved : 0;
     const reviewCounts = await EmployeeReview.aggregate([
       {
         $unwind: "$reviews", // Deconstruct reviews array
@@ -378,8 +382,7 @@ exports.getDashBoardAdmin = async (req, res) => {
     const totalBadReviewsCount =
       reviewCounts.find((entry) => entry._id === "bad")?.count || 0;
 
-    const { TotalTickets, TotalTicketSolved } = tickets;
-    const totalReviews = reviewCounts.length;
+    const totalReviews = reviewCounts.length || 0;
 
     res.status(201).json({
       totalClients,

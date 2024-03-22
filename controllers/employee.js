@@ -39,17 +39,15 @@ exports.getDashBoardEmployee = async (req, res) => {
     const employee = await Employees.find({ _id: id });
 
     const totalClients = employee[0].clients.length;
-    const totalTickets = employee[0].totalTicketsIssued;
-    const totalTicketsResolved = employee[0].totalTicketsResolved;
-    const totalWorkProgress = parseInt(employee[0].progressPercentage);
-    res
-      .status(201)
-      .json({
-        totalClients,
-        totalTickets,
-        totalWorkProgress,
-        totalTicketsResolved,
-      });
+    const totalTickets = employee[0].totalTicketsIssued || 0;
+    const totalTicketsResolved = employee[0].totalTicketsResolved || 0;
+    const totalWorkProgress = parseInt(employee[0].progressPercentage) || 0;
+    res.status(201).json({
+      totalClients,
+      totalTickets,
+      totalWorkProgress,
+      totalTicketsResolved,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
