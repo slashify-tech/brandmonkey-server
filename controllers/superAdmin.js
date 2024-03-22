@@ -3,6 +3,12 @@ const Employees = require("../models/employee");
 const TicketAssigned = require("../models/ticketRaise");
 const EmployeeReview = require("../models/reviewList");
 const dotenv = require("dotenv");
+const {
+  resizeImage,
+  uploadToS3,
+  generateFileName,
+  deleteFromS3,
+} = require("../utils/s3Utils");
 dotenv.config();
 const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -39,15 +45,32 @@ exports.addEmployee = async (req, res, next) => {
   try {
     let hashedPass;
     if (req.body.password) {
-      hashedPass = await bcrypt.hash(req.body.password, 12);
+      hashedPass = simpleEncrypt(req.body.password, 5);
     }
-    const employee = await Employees.create({
-      ...req.body,
-      password: hashedPass,
-      phoneNumber: req.body.phoneNumber,
-      type: "employee",
-    });
-    await employee.save();
+    if (req.file) {
+      const { buffer, originalname, mimetype } = req.file;
+
+      const resizedImageBuffer = await resizeImage(buffer);
+      const fileName = generateFileName(originalname);
+
+      await uploadToS3(resizedImageBuffer, fileName, mimetype);
+
+      await Employees.create({
+        ...req.body,
+        password: hashedPass,
+        phoneNumber: req.body.phoneNumber,
+        type: "employee",
+        image: fileName,
+      });
+    } else {
+      await Employees.create({
+        ...req.body,
+        password: hashedPass,
+        phoneNumber: req.body.phoneNumber,
+        type: "employee",
+      });
+    }
+    // await employee.save();
     res.status(201).json("adding succesful");
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -56,9 +79,19 @@ exports.addEmployee = async (req, res, next) => {
 
 exports.addClient = async (req, res, next) => {
   try {
-    console.log(req.body);
-    const client = await Clients.create({ ...req.body });
-    await client.save();
+    if (req.file) {
+      const { buffer, originalname, mimetype } = req.file;
+
+      const resizedImageBuffer = await resizeImage(buffer);
+      const fileName = generateFileName(originalname);
+
+      await uploadToS3(resizedImageBuffer, fileName, mimetype);
+
+      await Clients.create({ ...req.body, logo: fileName });
+    } else {
+      await Clients.create({ ...req.body });
+    }
+    // await client.save();
     res.status(201).json("adding succesful");
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -72,9 +105,20 @@ exports.editClient = async (req, res, next) => {
     if (!client) {
       return res.status(404).json("client not found");
     }
-    
+
     let upadatedClient;
     upadatedClient = { ...req.body };
+    if (req.file) {
+      const { buffer, originalname, mimetype } = req.file;
+
+      const resizedImageBuffer = await resizeImage(buffer);
+      const fileName = generateFileName(originalname);
+
+      await deleteFromS3(client.logo);
+
+      await uploadToS3(resizedImageBuffer, fileName, mimetype);
+      upadatedClient.logo = fileName;
+    }
 
     await Clients.findByIdAndUpdate(
       req.params.id,
@@ -100,6 +144,19 @@ exports.editEmployee = async (req, res, next) => {
       ...req.body,
       password: simpleEncrypt(req.body.password, 5),
     };
+    if (req.file) {
+      const { buffer, originalname, mimetype } = req.file;
+
+      const resizedImageBuffer = await resizeImage(buffer);
+      const fileName = generateFileName(originalname);
+
+      // await deleteFromS3(employee.image);
+
+      await uploadToS3(resizedImageBuffer, fileName, mimetype);
+      upadatedEmployee.image = fileName;
+    }
+
+    console.log(upadatedEmployee);
 
     await Employees.findByIdAndUpdate(
       req.params.id,
@@ -282,6 +339,8 @@ exports.deleteEmployeeData = async (req, res) => {
     }
 
     // Delete employee data
+    const employee = await Employees.findOne({ _id: id });
+    await deleteFromS3(employee.image);
     await Employees.findByIdAndDelete(id);
 
     // Delete related ticket list
@@ -310,6 +369,10 @@ exports.deleteClientData = async (req, res) => {
 
     // Find the client to be deleted
     const deletedClient = await Clients.findById(id);
+
+    if (deletedClient.logo !== "") {
+      await deleteFromS3(deletedClient.logo);
+    }
 
     if (!deletedClient) {
       return res.status(404).json({ error: "Client not found." });

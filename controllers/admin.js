@@ -39,6 +39,7 @@ exports.uploadClientBulk = async (req, res) => {
         Address: response[i]?.Address || "NA",
         State: response[i]?.State || "NA",
         Country: response[i]?.Country || "NA",
+        logo: response[i]?.clientlogo + ".png",
       });
     }
 
@@ -78,44 +79,58 @@ function simpleDecrypt(encryptedData, key) {
 }
 
 exports.uploadEmployeeBulk = async (req, res) => {
-  let Employee = [];
+  let employeesToInsert = [];
   try {
     const response = await csv().fromFile(req.file.path);
 
-    for (var i = 0; i < response.length; i++) {
+    for (let i = 0; i < response.length; i++) {
       const clientDetails = await Promise.all(
         response[i]?.["Client-Service"].split(",").map(async (client) => {
           const clientName = client.trim();
           const existingClient = await Clients.findOne({
             name: { $regex: new RegExp(clientName.split("-")[0].trim(), "i") },
           });
+
+          // If client not found or clientName is empty, skip adding client detail
+          if (!existingClient || !clientName) return null;
+
           return {
             clientName: clientName,
+            logo: clientName.split("-")[0].trim() + ".png",
             progressValue: "0-10",
-            clientType: existingClient ? existingClient.clientType : "Regular",
+            clientType: existingClient.clientType,
           };
         })
       );
 
-      Employee.push({
-        employeeId: response[i]?.EmployeeID || "NA",
-        name: response[i]?.EmployeeName,
-        team: response[i]?.Team,
-        type: response[i]?.Type,
-        designation: response[i]?.Designation,
-        phoneNumber: parseInt(response[i]?.PhoneNumber),
-        email: response[i]?.EmailID,
-        password: simpleEncrypt(response[i]?.Password, 5),
-        services: response[i]?.Services,
-        clients: clientDetails.filter((client) => client.clientName !== ""),
-        Gender: response[i]?.Gender || "NA",
-        DateOfJoining: response[i]?.Joining || "NA",
-        DateOfBirth: response[i]?.Birth || "NA",
-      });
+      // Filter out null client details
+      const filteredClientDetails = clientDetails.filter(
+        (client) => client !== null
+      );
+
+
+        const employee = {
+          employeeId: response[i]?.EmployeeID || "NA",
+          name: response[i]?.EmployeeName,
+          team: response[i]?.Team,
+          type: response[i]?.Type,
+          designation: response[i]?.Designation,
+          phoneNumber: parseInt(response[i]?.PhoneNumber),
+          email: response[i]?.EmailID,
+          password: simpleEncrypt(response[i]?.Password, 5),
+          services: response[i]?.Services,
+          clients: filteredClientDetails || [],
+          Gender: response[i]?.Gender || "NA",
+          DateOfJoining: response[i]?.Joining || "NA",
+          DateOfBirth: response[i]?.Birth || "NA",
+          image: response[i]?.Images + ".jpg",
+        };
+        employeesToInsert.push(employee);
+      
     }
 
-    await Employees.insertMany(Employee);
-    res.status(201).json({ message: "uploaded", Employee });
+    await Employees.insertMany(employeesToInsert);
+    res.status(201).json({ message: "uploaded", employees: employeesToInsert });
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: err.message });
@@ -196,31 +211,31 @@ exports.assignTicket = async (req, res) => {
 
     // await sgMail.send(employeeMsg);
 
-    // const adminMsg = {
-    //   // to: adminEmails,
-    //   to: "minhazashraf590@gmail.com",
-    //   from: "info@brandmonkey.in",
-    //   subject: "New Ticket Assigned",
-    //   text: `New Ticket Assigned:
-    //       For Clients: ${clientName}
-    //       To Employee: ${employeeName}
-    //       Services: ${services}
-    //       Description: ${description}`,
-    // };
-    // await sgMail.send(adminMsg);
+    const adminMsg = {
+      // to: adminEmails,
+      to: "minhazashraf590@gmail.com",
+      from: "info@brandmonkey.in",
+      subject: "New Ticket Assigned",
+      text: `New Ticket Assigned:
+          For Clients: ${clientName}
+          To Employee: ${employeeName}
+          Services: ${services}
+          Description: ${description}`,
+    };
+    await sgMail.send(adminMsg);
 
-    // const employeeMsg = {
-    //   // to: assignedEmployeeEmail,
-    //   to: "pmrutunjay928@gmail.com",
-    //   from: "info@brandmonkey.in",
-    //   subject: "You have been assigned a new ticket",
-    //   text: `You have been assigned a new ticket:
-    //     For Clients: ${clientName}
-    //     Services: ${services}
-    //     Description: ${description}`,
-    // };
+    const employeeMsg = {
+      // to: assignedEmployeeEmail,
+      to: "pmrutunjay928@gmail.com",
+      from: "info@brandmonkey.in",
+      subject: "You have been assigned a new ticket",
+      text: `You have been assigned a new ticket:
+        For Clients: ${clientName}
+        Services: ${services}
+        Description: ${description}`,
+    };
 
-    // await sgMail.send(employeeMsg);
+    await sgMail.send(employeeMsg);
     res.status(201).json({ message: "Ticket submitted successfully" });
   } catch (error) {
     console.error(error);
@@ -305,7 +320,8 @@ exports.addEmployeeReview = async (req, res) => {
 
 exports.getEmployeeReviews = async (req, res) => {
   try {
-    const reviews = await EmployeeReview.find();
+    const {id} = req.params;
+    const reviews = await EmployeeReview.findOne({employeeData : id});
 
     res.status(200).json({
       data: reviews,
@@ -508,36 +524,25 @@ exports.acknowlegdeTicketResolve = async (req, res) => {
 exports.getEmployeeReviewsArray = async (req, res) => {
   try {
     const { id } = req.params;
-    const page = parseInt(req.query.page) || 1;
-    const itemsPerPage = 1;
+    const { reviewId } = req.query;
 
-    if (!id) {
-      return res.status(400).json({ error: "Missing required parameter: id." });
-    }
-
-    const employeeReviews = await EmployeeReview.findById(id);
-
-    if (!employeeReviews) {
-      return res.status(404).json({ error: "Employee reviews not found." });
-    }
-
-    const reviewsArray = employeeReviews.reviews || [];
-
-    // Calculate pagination parameters
-    const totalItems = reviewsArray.length;
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
-    const startIndex = (page - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-
-    // Get the paginated reviews
-    const paginatedReviews = reviewsArray.slice(startIndex, endIndex);
-
-    res.status(200).json({
-      reviews: paginatedReviews,
-      currentPage: page,
-      totalPages,
-      totalItems,
+    // Query to find the employee review by employee ID and review ID
+    const employeeReview = await EmployeeReview.findOne({
+      'employeeData': id, // Find by employee ID
+      'reviews._id': reviewId // Find by review ID
     });
+
+    // If review is found, send it in the response
+    if (employeeReview) {
+      const review = employeeReview.reviews.find(review => review._id == reviewId);
+      if (review) {
+        res.status(200).json({ review });
+      } else {
+        res.status(404).json({ error: "Review not found" });
+      }
+    } else {
+      res.status(404).json({ error: "Employee review not found" });
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });

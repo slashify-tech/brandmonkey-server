@@ -88,6 +88,7 @@ const clientSchema = mongoose.Schema(
       default: "Regular",
     },
     colorZone: { type: String },
+    logo: { type: String },
   },
   { strict: false }
 );

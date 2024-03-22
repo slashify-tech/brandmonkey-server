@@ -141,16 +141,14 @@ exports.getClient = async (req, res) => {
     }
     if (result.data.length > 0) {
       for (const client of result.data) {
-        if (Array.isArray(client.name)) {
+        if (Array.isArray(client.logo)) {
           client.clientLogo = await Promise.all(
-            client.name.map(async (image) => {
-              return await getSignedUrlFromS3(`${image}` + ".png");
+            client.logo.map(async (image) => {
+              return await getSignedUrlFromS3(`${image}`);
             })
           );
-        } else if (client.name) {
-          client.clientLogo = await getSignedUrlFromS3(
-            `${client.name}` + ".png"
-          );
+        } else if (client.logo) {
+          client.clientLogo = await getSignedUrlFromS3(`${client.logo}`);
         }
       }
     }
@@ -176,7 +174,7 @@ exports.getOneClient = async (req, res) => {
     const { id } = req.params;
     const clients = await Clients.findById(id);
     if (clients) {
-      clients.clientLogo = await getSignedUrlFromS3(`${clients.name}` + ".png");
+      clients.clientLogo = await getSignedUrlFromS3(`${clients.logo}`);
       res.status(200).json(clients);
     } else {
       res.status(404).jsons("no clients found");
@@ -190,7 +188,7 @@ exports.getOneClient = async (req, res) => {
 exports.getEmployee = async (req, res, next) => {
   try {
     const { page, limit, search } = req.query;
-    let query = {};
+    let query = {type: { $ne: "superadmin" }};
     let result;
     let totalEmployeesCount;
     let endIndex;
@@ -231,14 +229,12 @@ exports.getEmployee = async (req, res, next) => {
       for (const employee of result.data) {
         if (Array.isArray(employee.name)) {
           employee.imageUrl = await Promise.all(
-            employee.name.map(async (image) => {
-              return await getSignedUrlFromS3(`${image}` + ".jpg");
+            employee.image.map(async (image) => {
+              return await getSignedUrlFromS3(`${image}`);
             })
           );
         } else if (employee.name) {
-          employee.imageUrl = await getSignedUrlFromS3(
-            `${employee.name}` + ".jpg"
-          );
+          employee.imageUrl = await getSignedUrlFromS3(`${employee.image}`);
         }
       }
     }
@@ -266,7 +262,16 @@ exports.getOneEmployee = async (req, res, next) => {
 
     if (employee) {
       employee.password = simpleDecrypt(employee.password, 5);
-      employee.imageUrl = await getSignedUrlFromS3(`${employee.name}` + ".jpg");
+      // Fetch and update client logos
+      await Promise.all(
+        employee.clients.map(async (client) => {
+          client.clientLogo = await getSignedUrlFromS3(
+            `${client.clientName.split("-")[0].trim()}.png`
+          );
+        })
+      );
+      employee.imageUrl = await getSignedUrlFromS3(`${employee.image}`);
+
       res.status(200).json({ employee });
     } else {
       res.status(404).json({ error: "No such employee found" });

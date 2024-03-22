@@ -7,10 +7,11 @@ const superAdminController = require('../controllers/superAdmin');
 const taskController = require('../controllers/taskController');
 
 const { fileMulter } = require('../multer/multerFile');
+const { imageMulter } = require('../multer/multerImg');
 const { isSuperAdmin, isAdmin } = require("../middleware/is_auth");
 
 router.post('/csvClients',fileMulter, adminController.uploadClientBulk);
-router.post('/addClient',isSuperAdmin, superAdminController.addClient); //completed
+router.post('/addClient',isSuperAdmin,imageMulter, superAdminController.addClient); //completed
 router.post('/submitTicket', adminController.assignTicket);
 router.post('/acknowledgeTicket', adminController.acknowlegdeTicketResolve);
 router.post('/addmom/:id', adminController.createMomEntry);
@@ -18,8 +19,8 @@ router.post('/addmom/:id', adminController.createMomEntry);
 router.put('/addservicefield',isSuperAdmin, superAdminController.addFieldsToClients); //completed
 router.put('/editservicefield',isSuperAdmin, superAdminController.editFieldsInClients); //completed
 router.put('/deleteservicefield',isSuperAdmin, superAdminController.deleteFieldsFromClients); //completed
-router.put("/editClient/:id",isSuperAdmin, superAdminController.editClient); //completed
-router.put("/editEmployee/:id",isSuperAdmin, superAdminController.editEmployee); //completed
+router.put("/editClient/:id",isSuperAdmin,imageMulter, superAdminController.editClient); //completed
+router.put("/editEmployee/:id",isSuperAdmin,imageMulter, superAdminController.editEmployee); //completed
 router.put("/clientAllocation/:id",isSuperAdmin, superAdminController.storeClientDistributionData); //completed
 router.put('/clienttype/:id',isSuperAdmin, superAdminController.updateClientType); //completed
 router.put('/addReview', adminController.addEmployeeReview);
@@ -34,7 +35,7 @@ router.get('/getClients', isAdmin, employeeController.getClient); //completeld a
 router.get('/getmom/:id', adminController.getMomEntriesByClientId);
 router.get('/getOneClient/:id', employeeController.getOneClient);
 router.get('/getTicket', employeeController.getTicket);
-router.get('/employeeReviews', adminController.getEmployeeReviews);
+router.get('/employeeReviews/:id', adminController.getEmployeeReviews);
 router.get('/employeeReviewsShow/:id', adminController.getEmployeeReviewsArray);
 router.get('/getOneClientTickets/:id', adminController.getTicketsForClient);
 router.get('/getEmployeeTickets/:id', employeeController.getEmployeeTicket);

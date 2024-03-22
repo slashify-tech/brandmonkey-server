@@ -349,7 +349,7 @@ exports.downloadSingleEmployeeSheet = async (req, res) => {
   }
 };
 
-exports.downloadAllEmployeeData = async (res) => {
+exports.downloadAllEmployeeData = async (req, res) => {
   try {
     // Fetch all tasks with employee details from MongoDB
     const tasks = await Task.find({}).populate("employeeId", "name");
@@ -374,15 +374,15 @@ exports.downloadAllEmployeeData = async (res) => {
     });
 
     // Convert data to CSV format
-    const csvData = await json2csv(allEmployeeData, {
+    const csvData = json2csv(allEmployeeData, {
       fields: ["employeeName", "clientName", "activity", "timeSlot", "date"],
     });
 
     // Save the CSV data to a file
-    fs.writeFileSync("exportedData.csv", csvData);
+    fs.writeFileSync("exportedAllSheets.csv", csvData);
 
-    // Send the CSV file as a response
-    res.download("exportedData.csv", "all_employee_activities.csv", (err) => {
+     // Send the CSV file as a response
+     res.download("exportedAllSheets.csv", "all_activities.csv", (err) => {
       if (err) {
         console.error(err);
         res.status(500).send("Internal Server Error");

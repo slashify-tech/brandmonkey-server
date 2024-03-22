@@ -31,7 +31,7 @@ const ticketSchema = mongoose.Schema({
     },
     progressValue : {
         type : String,
-        enum : ["accept", "start", "processing", "done"],
+        enum : ["accept", "done"],
         default : "accept"
     },
     revertIssue: { type: String, default : "" },

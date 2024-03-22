@@ -48,7 +48,7 @@ const uploadToS3 = async (buffer, fileName, mimeType) => {
 };
 
 const deleteFromS3 = async (key) => {
-  try {
+  if(key){try {
     const deleteObjectParams = {
       Bucket: bucketName,
       Key: key,
@@ -58,7 +58,7 @@ const deleteFromS3 = async (key) => {
     await S3.send(deleteObjectCommand);
   } catch (error) {
     throw new Error("Error deleting from S3: " + error.message);
-  }
+  }}
 };
 
 const generateFileName = (originalname) => {

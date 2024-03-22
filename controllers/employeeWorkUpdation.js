@@ -64,17 +64,10 @@ exports.updateProgress = async (req, res) => {
 
     switch (progress) {
       case "accept":
-        ticket.progressValue = "start";
-        break;
-      case "start":
-        ticket.progressValue = "processing";
-        break;
-      case "processing":
         ticket.progressValue = "done";
         break;
       case "done":
         resolveTicketRequest(id);
-
         break;
       default:
         return res

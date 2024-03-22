@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 const axios = require("axios");
 const Employees = require("../models/employee");
-const { getSignedUrlFromS3 } = require('../utils/s3Utils');
+const { getSignedUrlFromS3 } = require("../utils/s3Utils");
 
 dotenv.config();
 
@@ -51,22 +51,22 @@ exports.login = async (req, res) => {
         const picture = response.data.picture;
         console.log(name, email);
 
-        const existingUser = await Employees.findOne({ email });
-        console.log(existingUser);
+        const employee = await Employees.findOne({ email });
+        console.log(employee);
 
-        if (!existingUser)
+        if (!employee)
           return res.status(404).json({ message: "Employee don't exist!" });
 
         const token = jwt.sign(
           {
-            email: existingUser.email,
-            id: existingUser._id,
+            email: employee.email,
+            id: employee._id,
           },
           process.env.SECRET_KEY,
           { expiresIn: "48h" }
         );
 
-        res.status(200).json({ existingUser, token });
+        res.status(200).json({ employee, token });
       })
       .catch((err) => {
         res.status(400).json({ message: "Invalid access token!" });
@@ -118,7 +118,7 @@ exports.getUser = async (req, res, next) => {
       error.statusCode = 404;
       console.log(error);
     }
-    employee.imageUrl = await getSignedUrlFromS3(`${employee.name}`+".jpg");
+    employee.imageUrl = await getSignedUrlFromS3(`${employee.name}` + ".jpg");
     res.status(200).json({ employee });
   } catch (err) {
     console.log(err);

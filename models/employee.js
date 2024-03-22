@@ -10,6 +10,14 @@ const clientElementSchema = mongoose.Schema(
       type: String,
       default: "0-10",
     },
+    logo: {
+      type: String,
+      default: "",
+    },
+    clientLogo: {
+      type: String,
+      default: "",
+    },
     clientType: {
       type: String,
       default: "Regular",
@@ -39,21 +47,25 @@ const employeeSchema = mongoose.Schema({
     type: String,
     default: "",
   },
+  image : {
+    type: String,
+    default: "",
+  },
   employeeId: {
     type: String,
     required: true,
   },
   Gender: {
     type: String,
-    required: true,
+    // required: true,
   },
   DateOfBirth: {
     type: String,
-    required: true,
+    // required: true,
   },
   DateOfJoining: {
     type: String,
-    required: true,
+    // required: true,
   },
   name: {
     type: String,
@@ -65,7 +77,7 @@ const employeeSchema = mongoose.Schema({
   },
   phoneNumber: {
     type: String,
-    required: true,
+    // required: true,
   },
   email: {
     type: String,
