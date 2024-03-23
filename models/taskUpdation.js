@@ -8,6 +8,7 @@ const ActivitySchema = mongoose.Schema(
   {
     clientName: {
       type: String,
+      required:true
     },
 
     activity: {
