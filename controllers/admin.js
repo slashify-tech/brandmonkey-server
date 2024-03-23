@@ -11,6 +11,35 @@ const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const fs = require("fs");
 const TicketCount = require("../models/ticketCount");
+ 
+
+// all messages (
+//   const adminMsg = {
+//     // to: adminEmails,
+//     to: "minhazashraf590@gmail.com",
+//     from: "info@brandmonkey.in",
+//     subject: "New Ticket Assigned",
+//     text: `New Ticket Assigned:
+//         For Clients: ${clientName}
+//         To Employee: ${employeeName}
+//         Services: ${services}
+//         Description: ${description}`,
+//   };
+//   await sgMail.send(adminMsg);
+
+//   const employeeMsg = {
+//     // to: assignedEmployeeEmail,
+//     to: "pmrutunjay928@gmail.com",
+//     from: "info@brandmonkey.in",
+//     subject: "You have been assigned a new ticket",
+//     text: `You have been assigned a new ticket:
+//       For Clients: ${clientName}
+//       Services: ${services}
+//       Description: ${description}`,
+//   };
+
+//   await sgMail.send(employeeMsg);
+// )
 
 exports.uploadClientBulk = async (req, res) => {
   let ClientData = [];
@@ -42,7 +71,6 @@ exports.uploadClientBulk = async (req, res) => {
         logo: response[i]?.clientlogo + ".png",
       });
     }
-
     await Clients.insertMany(ClientData);
     res.status(201).json({ message: "uploaded", ClientData });
   } catch (err) {
@@ -70,7 +98,6 @@ function simpleEncrypt(data, key) {
       encrypted.push(data[i]);
     }
   }
-
   return encrypted.join("");
 }
 
@@ -107,7 +134,6 @@ exports.uploadEmployeeBulk = async (req, res) => {
       const filteredClientDetails = clientDetails.filter(
         (client) => client !== null
       );
-
 
         const employee = {
           employeeId: response[i]?.EmployeeID || "NA",
@@ -151,7 +177,6 @@ exports.assignTicket = async (req, res) => {
     if (!assignedEmployee) {
       return res.status(404).json({ error: "Assigned employee not found" });
     }
-
     // Find or create the ticket count document and increment TotalTickets
     await TicketCount.findOneAndUpdate(
       {},
@@ -187,33 +212,8 @@ exports.assignTicket = async (req, res) => {
 
     const adminEmails = admins.map((admin) => admin.email);
 
-    // const adminMsg = {
-    //   to: adminEmails,
-    //   from: "info@brandmonkey.in",
-    //   subject: "New Ticket Assigned",
-    //   text: `New Ticket Assigned:
-    //       For Clients: ${clientName}
-    //       To Employee: ${employeeName}
-    //       Services: ${services}
-    //       Description: ${description}`,
-    // };
-    // await sgMail.send(adminMsg);
-
-    // const employeeMsg = {
-    //   to: assignedEmployeeEmail,
-    //   from: "info@brandmonkey.in",
-    //   subject: "You have been assigned a new ticket",
-    //   text: `You have been assigned a new ticket:
-    //     For Clients: ${clientName}
-    //     Services: ${services}
-    //     Description: ${description}`,
-    // };
-
-    // await sgMail.send(employeeMsg);
-
     const adminMsg = {
-      // to: adminEmails,
-      to: "minhazashraf590@gmail.com",
+      to: adminEmails,
       from: "info@brandmonkey.in",
       subject: "New Ticket Assigned",
       text: `New Ticket Assigned:
@@ -225,8 +225,7 @@ exports.assignTicket = async (req, res) => {
     await sgMail.send(adminMsg);
 
     const employeeMsg = {
-      // to: assignedEmployeeEmail,
-      to: "pmrutunjay928@gmail.com",
+      to: assignedEmployeeEmail,
       from: "info@brandmonkey.in",
       subject: "You have been assigned a new ticket",
       text: `You have been assigned a new ticket:
@@ -236,6 +235,8 @@ exports.assignTicket = async (req, res) => {
     };
 
     await sgMail.send(employeeMsg);
+
+ 
     res.status(201).json({ message: "Ticket submitted successfully" });
   } catch (error) {
     console.error(error);
@@ -259,16 +260,14 @@ exports.resolveTickets = async (req, res) => {
 };
 
 exports.deleteMOM = async (req, res) => {
-  const { id } = req.params;
-
   try {
+    const { id } = req.params;
     // Find the MOM record by ID
     const momRecord = await MomData.findById(id);
 
     if (!momRecord) {
       return res.status(404).json({ message: "MOM record not found" });
     }
-
     // Delete the MOM record
     await MomData.findByIdAndDelete(id);
 
@@ -341,6 +340,7 @@ exports.createMomEntry = async (req, res) => {
       clientId,
       topicDiscuss,
       complain,
+      attendees,
       feedback,
     });
 
@@ -488,7 +488,7 @@ exports.acknowlegdeTicketResolve = async (req, res) => {
         text: `Dear ${employeeName},\n\nYour resolved ticket has been accepted and deleted successfully.\n\nRegards,\nThe Support Team`,
       };
 
-      // await sgMail.send(acceptMsg);
+      await sgMail.send(acceptMsg);
 
       res
         .status(200)
@@ -507,7 +507,7 @@ exports.acknowlegdeTicketResolve = async (req, res) => {
         text: `Dear ${employeeName},\n\nYour resolved ticket has been rejected there are futher issues that have to be solved.\n\nRegards,\nThe Support Team`,
       };
 
-      // await sgMail.send(rejectMsg);
+      await sgMail.send(rejectMsg);
 
       res
         .status(200)
@@ -653,9 +653,9 @@ exports.downloadCsvEmployees = async (req, res) => {
       ],
     });
 
-    fs.writeFileSync("exportedData.csv", csvData);
+    fs.writeFileSync("exportedEmployeeData.csv", csvData);
 
-    res.download("exportedData.csv", "exportedData.csv", (err) => {
+    res.download("exportedEmployeeData.csv", "exportedEmployeeData.csv", (err) => {
       if (err) {
         console.error(err);
         res.status(500).send("Internal Server Error");
@@ -687,10 +687,10 @@ exports.downloadCsvClients = async (req, res) => {
 
     const csvData = json2csv(data, { fields: fieldsArray });
 
-    const fileName = "exportedData.csv";
+    const fileName = "exportedClientData.csv";
     fs.writeFileSync(fileName, csvData);
 
-    res.download(fileName, "exportedData.csv", (err) => {
+    res.download(fileName, "exportedClientData.csv", (err) => {
       if (err) {
         console.error(err);
         res.status(500).send("Internal Server Error");

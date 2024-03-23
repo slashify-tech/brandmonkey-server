@@ -145,19 +145,18 @@ exports.editEmployee = async (req, res, next) => {
       password: simpleEncrypt(req.body.password, 5),
     };
     if (req.file) {
-      console.log(req.file);
       const { buffer, originalname, mimetype } = req.file;
 
       const resizedImageBuffer = await resizeImage(buffer);
       const fileName = generateFileName(originalname);
 
-      // await deleteFromS3(employee.image);
+      if (employee.image !== "") {
+        await deleteFromS3(employee.image);
+      }
 
       await uploadToS3(resizedImageBuffer, fileName, mimetype);
       upadatedEmployee.image = fileName;
     }
-
-    console.log(upadatedEmployee);
 
     await Employees.findByIdAndUpdate(
       req.params.id,
@@ -341,7 +340,9 @@ exports.deleteEmployeeData = async (req, res) => {
 
     // Delete employee data
     const employee = await Employees.findOne({ _id: id });
-    await deleteFromS3(employee.image);
+    if (employee.image !== "") {
+      await deleteFromS3(employee.image);
+    }
     await Employees.findByIdAndDelete(id);
 
     // Delete related ticket list
