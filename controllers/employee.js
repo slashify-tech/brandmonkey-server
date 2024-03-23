@@ -187,8 +187,9 @@ exports.getOneClient = async (req, res) => {
 
 exports.getEmployee = async (req, res, next) => {
   try {
+    const start = Date.now(); // Record the start time
     const { page, limit, search } = req.query;
-    let query = {type: { $ne: "superadmin" }};
+    let query = { type: { $ne: "superadmin" } };
     let result;
     let totalEmployeesCount;
     let endIndex;
@@ -213,16 +214,28 @@ exports.getEmployee = async (req, res, next) => {
       if (endIndex < totalEmployeesCount) {
         result = {
           nextPage: pageNumber + 1,
-          data: await Employees.find(query).limit(pageSize).skip(startIndex),
+          data: await Employees.find(query)
+            .select(
+              "-clients -team -password -progressPercentage -Gender -DateOfBirth -DateOfJoining -type"
+            )
+            .limit(pageSize)
+            .skip(startIndex),
         };
       } else {
         result = {
-          data: await Employees.find(query).limit(pageSize).skip(startIndex),
+          data: await Employees.find(query)
+            .select(
+              "-clients -team -password -progressPercentage -Gender -DateOfBirth -DateOfJoining -type"
+            )
+            .limit(pageSize)
+            .skip(startIndex),
         };
       }
     } else {
       result = {
-        data: await Employees.find(query),
+        data: await Employees.find(query).select(
+          "-clients -team -password -progressPercentage -Gender -DateOfBirth -DateOfJoining -type"
+        ),
       };
     }
     if (result.data.length > 0) {
@@ -238,6 +251,10 @@ exports.getEmployee = async (req, res, next) => {
         }
       }
     }
+    const end = Date.now(); // Record the end time
+    const elapsedSeconds = (end - start) / 1000; // Calculate elapsed time in seconds
+    
+    console.log(elapsedSeconds + "secs");
 
     res.status(200).json({
       result,
