@@ -397,17 +397,17 @@ exports.downloadAllEmployeeData = async (req, res) => {
       const combinedActivities = [...task.activity, ...task.extraActivity];
       combinedActivities.forEach((activity) => {
         allEmployeeData.push({
-          employeeName: task.employeeId.name,
-          clientName: activity.clientName,
-          activity: activity.activity,
-          timeSlot: activity.timeSlot,
-          time: formatDateTime(activity.createdAt),
-          date: activity.date,
+          EmployeeName: task.employeeId.name,
+          ClientName: activity.clientName,
+          Activity: activity.activity,
+          TimeSlot: activity.timeSlot,
+          Time: formatDateTime(activity.createdAt),
+          Date: activity.date,
         });
       });
     });
 
-    await generateAndDownloadCSV(allEmployeeData, 'all_activities.csv', ['employeeName', 'clientName', 'activity', 'timeSlot', 'date'], res);
+    await generateAndDownloadCSV(allEmployeeData, 'all_activities.csv', ['EmployeeName', 'ClientName', 'Activity', 'TimeSlot', "Time", 'Date'], res);
   } catch (err) {
     console.error(err);
     res.status(500).send('Internal Server Error');
@@ -428,9 +428,9 @@ exports.downloadAllEmployeeHit = async (req, res) => {
       if (task.hits && task.hits.length > 0) {
         task.hits.forEach((hit) => {
           allHits.push({
-            employeeName: task.employeeId.name,
-            clientName: hit.clientName,
-            noOfHits: hit.noOfHits,
+            "Employee Name": task.employeeId.name,
+            "Client Name": hit.clientName,
+            "Total Hours": (hit.noOfHits * 30) / 60 + " hrs",
           });
         });
       }
@@ -440,7 +440,7 @@ exports.downloadAllEmployeeHit = async (req, res) => {
       return res.status(404).send('No hits found for any employee');
     }
 
-    await generateAndDownloadCSV(allHits, 'all_employee_hits.csv', ['employeeName', 'clientName', 'noOfHits'], res);
+    await generateAndDownloadCSV(allHits, 'all_employee_hits.csv', ['Employee Name', 'Client Name', 'Total Hours'], res);
   } catch (err) {
     console.error(err);
     res.status(500).send('Internal Server Error');

@@ -145,6 +145,7 @@ exports.editEmployee = async (req, res, next) => {
       password: simpleEncrypt(req.body.password, 5),
     };
     if (req.file) {
+      console.log(req.file);
       const { buffer, originalname, mimetype } = req.file;
 
       const resizedImageBuffer = await resizeImage(buffer);
