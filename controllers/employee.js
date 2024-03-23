@@ -464,3 +464,22 @@ exports.getClientWork = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+
+exports.getClientName = async (req, res) => {
+  try {
+
+    const client = await Clients.find({}).select("name");
+
+    if (client.length === 0) {
+      return res.status(404).json({ error: "No Clients found" });
+    }
+
+    console.log(client);
+
+    res.status(200).json({ client });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
