@@ -2,6 +2,17 @@ const Task = require("../models/taskUpdation");
 const fs = require("fs");
 const { json2csv } = require("json-2-csv");
 
+
+
+function formatDateTime(dateTimeString) {
+  const dateTime = new Date(dateTimeString);
+  const date = dateTime.toLocaleDateString();
+  const time = dateTime.toLocaleTimeString([], { hour12: false });
+
+  return `${date} ${time}`;
+}
+
+
 exports.createTask = async (req, res) => {
   try {
     const { employeeId, activity, clientName, timeSlot, _id } = req.body;
@@ -325,6 +336,7 @@ exports.downloadSingleEmployeeSheet = async (req, res) => {
       clientName: entry.clientName,
       activity: entry.activity,
       timeSlot: entry.timeSlot,
+      time: formatDateTime(entry.createdAt),
       date: entry.date,
     }));
 
@@ -360,6 +372,7 @@ exports.downloadAllEmployeeData = async (req, res) => {
 
     // Prepare combined data for all employees
     const allEmployeeData = [];
+    
     tasks.forEach((task) => {
       const combinedActivities = [...task.activity, ...task.extraActivity];
       combinedActivities.forEach((activity) => {
@@ -368,6 +381,7 @@ exports.downloadAllEmployeeData = async (req, res) => {
           clientName: activity.clientName,
           activity: activity.activity,
           timeSlot: activity.timeSlot,
+          time: formatDateTime(activity.createdAt),
           date: activity.date,
         });
       });
