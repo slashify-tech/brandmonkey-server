@@ -475,8 +475,6 @@ exports.getClientName = async (req, res) => {
       return res.status(404).json({ error: "No Clients found" });
     }
 
-    console.log(client);
-
     res.status(200).json({ client });
   } catch (error) {
     console.error(error);
