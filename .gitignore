@@ -1,4 +1,4 @@
 /node_modules
 .env
-
+/csv_exports
 /utils/googleAuth.js

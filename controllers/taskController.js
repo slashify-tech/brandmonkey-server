@@ -1,15 +1,19 @@
 const Task = require("../models/taskUpdation");
 const fs = require("fs");
+const path = require("path");
 const { json2csv } = require("json-2-csv");
+const { promisify } = require('util');
 
-
+const unlinkAsync = promisify(fs.unlink);
+const mkdirAsync = promisify(fs.mkdir);
+const writeFileAsync = promisify(fs.writeFile);
 
 function formatDateTime(dateTimeString) {
   const dateTime = new Date(dateTimeString);
-  const date = dateTime.toLocaleDateString();
-  const time = dateTime.toLocaleTimeString([], { hour12: false });
+  const day = dateTime.toLocaleDateString(undefined, { weekday: 'long' });
+  const time = dateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 
-  return `${date} ${time}`;
+  return `${day} ${time}`;
 }
 
 
@@ -142,6 +146,8 @@ exports.createAdditionalTask = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+
 function getDateFormatted() {
   const currentDate = new Date();
   const dayOfMonth = currentDate.getDate();
@@ -163,6 +169,8 @@ function getDateFormatted() {
   const month = months[currentDate.getMonth()];
   return `${dayOfMonth} ${month} ${year}`;
 }
+
+
 exports.getActivityByEmployeeIdAndDate = async (req, res) => {
   try {
     const { employeeId, date } = req.query; // Assuming date is passed as a parameter in the request
@@ -310,29 +318,57 @@ exports.deleteActivitiesByMonthYear = async (req, res) => {
   }
 };
 
+const generateAndDownloadCSV = async (data, filename, fields, res) => {
+  try {
+    const csvData = json2csv(data, { fields });
+    const folderPath = path.join(__dirname, '..', 'csv_exports');
+
+    if (!fs.existsSync(folderPath)) {
+      await mkdirAsync(folderPath);
+    }
+
+    const filePath = path.join(folderPath, filename);
+
+    if (fs.existsSync(filePath)) {
+      await unlinkAsync(filePath);
+    }
+
+    await writeFileAsync(filePath, csvData);
+
+    res.download(filePath, (err) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send('Internal Server Error');
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Internal Server Error');
+  }
+};
+
 exports.downloadSingleEmployeeSheet = async (req, res) => {
   try {
     const { id } = req.params;
     const { date } = req.query;
-    // Fetch data from MongoDB for the given employeeId
-    const data = await Task.findOne({ employeeId: id }).populate("employeeId", "name");
+
+    const data = await Task.findOne({ employeeId: id }).populate('employeeId', 'name');
 
     if (!data) {
-      return res.status(404).send("No data found for the employee");
+      return res.status(404).send('No data found for the employee');
     }
 
-    // Prepare data for CSV conversion (combine activity and extraActivity)
     let combinedActivities = [...data.activity, ...data.extraActivity];
 
     if (date) {
       combinedActivities = combinedActivities.filter((item) => {
-        const itemMonthYear = item.date.split(" ").slice(1).join(" ");
+        const itemMonthYear = item.date.split(' ').slice(1).join(' ');
         return itemMonthYear === date;
       });
     }
-    // Prepare data for CSV conversion
+
     const activities = combinedActivities.map((entry) => ({
-      employeeName : data.employeeId.name,
+      employeeName: data.employeeId.name,
       clientName: entry.clientName,
       activity: entry.activity,
       timeSlot: entry.timeSlot,
@@ -340,39 +376,23 @@ exports.downloadSingleEmployeeSheet = async (req, res) => {
       date: entry.date,
     }));
 
-    // Convert data to CSV format
-    const csvData = json2csv(activities, {
-      fields: ["clientName", "activity", "timeSlot", "date"],
-    });
-
-    // Save the CSV data to a file
-    fs.writeFileSync("exportedData.csv", csvData);
-
-    // Send the CSV file as a response
-    res.download("exportedData.csv", "employee_activities.csv", (err) => {
-      if (err) {
-        console.error(err);
-        res.status(500).send("Internal Server Error");
-      }
-    });
+    await generateAndDownloadCSV(activities, 'employee_activities.csv', ['clientName', 'activity', 'timeSlot', 'date'], res);
   } catch (err) {
     console.error(err);
-    res.status(500).send("Internal Server Error");
+    res.status(500).send('Internal Server Error');
   }
 };
 
 exports.downloadAllEmployeeData = async (req, res) => {
   try {
-    // Fetch all tasks with employee details from MongoDB
-    const tasks = await Task.find({}).populate("employeeId", "name");
+    const tasks = await Task.find({}).populate('employeeId', 'name');
 
     if (!tasks || tasks.length === 0) {
-      return res.status(404).send("No data found for any employees");
+      return res.status(404).send('No data found for any employees');
     }
 
-    // Prepare combined data for all employees
     const allEmployeeData = [];
-    
+
     tasks.forEach((task) => {
       const combinedActivities = [...task.activity, ...task.extraActivity];
       combinedActivities.forEach((activity) => {
@@ -387,43 +407,28 @@ exports.downloadAllEmployeeData = async (req, res) => {
       });
     });
 
-    // Convert data to CSV format
-    const csvData = json2csv(allEmployeeData, {
-      fields: ["employeeName", "clientName", "activity", "timeSlot", "date"],
-    });
-
-    // Save the CSV data to a file
-    fs.writeFileSync("exportedAllSheets.csv", csvData);
-
-     // Send the CSV file as a response
-     res.download("exportedAllSheets.csv", "all_activities.csv", (err) => {
-      if (err) {
-        console.error(err);
-        res.status(500).send("Internal Server Error");
-      }
-    });
+    await generateAndDownloadCSV(allEmployeeData, 'all_activities.csv', ['employeeName', 'clientName', 'activity', 'timeSlot', 'date'], res);
   } catch (err) {
     console.error(err);
-    res.status(500).send("Internal Server Error");
+    res.status(500).send('Internal Server Error');
   }
 };
 
 exports.downloadAllEmployeeHit = async (req, res) => {
   try {
-    // Fetch all tasks
-    const tasks = await Task.find({}).populate("employeeId", "name");
+    const tasks = await Task.find({}).populate('employeeId', 'name');
 
     if (!tasks || tasks.length === 0) {
-      return res.status(404).send("No tasks found");
+      return res.status(404).send('No tasks found');
     }
 
-    // Prepare data for CSV conversion
     let allHits = [];
+
     tasks.forEach((task) => {
       if (task.hits && task.hits.length > 0) {
         task.hits.forEach((hit) => {
           allHits.push({
-            employeeName: task.employeeId.name, // Assuming employeeName is available in the Task schema
+            employeeName: task.employeeId.name,
             clientName: hit.clientName,
             noOfHits: hit.noOfHits,
           });
@@ -432,26 +437,12 @@ exports.downloadAllEmployeeHit = async (req, res) => {
     });
 
     if (allHits.length === 0) {
-      return res.status(404).send("No hits found for any employee");
+      return res.status(404).send('No hits found for any employee');
     }
 
-    // Convert data to CSV format
-    const csvData = json2csv(allHits, {
-      fields: ["employeeName", "clientName", "noOfHits"],
-    });
-
-    // Save the CSV data to a file
-    fs.writeFileSync("allEmployeeHits.csv", csvData);
-
-    // Send the CSV file as a response
-    res.download("allEmployeeHits.csv", "all_employee_hits.csv", (err) => {
-      if (err) {
-        console.error(err);
-        res.status(500).send("Internal Server Error");
-      }
-    });
+    await generateAndDownloadCSV(allHits, 'all_employee_hits.csv', ['employeeName', 'clientName', 'noOfHits'], res);
   } catch (err) {
     console.error(err);
-    res.status(500).send("Internal Server Error");
+    res.status(500).send('Internal Server Error');
   }
 };
