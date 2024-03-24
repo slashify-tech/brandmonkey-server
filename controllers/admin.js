@@ -522,16 +522,24 @@ exports.getEmployeeReviewsArray = async (req, res) => {
 
 exports.getTicketsForClient = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { clientId, employeeId } = req.query;
 
-    if (!id) {
+    if (!clientId && !employeeId) {
       return res.status(400).json({ error: "Missing required parameter: id." });
     }
 
-    const tickets = await TicketAssigned.find({ forClients: id }).populate(
-      "toEmployee",
-      "name"
-    );
+    let tickets ;
+    if(clientId){
+      tickets = await TicketAssigned.find({ forClients: clientId }).populate(
+        "toEmployee",
+        "name"
+      );
+    }else{
+      tickets = await TicketAssigned.find({ toEmployee: employeeId }).populate(
+        "forClients",
+        "name"
+      );
+    }
 
     res.status(200).json({ tickets });
   } catch (error) {

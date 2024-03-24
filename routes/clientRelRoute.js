@@ -37,7 +37,7 @@ router.get('/getOneClient/:id', employeeController.getOneClient);
 router.get('/getTicket', employeeController.getTicket);
 router.get('/employeeReviews/:id', adminController.getEmployeeReviews);
 router.get('/employeeReviewsShow/:id', adminController.getEmployeeReviewsArray);
-router.get('/getOneClientTickets/:id', adminController.getTicketsForClient);
+router.get('/getOneClientOrEmployeeTickets', adminController.getTicketsForClient);
 router.get('/getEmployeeTickets/:id', employeeController.getEmployeeTicket);
 router.get('/getResolvedEmployeeTickets', adminController.getResolvedEmployeeTickets);
 router.get('/getOneTicket/:id', employeeController.getOneTicket);
