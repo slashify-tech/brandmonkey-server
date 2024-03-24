@@ -305,7 +305,7 @@ exports.getEmployeeReviews = async (req, res) => {
 exports.createMomEntry = async (req, res) => {
   try {
     const clientId = req.params.id;
-    const { topicDiscuss, complain, feedback, color } = req.body;
+    const { topicDiscuss, complain, feedback, attendees, color } = req.body;
 
     const momEntry = new MomData({
       clientId,

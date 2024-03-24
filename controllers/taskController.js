@@ -2,7 +2,7 @@ const Task = require("../models/taskUpdation");
 const fs = require("fs");
 const path = require("path");
 const { json2csv } = require("json-2-csv");
-const { promisify } = require('util');
+const { promisify } = require("util");
 
 const unlinkAsync = promisify(fs.unlink);
 const mkdirAsync = promisify(fs.mkdir);
@@ -10,12 +10,16 @@ const writeFileAsync = promisify(fs.writeFile);
 
 function formatDateTime(dateTimeString) {
   const dateTime = new Date(dateTimeString);
-  const day = dateTime.toLocaleDateString(undefined, { weekday: 'long' });
-  const time = dateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const day = dateTime.toLocaleDateString(undefined, { weekday: "long" });
+  const time = dateTime.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
 
   return `${day} ${time}`;
 }
-
 
 exports.createTask = async (req, res) => {
   try {
@@ -45,7 +49,7 @@ exports.createTask = async (req, res) => {
         (act) =>
           act.timeSlot === timeSlot && act._id.toString() === _id.toString()
       );
-      console.log(existingActivityIndex);
+
       if (existingActivityIndex !== -1) {
         // Update the existing activity if the time slot matches
         const existingActivity = newTask.activity[existingActivityIndex];
@@ -93,9 +97,12 @@ exports.createAdditionalTask = async (req, res) => {
     let newTask = await Task.findOne({ employeeId });
 
     if (!newTask) {
-      res.status(404).json({
-        message:
-          "you have not used the set amount of slots use them before creating additional",
+      newTask = new Task({
+        employeeId,
+        extraActivity: [
+          { activity: activity, timeSlot, clientName: clientName },
+        ],
+        hits: [{ clientName, noOfHits: parseInt(1) }],
       });
     } else {
       if (!newTask.extraActivity) {
@@ -107,7 +114,7 @@ exports.createAdditionalTask = async (req, res) => {
         (act) =>
           act.timeSlot === timeSlot && act._id.toString() === _id.toString()
       );
-      console.log(existingActivityIndex);
+
       if (existingActivityIndex !== -1) {
         // Update the existing activity if the time slot matches
         const existingActivity = newTask.extraActivity[existingActivityIndex];
@@ -147,7 +154,6 @@ exports.createAdditionalTask = async (req, res) => {
   }
 };
 
-
 function getDateFormatted() {
   const currentDate = new Date();
   const dayOfMonth = currentDate.getDate();
@@ -169,7 +175,6 @@ function getDateFormatted() {
   const month = months[currentDate.getMonth()];
   return `${dayOfMonth} ${month} ${year}`;
 }
-
 
 exports.getActivityByEmployeeIdAndDate = async (req, res) => {
   try {
@@ -197,6 +202,9 @@ exports.getActivityByEmployeeIdAndDate = async (req, res) => {
         .status(404)
         .json({ message: "No activities found for the specified date" });
     }
+
+    // Sort activities by createdAt in ascending order
+    activities.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
     res.status(200).json(activities);
   } catch (error) {
@@ -233,6 +241,9 @@ exports.getExtraActivityByEmployeeIdAndDate = async (req, res) => {
         .status(404)
         .json({ message: "No activities found for the specified date" });
     }
+
+    // Sort activities by createdAt in ascending order
+    activities.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
     res.status(200).json(activities);
   } catch (error) {
@@ -278,8 +289,8 @@ exports.deleteActivitiesByMonthYear = async (req, res) => {
     // Find tasks matching the provided month and year
     const tasks = await Task.find({
       $or: [
-        { "activity.date": { $gte: startDate, $lte: endDate } },
-        { "extraActivity.date": { $gte: startDate, $lte: endDate } },
+        { "activity.date": { $gte: startDate, $lt: endDate } },
+        { "extraActivity.date": { $gte: startDate, $lt: endDate } },
       ],
     });
 
@@ -321,7 +332,7 @@ exports.deleteActivitiesByMonthYear = async (req, res) => {
 const generateAndDownloadCSV = async (data, filename, fields, res) => {
   try {
     const csvData = json2csv(data, { fields });
-    const folderPath = path.join(__dirname, '..', 'csv_exports');
+    const folderPath = path.join(__dirname, "..", "csv_exports");
 
     if (!fs.existsSync(folderPath)) {
       await mkdirAsync(folderPath);
@@ -338,12 +349,12 @@ const generateAndDownloadCSV = async (data, filename, fields, res) => {
     res.download(filePath, (err) => {
       if (err) {
         console.error(err);
-        res.status(500).send('Internal Server Error');
+        res.status(500).send("Internal Server Error");
       }
     });
   } catch (err) {
     console.error(err);
-    res.status(500).send('Internal Server Error');
+    res.status(500).send("Internal Server Error");
   }
 };
 
@@ -352,17 +363,20 @@ exports.downloadSingleEmployeeSheet = async (req, res) => {
     const { id } = req.params;
     const { date } = req.query;
 
-    const data = await Task.findOne({ employeeId: id }).populate('employeeId', 'name');
+    const data = await Task.findOne({ employeeId: id }).populate(
+      "employeeId",
+      "name"
+    );
 
     if (!data) {
-      return res.status(404).send('No data found for the employee');
+      return res.status(404).send("No data found for the employee");
     }
 
     let combinedActivities = [...data.activity, ...data.extraActivity];
 
     if (date) {
       combinedActivities = combinedActivities.filter((item) => {
-        const itemMonthYear = item.date.split(' ').slice(1).join(' ');
+        const itemMonthYear = item.date.split(" ").slice(1).join(" ");
         return itemMonthYear === date;
       });
     }
@@ -376,19 +390,24 @@ exports.downloadSingleEmployeeSheet = async (req, res) => {
       date: entry.date,
     }));
 
-    await generateAndDownloadCSV(activities, 'employee_activities.csv', ['clientName', 'activity', 'timeSlot', 'date'], res);
+    await generateAndDownloadCSV(
+      activities,
+      "employee_activities.csv",
+      ["clientName", "activity", "timeSlot", "date"],
+      res
+    );
   } catch (err) {
     console.error(err);
-    res.status(500).send('Internal Server Error');
+    res.status(500).send("Internal Server Error");
   }
 };
 
 exports.downloadAllEmployeeData = async (req, res) => {
   try {
-    const tasks = await Task.find({}).populate('employeeId', 'name');
+    const tasks = await Task.find({}).populate("employeeId", "name");
 
     if (!tasks || tasks.length === 0) {
-      return res.status(404).send('No data found for any employees');
+      return res.status(404).send("No data found for any employees");
     }
 
     const allEmployeeData = [];
@@ -407,19 +426,24 @@ exports.downloadAllEmployeeData = async (req, res) => {
       });
     });
 
-    await generateAndDownloadCSV(allEmployeeData, 'all_activities.csv', ['EmployeeName', 'ClientName', 'Activity', 'TimeSlot', "Time", 'Date'], res);
+    await generateAndDownloadCSV(
+      allEmployeeData,
+      "all_activities.csv",
+      ["EmployeeName", "ClientName", "Activity", "TimeSlot", "Time", "Date"],
+      res
+    );
   } catch (err) {
     console.error(err);
-    res.status(500).send('Internal Server Error');
+    res.status(500).send("Internal Server Error");
   }
 };
 
 exports.downloadAllEmployeeHit = async (req, res) => {
   try {
-    const tasks = await Task.find({}).populate('employeeId', 'name');
+    const tasks = await Task.find({}).populate("employeeId", "name");
 
     if (!tasks || tasks.length === 0) {
-      return res.status(404).send('No tasks found');
+      return res.status(404).send("No tasks found");
     }
 
     let allHits = [];
@@ -437,12 +461,17 @@ exports.downloadAllEmployeeHit = async (req, res) => {
     });
 
     if (allHits.length === 0) {
-      return res.status(404).send('No hits found for any employee');
+      return res.status(404).send("No hits found for any employee");
     }
 
-    await generateAndDownloadCSV(allHits, 'all_employee_hits.csv', ['Employee Name', 'Client Name', 'Total Hours'], res);
+    await generateAndDownloadCSV(
+      allHits,
+      "all_employee_hits.csv",
+      ["Employee Name", "Client Name", "Total Hours"],
+      res
+    );
   } catch (err) {
     console.error(err);
-    res.status(500).send('Internal Server Error');
+    res.status(500).send("Internal Server Error");
   }
 };

@@ -253,7 +253,7 @@ exports.getEmployee = async (req, res, next) => {
     }
     const end = Date.now(); // Record the end time
     const elapsedSeconds = (end - start) / 1000; // Calculate elapsed time in seconds
-    
+
     console.log(elapsedSeconds + "secs");
 
     res.status(200).json({
@@ -465,17 +465,25 @@ exports.getClientWork = async (req, res) => {
   }
 };
 
-
 exports.getClientName = async (req, res) => {
   try {
+    const { clientOrNot } = req.query;
 
-    const client = await Clients.find({}).select("name");
+    if (clientOrNot) {
+      const client = await Clients.find({}).select("name");
 
-    if (client.length === 0) {
-      return res.status(404).json({ error: "No Clients found" });
+      if (client.length === 0) {
+        return res.status(404).json({ error: "No Clients found" });
+      }
+      res.status(200).json({ client });
+    } else {
+      const employee = await Employees.find({}).select("name");
+
+      if (employee.length === 0) {
+        return res.status(404).json({ error: "No Clients found" });
+      }
+      res.status(200).json({ employee });
     }
-
-    res.status(200).json({ client });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
