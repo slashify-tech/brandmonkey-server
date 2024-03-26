@@ -27,6 +27,4 @@ router.get('/getclientemployeedistribution/:id' , employeeController.getClientEm
 router.get('/getclientWork/:id' , employeeController.getClientWork);
 router.get('/getclientName' , employeeController.getClientName);
 
-router.delete("/deleteHitData/:monthYear", taskController.deleteActivitiesByMonthYear);
-
 module.exports = router;

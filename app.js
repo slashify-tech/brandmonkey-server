@@ -4,6 +4,13 @@ const dotenv = require("dotenv");
 const helmet = require("helmet");
 const cors = require("cors");
 const morgan = require("morgan");
+const cron = require("node-cron");
+const moment = require("moment");
+
+const {
+  deleteTasksForMonth,
+  sendEmailToAdmin,
+} = require("./controllers/taskController");
 
 const apiRoute = require("./routes/clientRelRoute");
 const userRoutes = require("./routes/auth");
@@ -30,6 +37,28 @@ mongoose
     });
   })
   .catch((err) => console.error("MongoDB connection error:", err));
+
+cron.schedule(
+  "59 23 27 1-11 *",
+  async () => {
+    // Here, you can perform any task you want to run one day before the deletion cron job
+    console.log("Sending reminder email...");
+    sendEmailToAdmin(); // Send email reminder
+  },
+  {
+    scheduled: true,
+    timezone: "Asia/Kolkata", // Specify your timezone here, e.g., 'America/New_York'
+  }
+);
+
+// Schedule cron job to run every 10 seconds
+cron.schedule("59 23 28-31 * *", () => {
+  const currentTime = moment().format("MMMM Do YYYY, h:mm:ss a");
+  console.log(`This delete job ran at ${currentTime}`);
+
+  // Call the deleteTasksForMonth function
+  deleteTasksForMonth();
+});
 
 // Routes
 app.use(userRoutes);

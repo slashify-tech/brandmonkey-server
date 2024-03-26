@@ -1,12 +1,20 @@
 const Notes = require("../models/notes");
 
+function formatNotesAsHTML(notes) {
+const urlRegex = /(https?:\/\/[^\s]+)/g;
+const formattedNotes = notes.replace(urlRegex, '$1');
+  return formattedNotes;
+}
+
 exports.getnotes = async (req, res) => {
   try {
     const note = await Notes.findOne({});
     if (!note) {
       return res.status(404).json({ message: "No notes found" });
     }
-    return res.status(200).json({ notes: note.notes });
+    const formattedNotes = formatNotesAsHTML(note.notes);
+
+    return res.status(200).json({ notes: formattedNotes });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal Server Error" });

@@ -3,6 +3,9 @@ const fs = require("fs");
 const path = require("path");
 const { json2csv } = require("json-2-csv");
 const { promisify } = require("util");
+const sgMail = require("@sendgrid/mail");
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const Employees = require('../models/employee');
 
 const unlinkAsync = promisify(fs.unlink);
 const mkdirAsync = promisify(fs.mkdir);
@@ -275,60 +278,6 @@ exports.getHitsByEmployees = async (req, res) => {
   }
 };
 
-exports.deleteActivitiesByMonthYear = async (req, res) => {
-  try {
-    const { monthYear } = req.query;
-
-    // Parse the month and year from the provided string
-    const { month, year } = moment(monthYear, "MMM YYYY").toObject();
-
-    // Calculate the start and end dates of the provided month
-    const startDate = moment().month(month).year(year).startOf("month");
-    const endDate = moment().month(month).year(year).endOf("month");
-
-    // Find tasks matching the provided month and year
-    const tasks = await Task.find({
-      $or: [
-        { "activity.date": { $gte: startDate, $lt: endDate } },
-        { "extraActivity.date": { $gte: startDate, $lt: endDate } },
-      ],
-    });
-
-    // Delete activities and extra activities matching the provided month and year
-    await Promise.all(
-      tasks.map(async (task) => {
-        task.activity = task.activity.filter(
-          (activity) =>
-            !moment(activity.date, "DD MMM YYYY").isBetween(
-              startDate,
-              endDate,
-              null,
-              "[]"
-            )
-        );
-        task.extraActivity = task.extraActivity.filter(
-          (extraActivity) =>
-            !moment(extraActivity.date, "DD MMM YYYY").isBetween(
-              startDate,
-              endDate,
-              null,
-              "[]"
-            )
-        );
-        task.hits = []; // Empty the hits array
-        await task.save();
-      })
-    );
-
-    res
-      .status(200)
-      .json({ message: `Activities for ${monthYear} deleted successfully` });
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ message: "Server Error" });
-  }
-};
-
 const generateAndDownloadCSV = async (data, filename, fields, res) => {
   try {
     const csvData = json2csv(data, { fields });
@@ -475,3 +424,120 @@ exports.downloadAllEmployeeHit = async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 };
+
+
+// Function to delete tasks for a specific month
+
+exports.deleteTasksForMonth = async () => {
+  // try {
+  //   // Parse the month and year from the provided string
+  //   const parsedDate = moment(monthYear, "MMM YYYY");
+  //   const month = parsedDate.month();
+  //   const year = parsedDate.year();
+
+  //   // Calculate the start and end dates of the provided month
+  //   const startDate = moment().month(month).year(year).startOf("month");
+  //   const endDate = moment().month(month).year(year).endOf("month");
+
+  //   // Find tasks matching the provided month and year
+  //   const tasks = await Task.find({
+  //     $or: [
+  //       { "activity.date": { $gte: startDate, $lt: endDate } },
+  //       { "extraActivity.date": { $gte: startDate, $lt: endDate } },
+  //     ],
+  //   });
+
+  //   // Log activities and extra activities to be deleted
+  //   tasks.forEach((task) => {
+  //     console.log(`Task ID: ${task._id}`);
+  //     console.log("Activities to be deleted:");
+  //     task.activity.forEach((activity) => {
+  //       if (
+  //         moment(activity.date, "DD MMM YYYY").isBetween(
+  //           startDate,
+  //           endDate,
+  //           null,
+  //           "[]"
+  //         )
+  //       ) {
+  //         console.log(activity);
+  //       }
+  //     });
+  //     console.log("Extra activities to be deleted:");
+  //     task.extraActivity.forEach((extraActivity) => {
+  //       if (
+  //         moment(extraActivity.date, "DD MMM YYYY").isBetween(
+  //           startDate,
+  //           endDate,
+  //           null,
+  //           "[]"
+  //         )
+  //       ) {
+  //         console.log(extraActivity);
+  //       }
+  //     });
+  //   });
+
+  //   // Delete activities and extra activities matching the provided month and year
+  //   await Promise.all(
+  //     tasks.map(async (task) => {
+  //       task.activity = task.activity.filter(
+  //         (activity) =>
+  //           !moment(activity.date, "DD MMM YYYY").isBetween(
+  //             startDate,
+  //             endDate,
+  //             null,
+  //             "[]"
+  //           )
+  //       );
+  //       task.extraActivity = task.extraActivity.filter(
+  //         (extraActivity) =>
+  //           !moment(extraActivity.date, "DD MMM YYYY").isBetween(
+  //             startDate,
+  //             endDate,
+  //             null,
+  //             "[]"
+  //           )
+  //       );
+  //       task.hits = []; // Empty the hits array
+  //       await task.save();
+  //     })
+  //   );
+
+  //   // console.log(`Tasks for ${monthYear} deleted successfully`);
+  // } catch (error) {
+  //   console.error("Error:", error);
+  // }
+  try {
+    await Task.deleteMany();
+    console.log("deleted succesfully");
+    console.log({ message: 'All tasks deleted successfully' });
+  } catch (error) {
+    console.log({ message: error.message });
+  }
+};
+
+
+
+exports.sendEmailToAdmin = async() =>{
+  // Function to send email
+  try {
+    const admins = await Employees.find({
+      type: { $in: ["admin", "superadmin"] },
+    }).select("email");
+
+    const adminEmails = admins.map((admin) => admin.email);
+    const adminMsg = {
+      to: adminEmails,
+      // to: ["pmrutunjay928@gmail.com"],
+      from: "info@brandmonkey.in",
+      subject: 'Urgent Message: Task Deletion Reminder',
+      text: `Urgent Message\n\nKindly download the employee sheet details and the hit details in hours as it's soon going to be cleaned.`, // Email body,
+    };
+    await sgMail.send(adminMsg);
+    console.log('Email sent successfully.');
+  } catch (error) {
+    console.error('Error sending email:', error);
+  }
+
+}
