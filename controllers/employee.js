@@ -365,7 +365,6 @@ exports.getOneTicket = async (req, res, next) => {
 };
 
 exports.getClientEmployeeRel = async (req, res) => {
-  // why have i written this
   try {
     const { id } = req.params;
     const clientAssigned = await Employees.findOne({ _id: id });
@@ -377,22 +376,24 @@ exports.getClientEmployeeRel = async (req, res) => {
 
       const clientData = await getClient(clientNames);
 
-      const clientsWithData = clientAssigned.clients.map((client) => {
+      const clientsWithData = await Promise.all(clientAssigned.clients.map(async (client) => {
         const clientInfo = clientData.find(
           (data) =>
             data.name.trim().toLowerCase() ===
             client.clientName.split("-")[0].trim().toLowerCase()
         );
         client.clientType = clientInfo;
-
+  
         return {
           clientType: client.clientType,
           clientName: client.clientName,
           progressValue: client.progressValue,
+          clientLogo : await getSignedUrlFromS3(`${client.logo}`),
+          logo : client.logo,
           _id: client._id,
           createdAt: client.createdAt,
         };
-      });
+      }));
 
       const updatedClientsArray = [...clientsWithData];
 
