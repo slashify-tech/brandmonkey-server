@@ -1,8 +1,9 @@
 const Notes = require("../models/notes");
 
 function formatNotesAsHTML(notes) {
-const urlRegex = /(https?:\/\/[^\s]+)/g;
-const formattedNotes = notes.replace(urlRegex, '$1');
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const formattedNotes = notes.replace(urlRegex, '<a href="$1" target="_blank">$1</a>');
+  
   return formattedNotes;
 }
 

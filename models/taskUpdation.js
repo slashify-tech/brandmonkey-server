@@ -28,6 +28,7 @@ const ActivitySchema = mongoose.Schema(
 // Function to format the current date
 function getDateFormatted() {
   const currentDate = new Date();
+  currentDate.setDate(currentDate.getDate());
   const dayOfMonth = currentDate.getDate();
   const year = currentDate.getFullYear();
   const months = [
