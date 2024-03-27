@@ -282,6 +282,7 @@ exports.storeClientDistributionData = async (req, res) => {
       } else {
         clientDistribution.clients.push({
           clientName: client + "-" + service,
+          logo : client + ".png",
           progressValue: "0-10",
         });
       }
