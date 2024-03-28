@@ -19,6 +19,7 @@ const Card = () => {
       await apiurl.post("/setNotes", { notes });
       // console.log("notes updated");
       toast.success("Notes Updated successfully");
+      getNotes();
     } catch (err) {
       // console.log(err);
       toast.error("Something went wrong")
@@ -44,7 +45,7 @@ console.log(notes)
     getNotes();
     
     getAdminDashBoard();
-  },[getNotes])
+  },[]);
   return (
     <>
 

@@ -29,7 +29,6 @@ const Card = ({ dashboardEmployeeData }) => {
       }
     }
   };
-console.log(notes);
   useEffect(() => {
     getNotes();
   }, []);
