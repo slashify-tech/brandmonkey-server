@@ -26,15 +26,15 @@ function formatDateTime(dateTimeString) {
 
 exports.createTask = async (req, res) => {
   try {
-    const { employeeId, activity, clientName, timeSlot, _id } = req.body;
-    console.log(employeeId, activity, clientName, timeSlot, _id);
+    const { employeeId, activity, clientName, timeSlot, _id, date } = req.body;
+    console.log(employeeId, activity, clientName, timeSlot, _id, date);
 
     let newTask = await Task.findOne({ employeeId });
 
     if (!newTask) {
       newTask = new Task({
         employeeId,
-        activity: [{ activity: activity, timeSlot, clientName: clientName }],
+        activity: [{ activity: activity, timeSlot, clientName: clientName, date }],
         hits: [{ clientName, noOfHits: parseInt(1) }],
       });
     } else {
@@ -59,12 +59,14 @@ exports.createTask = async (req, res) => {
         existingActivity.activity = activity;
         existingActivity.clientName = clientName;
         existingActivity.timeSlot = timeSlot;
+        existingActivity.date = date;
       } else {
         // Otherwise, add a new activity
         newTask.activity.unshift({
           activity: activity,
           timeSlot,
           clientName: clientName,
+          date
         });
 
         // Update hits array
@@ -94,8 +96,8 @@ exports.createTask = async (req, res) => {
 
 exports.createAdditionalTask = async (req, res) => {
   try {
-    const { employeeId, activity, clientName, timeSlot, _id } = req.body;
-    console.log(employeeId, activity, clientName, timeSlot, _id);
+    const { employeeId, activity, clientName, timeSlot, _id, date } = req.body;
+    console.log(employeeId, activity, clientName, timeSlot, _id, date);
 
     let newTask = await Task.findOne({ employeeId });
 
@@ -103,7 +105,7 @@ exports.createAdditionalTask = async (req, res) => {
       newTask = new Task({
         employeeId,
         extraActivity: [
-          { activity: activity, timeSlot, clientName: clientName },
+          { activity: activity, timeSlot, clientName: clientName, date },
         ],
         hits: [{ clientName, noOfHits: parseInt(1) }],
       });
@@ -124,12 +126,14 @@ exports.createAdditionalTask = async (req, res) => {
         existingActivity.activity = activity;
         existingActivity.clientName = clientName;
         existingActivity.timeSlot = timeSlot;
+        existingActivity.date = date;
       } else {
         // Otherwise, add a new activity
         newTask.extraActivity.unshift({
           activity: activity,
           timeSlot,
           clientName: clientName,
+          date
         });
         if (!newTask.hits) {
           newTask.hits = [];
