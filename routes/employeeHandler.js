@@ -8,10 +8,11 @@ const employeeWorkController = require('../controllers/employeeWorkUpdation');
 const taskController = require('../controllers/taskController');
 
 const { fileMulter } = require('../multer/multerFile');
+const { imageMulter } = require('../multer/multerImg');
 const { isSuperAdmin, isAdmin } = require("../middleware/is_auth");
 
 router.post('/csvEmployees',fileMulter, adminController.uploadEmployeeBulk);
-router.post('/addEmployee',isSuperAdmin, superAdminController.addEmployee); //completed
+router.post('/addEmployee',isSuperAdmin,imageMulter, superAdminController.addEmployee); //completed
 router.post('/createTask', taskController.createTask);
 router.post('/createExtraTask', taskController.createAdditionalTask);
 

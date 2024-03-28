@@ -35,12 +35,11 @@ const Login = () => {
       const response = await apiurl.post(`/signin`, {
         googleAccessToken: accessToken,
       });
-      const { existingUser: user, token } = response.data;
-      setUserData(user);
+      const { employee, token } = response.data;
+      setEmployeeData(employee);
       setToken(token);
       localStorage.setItem("isAuthenticated", true);
-      localStorage.setItem("isAdmin", user.admin);
-
+      localStorage.setItem("isAdmin", employee.type);
       document.cookie = `brandMonkeyAccessKey=` +token;
       if (employee.type === "superadmin" ) {
         navigate("/admin");

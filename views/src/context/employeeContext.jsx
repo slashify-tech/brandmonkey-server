@@ -49,7 +49,7 @@ export const EmployeeProvider = ({ children }) => {
       const config = {
         headers: {
           "content-type": "multipart/form-data",
-          Authorization: Bearer `${tokenId}`,
+          Authorization: `Bearer ${tokenId}`,
         },
       };
       try {
