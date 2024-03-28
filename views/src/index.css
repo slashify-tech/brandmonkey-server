@@ -1,0 +1,929 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+* {
+  margin: 0;
+  padding: 0;
+  border-width: 0;
+  scroll-behavior: smooth;
+  
+}
+
+
+/*  Scrollbar hide */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* For IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+
+html {
+  scroll-behavior: smooth;
+}
+::-webkit-scrollbar {
+  height: 5px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #ffffff;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #f5cd15;
+  border-radius: 5px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #f5cd15;
+}
+
+.background {
+  background-color: rgba(255, 255, 255, 30%);
+}
+.glassm {
+  backdrop-filter: blur(2px) saturate(2%);
+  -webkit-backdrop-filter: blur(2px) saturate(2%);
+  background-image: linear-gradient(60deg, #ffffff38 ,#9079bc27,#ffffff2a);
+  border-radius: 25px;
+
+}
+.glassu {
+  background: linear-gradient(to right, #7978784d, #201f2191, #3d3d3d33);
+  backdrop-filter: blur(9px); /* Adjust the blur radius as needed */
+
+}
+.glassn{
+  backdrop-filter: blur(2px) saturate(2%);
+  -webkit-backdrop-filter: blur(2px) saturate(2%);
+  background-image: linear-gradient(60deg, #d1d1d185 ,#ffffffab,#e0e0e02a);
+  border-radius: 25px; 
+
+}
+
+
+#yearly {
+  color: red !important;
+  background-color: #f5cd15 !important;
+}
+
+.BR {
+  border: 1px solid #f5cd15;
+}
+
+#card-icon {
+  margin-top: -18px;
+}
+
+#main {
+  background-color: #f5cd15;
+  width: 100vw;
+ 
+}
+
+#container {
+  width: 100%;
+
+  background-color: black;
+}
+
+#progress2 {
+  margin-left: 145px;
+}
+
+#container2 {
+  /* background-color: red; */
+  width: 65%;
+
+  margin-top: 80px;
+  margin-left: 195px;
+}
+
+/* #progress {
+  background-color: red;
+  width: 140%;
+  height: 75%;
+  padding-left: 1rem;
+} */
+
+#progress2 {
+  margin-left: 145px;
+}
+
+
+
+#notes {
+  width: 230px; /* Set the width of the container */
+  height: 100px; /* Set the height of the container */
+  overflow: auto; /* Add scrollbars if content overflows */
+}
+
+#notes .text-sm {
+  white-space: pre-wrap; /* Allow wrapping of long lines */
+}
+
+/* Customize scrollbar */
+#notes::-webkit-scrollbar {
+  width: 0px; /* Set the width of the scrollbar */
+}
+
+.child3::-webkit-scrollbar {
+  width: 0px;
+}
+
+/* Track */
+#notes::-webkit-scrollbar-track {
+  /* background: #f1f1f1; */
+  border-radius: 50%; /* Set the background color of the scrollbar track */
+}
+
+/* Handle */
+#notes::-webkit-scrollbar-thumb {
+  background: #888; /* Set the color of the scrollbar handle */
+  border-radius: 4px; /* Set border radius */
+}
+
+/* Handle on hover */
+#notes::-webkit-scrollbar-thumb:hover {
+  background: #555; /* Change color on hover */
+}
+
+/* Adjust width of cards to fit within container */
+
+
+#profile {
+  /* background-color: red; */
+  width: 200px;
+  display: inline-flex;
+  gap: 14px;
+}
+
+
+
+
+
+.header2 {
+  position: absolute;
+  right: 200px;
+  top: -10px;
+}
+
+/*
+Gredient Color
+*/
+
+.gradient {
+  background: linear-gradient(to right, #ffffff4d, #201f2100, #ffffff33);
+  backdrop-filter: blur(2px); /* Adjust the blur radius as needed */
+ 
+}
+
+
+
+.gradient-color{
+  /* Linear gradient */
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(32, 31, 33, 0.2) 50%,
+    rgba(255, 255, 255, 0.2) 100%
+  );
+}
+
+/*  Calender CSS Starts */
+.react-calendar {
+  box-sizing: border-box;
+  background-color: transparent;
+  color: white;
+  border-radius: 1rem;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  border: none;
+  line-height: 2.15rem;
+   /* Set width to 300px */
+  
+  overflow: hidden; /* Hide any overflow content */
+}
+
+/* Adjust styles for tile size */
+.react-calendar__tile {
+  width: calc(100% / 7); /* Ensure each tile takes up equal space */
+  height: 20px; /* Adjust height as needed */
+  line-height: 5px; /* Center content vertically */
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* Modify styles for weekend days */
+.react-calendar__month-view__days__day--weekend {
+  color: white;
+}
+
+/* Modify styles for weekdays */
+.react-calendar__month-view__weekdays__weekday {
+  font-weight: normal;
+  color: #ffffff;
+}
+
+abbr[title] {
+  text-decoration: none;
+  color: #b5bec6;
+}
+
+/* Adjust active state styles */
+.react-calendar__tile:enabled:hover,
+.react-calendar__tile:enabled:focus {
+  /* background: #f5cd15; */
+  border-radius: 9rem;
+  color: rgb(255, 255, 255);
+}
+
+/* .react-calendar__tile--now:enabled:hover,
+.react-calendar__tile--now:enabled:focus {
+ none
+
+} */
+
+.react-calendar__tile:enabled:hover,
+.react-calendar__tile:enabled:focus {
+  background: #f5cd15;
+  color: none;
+  border-radius: none;
+}
+.react-calendar__tile--now {
+  background: #f5cd15;
+  border-radius: 5rem;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.react-calendar__tile--hasActive:enabled:hover,
+.react-calendar__tile--hasActive:enabled:focus {
+  background: none;
+}
+
+.react-calendar__tile--active {
+  background: #f5cd15;
+  border-radius: 50%;
+  font-weight: none;
+  color: none;
+  padding: 0;
+}
+
+.react-calendar__navigation button {
+  color: white;
+  min-width: none;
+  background: none;
+  font-size: none;
+  margin-top: none;
+}
+
+.react-calendar__navigation button:enabled:hover,
+.react-calendar__navigation button:enabled:focus {
+  background-color: none;
+}
+
+.react-calendar__navigation button[disabled] {
+  background-color: none;
+}
+
+/*! Calender CSS End*/
+
+.notes {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(102, 102, 102, 1) 100%
+  );
+  /* For older browsers that do not support gradients */
+  background: -webkit-linear-gradient(
+    top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(102, 102, 102, 1) 100%
+  );
+  background: -moz-linear-gradient(
+    top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(102, 102, 102, 1) 100%
+  );
+  background: -o-linear-gradient(
+    top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(102, 102, 102, 1) 100%
+  );
+  background: -ms-linear-gradient(
+    top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(102, 102, 102, 1) 100%
+  );
+  /* Adding fallback color */
+  background-color: rgba(102, 102, 102, 1);
+  /* Ensuring proper rendering */
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#000000', endColorstr='#666666',GradientType=0 );
+}
+
+.parent {
+  background: #f5cd15;
+
+
+  
+}
+
+.child {
+ 
+ 
+  background: #f5cd15;
+}
+
+.child2 {
+
+ 
+  background: black;
+  border-top-left-radius: 2rem;
+  border-bottom-left-radius: 2rem;
+}
+
+.child3 {
+  /* Add relative positioning */
+  position: relative;
+  
+  /* height: auto; */
+
+ 
+  border: 1px solid rgba(255, 255, 255, 0.558);
+}
+
+#child4 {
+  position: relative;
+  width: 90%;
+  /* height: auto; */
+  height: 80%;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.558);
+}
+
+
+
+#btn {
+  background-color: black;
+  /* box-shadow: 0 0 10px #f5cd15; */
+
+  border-left: 1px solid #f5cd15;
+  border-right: 1px solid #f5cd15;
+  border-bottom: 1px solid #f5cd15;
+  /* border-top: 0.5px solid #f5cd15; */
+}
+
+.btn2 {
+  background-color: black;
+  border: 1px solid #f5cd15;
+  cursor: pointer;
+  color: #f5cd15;
+}
+
+
+
+
+
+
+#serve-btn {
+  position: absolute;
+  left: 55rem;
+}
+
+.serve-card {
+  width: 100%;
+}
+
+
+
+
+.navbg {
+  background-color: rgb(244, 0, 0);
+  color: white;
+  width: 250px;
+  padding: 15px;
+  padding-left: 30px;
+  margin-left: 0px;
+  padding-bottom: 5px;
+  border-radius: 50px 0px 0px 50px;
+  /* border-radius: 13em/3em; */
+  /* border-radius: 13em/3em; */
+}
+
+.input-field {
+ 
+
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.3),
+    rgba(32, 31, 33, 0.2),
+    rgba(255, 255, 255, 0.2)
+  );
+  /* For webkit (Safari, Chrome) */
+  background: -webkit-linear-gradient(
+    left,
+    rgba(255, 255, 255, 0.3),
+    rgba(32, 31, 33, 0.2),
+    rgba(255, 255, 255, 0.2)
+  );
+  /* For Mozilla Firefox */
+  background: -moz-linear-gradient(
+    left,
+    rgba(255, 255, 255, 0.3),
+    rgba(32, 31, 33, 0.2),
+    rgba(255, 255, 255, 0.2)
+  );
+  /* For Opera */
+  background: -o-linear-gradient(
+    left,
+    rgba(255, 255, 255, 0.3),
+    rgba(32, 31, 33, 0.2),
+    rgba(255, 255, 255, 0.2)
+  );
+  backdrop-filter: blur(5px);
+}
+
+
+
+::placeholder {
+  color: white;
+  font-family: sans-serif;
+  font-size: 15px;
+}
+
+#second-btn {
+  background: rgba(255, 255, 255, 0.25);
+  /* box-shadow: 0 8px 32px 0 rgba(167, 168, 182, 0.37); */
+  backdrop-filter: blur(4px);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+
+
+
+.card-item2 {
+  width: 470px;
+  height: 350px;
+}
+
+
+
+.cardglow {
+  color: #FFFFFF;
+  text-shadow: 0 0 0px #FFF, 10px 10px 20px #e3cd0b, 10px 10px 70px #e3cd0b, 10px 100px 100px #e3cd0b, 10px 0 35px #e3cd0b, 100px 0 75px #e3cd0b;
+}
+
+/* styles.css */
+
+.border-gradient {
+  border: 1px solid #f5cc15d4;
+}
+
+#excard {
+  background-color: red;
+  width: 96%;
+}
+
+/* styles.css */
+
+.custom-background {
+  background-image: linear-gradient(
+    to right top,
+    #ffffff,
+    #d0d0d0,
+    #a3a3a4,
+    #787879,
+    #505051,
+    #505051,
+    #505051,
+    #505051,
+    #787879,
+    #a3a3a4,
+    #d0d0d0,
+    #ffffff
+  );
+}
+#view-more {
+  margin-left: 50px;
+  margin-top: -10px;
+  height: 55px;
+  border-radius: 50px;
+}
+
+.down-arrow {
+  background-color: #f5cd15;
+}
+
+#empborder {
+  border: 1px solid white;
+}
+
+a {
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+
+.navbar-container {
+  position: relative;
+}
+
+.navbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: transform 0.3s ease-in-out;
+  transform: translateX(0);
+}
+
+.navbar.closed {
+  transform: translateX(-100%);
+}
+
+.toggle-button {
+  cursor: pointer;
+}
+
+.profile {
+  margin-top: -6rem;
+  text-align: center;
+}
+
+.name {
+  margin-top: 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+.nav-item p {
+  margin-left: 10px;
+}
+.supp{
+  -webkit-position: absolute;
+  -webkit-top: -3.2rem;
+  -webkit-right: 8rem;
+}
+.nav-item svg {
+  font-size: 2rem;
+}
+.activenav{
+  background: black;
+  color: white;
+  border-top-left-radius: 80px;
+  border-bottom-left-radius: 80px;
+  padding: 15px  0 15px 9px;
+  transition: trasnform 0.5s ease-in-out;
+  
+  
+}
+/* .active::before{
+  background: transparent;
+  position: absolute;
+  border-radius: 70%;
+  width: 70%;
+  height: 25%;
+  right: 16px;
+  top: 17.5%;
+  content: '';
+  box-shadow: 55px 55px 0 black;
+
+}
+.active::after{
+  background: transparent;
+  position: absolute;
+  border-radius: 70%;
+  width: 70%;
+  height: 25%;
+  right: 16px;
+  top: 50.5%;
+  content: '';
+  box-shadow: 40px -48px 0 black;
+
+}
+.activeaclient::before{
+  background: transparent;
+  position: absolute;
+  border-radius: 70%;
+  width: 70%;
+  height: 25%;
+  right: 16px;
+  top: 27%;
+  content: '';
+  box-shadow: 55px 55px 0 black;
+
+}
+.activeaclient::after{
+  background: transparent;
+  position: absolute;
+  border-radius: 70%;
+  width: 70%;
+  height: 25%;
+  right: 16px;
+  top: 60.5%;
+  content: '';
+  box-shadow: 47px -50px 0 black;
+
+}
+.activeemp::before{
+  background: transparent;
+  position: absolute;
+  border-radius: 70%;
+  width: 70%;
+  height: 25%;
+  right: 16px;
+  top: 36.3%;
+  content: '';
+  box-shadow: 55px 55px 0 black;
+
+}
+.activeemp::after{
+  background: transparent;
+  position: absolute;
+  border-radius: 70%;
+  width: 70%;
+  height: 25%;
+  right: 16px;
+  top: 70%;
+  content: '';
+  box-shadow: 45px -49px 0 black;
+
+}
+
+.activeres::before{
+  background: transparent;
+  position: absolute;
+  border-radius: 70%;
+  width: 70%;
+  height: 25%;
+  right: 16px;
+  top: 45.8%;
+  content: '';
+  box-shadow: 55px 55px 0 black;
+
+}
+.activeres::after{
+  background: transparent;
+  position: absolute;
+  border-radius: 70%;
+  width: 70%;
+  height: 25%;
+  right: 16px;
+  top: 79%;
+  content: '';
+  box-shadow: 45px -49px 0 black;
+
+} */
+
+.activeback{
+  background: black;
+  color: white;
+  border-top-left-radius: 80px;
+  border-bottom-left-radius: 80px;
+  padding: 15px  0 15px 9px;
+  margin: 25px 0 0 0 ;
+  width: 123%;
+  
+  
+}
+/* .activeservice::before{
+  background: transparent;
+  position: absolute;
+  border-radius: 70%;
+  width: 11%;
+  height: 19%;
+  left: 6%;
+  top: 41%;
+  content: '';
+  box-shadow: 52px 52px 0 black;
+
+}
+.activeservice::after{
+  background: transparent;
+  position: absolute;
+  border-radius: 70%;
+  width: 11%;
+  height: 19%;
+  left: 6%;
+  top: 66.9%;
+  content: '';
+  box-shadow: 52px -51px 0 black;
+
+}
+.activeallcli::before{
+  background: transparent;
+  position: absolute;
+  border-radius: 70%;
+  width: 11%;
+  height: 19%;
+  left: 6%;
+  top: 49.5%;
+  content: '';
+  box-shadow: 58px 52px 0 black;
+
+}
+.activeallcli::after{
+  background: transparent;
+  position: absolute;
+  border-radius: 70%;
+  width: 11%;
+  height: 19%;
+  left: 6%;
+  top:75.6%;
+  content: '';
+  box-shadow: 50px -49px 0 black;
+
+}
+.activeallemp::before{
+  background: transparent;
+  position: absolute;
+  border-radius: 70%;
+  width: 11%;
+  height: 16%;
+  left: 6%;
+  top: 61.8%;
+  content: '';
+  box-shadow: 52px 50px 0 black;
+
+}
+.activeallemp::after{
+  background: transparent;
+  position: absolute;
+  border-radius: 70%;
+  width: 11%;
+  height: 15%;
+  left: 6%;
+  top: 85%;
+  content: '';
+  box-shadow: 50px -55px 0 black;
+
+} */
+.activem{
+  background: #f5cd15;
+  padding: 5px 8px 5px 8px;
+  border-radius: 9px;
+}
+
+.activem:hover{
+  background: #f5cd15;
+  padding: 5px 8px 5px 8px;
+  border-radius: 9px;
+}
+.border{
+  border: 1px solid #c2bfbfd4;
+}
+.round{
+  border-radius: 60%;
+  border: 3px solid #ffffffd4;
+}
+
+/* employee active */
+.employee-side{
+  background: black;
+  color: white;
+  border-top-left-radius: 80px;
+  border-bottom-left-radius: 80px;
+  padding: 15px  0 15px 9px;
+  margin: 25px 0 0 0 ;
+  width: 183%;
+  }
+  /* .activedash::before{
+    background: transparent;
+    position: absolute;
+    border-radius: 70%;
+    width: 11%;
+    height: 19%;
+    left: 6%;
+    top: 30.3%;
+    content: '';
+    box-shadow: 54px 54px 0 black;
+  
+  }
+  .activedash::after{
+    background: transparent;
+    position: absolute;
+    border-radius: 70%;
+    width: 11%;
+    height: 19%;
+    left: 6%;
+    top: 56.8%;
+    content: '';
+    box-shadow: 52px -52.5px 0 black;
+  
+  }
+  .activeclient::before{
+    background: transparent;
+    position: absolute;
+    border-radius: 70%;
+    width: 11%;
+    height: 19%;
+    left: 6%;
+    top: 35.5%;
+    content: '';
+    box-shadow: 52px 55px 0 black;
+  
+  }
+  .activeclient::after{
+    background: transparent;
+    position: absolute;
+    border-radius: 70%;
+    width: 11%;
+    height: 19%;
+    left: 6%;
+    top:61.2%;
+    content: '';
+    box-shadow: 65px -53px 0 black;
+  }
+  .activeraised::before{
+    background: transparent;
+    position: absolute;
+    border-radius: 70%;
+    width: 11%;
+    height: 19%;
+    left: 6%;
+    top: 43%;
+    content: '';
+    box-shadow: 52px 55px 0 black;
+  
+  }
+  .activeraised::after{
+    background: transparent;
+    position: absolute;
+    border-radius: 70%;
+    width: 11%;
+    height: 19%;
+    left: 6%;
+    top:68%;
+    content: '';
+    box-shadow: 65px -53px 0 black;
+  }
+    .activeresolve::before{
+      background: transparent;
+      position: absolute;
+      border-radius: 70%;
+      width: 11%;
+      height: 19%;
+      left: 6%;
+      top: 50.2%;
+      content: '';
+      box-shadow: 52px 55px 0 black;
+    
+    }
+    .activeresolve::after{
+      background: transparent;
+      position: absolute;
+      border-radius: 70%;
+      width: 11%;
+      height: 19%;
+      left: 6%;
+      top:76%;
+      content: '';
+      box-shadow: 65px -55px 0 black;}
+      .activetask::before{
+        background: transparent;
+        position: absolute;
+        border-radius: 70%;
+        width: 11%;
+        height: 16%;
+        left: 6.1%;
+        top: 60.5%;
+        content: '';
+        box-shadow: 52px 55px 0 black;
+      
+      }
+      .activetask::after{
+        background: transparent;
+        position: absolute;
+        border-radius: 70%;
+        width: 11%;
+        height: 16%;
+        left: 6.1%;
+        top:84%;
+        content: '';
+        box-shadow: 65px -62px 0 black;}
+
+
+     */
+
+.momborder{
+border: 2px solid white;
+}
+
+
+
+/* media queries for active sidebars */
