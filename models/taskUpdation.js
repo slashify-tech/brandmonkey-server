@@ -23,6 +23,11 @@ const ActivitySchema = mongoose.Schema(
       required : true,
       default: "", // Using default function to set default value
     },
+    countId : {
+      type: String,
+      required : true,
+      default: "",
+    }
   },
   { timestamps: true }
 );

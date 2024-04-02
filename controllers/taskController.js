@@ -18,7 +18,7 @@ function formatDateTime(dateTimeString) {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    hour12: false,
+    hour12: true, // Enable AM/PM format
   });
 
   return `${day} ${time}`;
@@ -26,15 +26,15 @@ function formatDateTime(dateTimeString) {
 
 exports.createTask = async (req, res) => {
   try {
-    const { employeeId, activity, clientName, timeSlot, _id, date } = req.body;
-    console.log(employeeId, activity, clientName, timeSlot, _id, date);
+    const { employeeId, activity, clientName, timeSlot, _id, date, countId } = req.body;
+    console.log(employeeId, activity, clientName, timeSlot, _id, date, countId);
 
     let newTask = await Task.findOne({ employeeId });
 
     if (!newTask) {
       newTask = new Task({
         employeeId,
-        activity: [{ activity: activity, timeSlot, clientName: clientName, date }],
+        activity: [{ activity: activity, timeSlot, clientName: clientName, date, countId }],
         hits: [{ clientName, noOfHits: parseInt(1) }],
       });
     } else {
@@ -60,13 +60,15 @@ exports.createTask = async (req, res) => {
         existingActivity.clientName = clientName;
         existingActivity.timeSlot = timeSlot;
         existingActivity.date = date;
+        existingActivity.countId = countId;
       } else {
         // Otherwise, add a new activity
         newTask.activity.unshift({
           activity: activity,
           timeSlot,
           clientName: clientName,
-          date
+          date,
+          countId
         });
 
         // Update hits array
@@ -96,7 +98,7 @@ exports.createTask = async (req, res) => {
 
 exports.createAdditionalTask = async (req, res) => {
   try {
-    const { employeeId, activity, clientName, timeSlot, _id, date } = req.body;
+    const { employeeId, activity, clientName, timeSlot, _id, date, countId } = req.body;
     console.log(employeeId, activity, clientName, timeSlot, _id, date);
 
     let newTask = await Task.findOne({ employeeId });
@@ -105,7 +107,7 @@ exports.createAdditionalTask = async (req, res) => {
       newTask = new Task({
         employeeId,
         extraActivity: [
-          { activity: activity, timeSlot, clientName: clientName, date },
+          { activity: activity, timeSlot, clientName: clientName, date, countId },
         ],
         hits: [{ clientName, noOfHits: parseInt(1) }],
       });
@@ -127,13 +129,15 @@ exports.createAdditionalTask = async (req, res) => {
         existingActivity.clientName = clientName;
         existingActivity.timeSlot = timeSlot;
         existingActivity.date = date;
+        existingActivity.countId = countId;
       } else {
         // Otherwise, add a new activity
         newTask.extraActivity.unshift({
           activity: activity,
           timeSlot,
           clientName: clientName,
-          date
+          date,
+          countId
         });
         if (!newTask.hits) {
           newTask.hits = [];
@@ -211,7 +215,7 @@ exports.getActivityByEmployeeIdAndDate = async (req, res) => {
     }
 
     // Sort activities by createdAt in ascending order
-    activities.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    activities.sort((a, b) => new Date(a.countId) - new Date(b.countId));
 
     res.status(200).json(activities);
   } catch (error) {
@@ -250,7 +254,7 @@ exports.getExtraActivityByEmployeeIdAndDate = async (req, res) => {
     }
 
     // Sort activities by createdAt in ascending order
-    activities.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    activities.sort((a, b) => new Date(a.countId) - new Date(b.countId));
 
     res.status(200).json(activities);
   } catch (error) {
