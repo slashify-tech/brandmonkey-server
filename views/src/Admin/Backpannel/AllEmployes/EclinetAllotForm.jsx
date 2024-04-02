@@ -1,34 +1,40 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { IoClose } from "react-icons/io5";
 import { useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
-import { useEffect } from "react";
 import { toast } from "react-toastify";
-
 import apiurl from "../../../util";
 import setupInterceptors from "../../../Interceptors";
-import { useAuth } from "../../../context/loginContext";
 
 const EclientAllotForm = () => {
   const { id } = useParams();
-  const { tokenId } = useAuth();
-  const [clients, setClients] = useState();
-  const [isPopupOpen, setPopupOpen] = useState(true);
-  const [services, setServices] = useState("");
+  const [clients, setClients] = useState([]);
+  const [services, setServices] = useState([]);
   const [serviceClient, setServiceClient] = useState({
     client: "",
-    service: "",
+    service: [],
     employeeName: id,
   });
+  const [isPopupOpen, setPopupOpen] = useState(true);
+
   const closePopup = () => {
     setPopupOpen(false);
   };
+
+  const getClients = async () => {
+    try {
+      const response = await apiurl.get(`/getClients`);
+      setClients(response.data.result.data.map((item) => item.name));
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   const getEmployee = async () => {
     if (id) {
       try {
         const response = await apiurl.get(`/getOneEmployee/${id}`);
-
-        setServices(response.data.employee.services);
+        setServices(response.data.employee.services.split(","));
       } catch (err) {
         console.log(err);
         toast.error("Something went wrong");
@@ -36,46 +42,52 @@ const EclientAllotForm = () => {
     }
   };
 
-  const getClients = async () => {
-    if (id) {
-      try {
-        const response = await apiurl.get(`/getClients`);
-        setClients(response.data.result.data.map((item) => item.name));
-      } catch (err) {
-        console.log(err);
-      }
-    }
-  };
-  const clinetAllocation = async () => {
-    if (id && tokenId) {
-      setupInterceptors(tokenId);
-      try {
-        await apiurl.put(`/clientAllocation/${id}`, { ...serviceClient });
-
-        toast.success("Client Allotted");
-      } catch (err) {
-        console.log(err);
-      }
-    }
-  };
-
   const EmpFormHandler = (e) => {
     const { name, value } = e.target;
 
-    setServiceClient((Emp) => ({
-      ...Emp,
-      [name]: value,
-    }));
+    if (name === "service") {
+      const selectedOptions = Array.from(
+        e.target.selectedOptions,
+        (option) => option.value
+      );
+      setServiceClient((prevData) => ({
+        ...prevData,
+        service: [...prevData.service, ...selectedOptions],
+      }));
+    } else if (name === "removeService") {
+      const serviceToRemove = value;
+      setServiceClient((prevData) => ({
+        ...prevData,
+        service: prevData.service.filter((service) => service !== serviceToRemove),
+      }));
+    } else {
+      setServiceClient((prevData) => ({
+        ...prevData,
+        [name]: value,
+      }));
+    }
   };
-  const submitForm = () => {
-    console.log("submitted");
+
+  const submitForm = async () => {
+    if (id && serviceClient.service.length > 0) {
+      try {
+        await apiurl.put(`/clientAllocation/${id}`, { ...serviceClient });
+        toast.success("Client Allotted");
+        closePopup();
+      } catch (err) {
+        console.log(err);
+        toast.error("Something went wrong");
+      }
+    } else {
+      toast.error("Please select at least one service");
+    }
   };
 
   useEffect(() => {
-    getEmployee();
     getClients();
+    getEmployee();
   }, []);
-  console.log(services);
+
   return (
     <>
       <div
@@ -106,10 +118,10 @@ const EclientAllotForm = () => {
               name="client"
               className="md:w-[95%] w-full h-[6vh] mt-3 px-2 rounded-md cursor-pointer  "
               id=""
-              onChange={(e) => EmpFormHandler(e)}
+              onChange={EmpFormHandler}
             >
               <option value=""></option>
-              {clients?.map((item, index) => (
+              {clients.map((item, index) => (
                 <option key={index} value={item}>
                   {item}
                 </option>
@@ -117,37 +129,56 @@ const EclientAllotForm = () => {
             </select>
 
             <p className="mt-9">Service Alloted </p>
-            {/* <input
-              className="md:w-[90%] w-full h-[25vh] mt-2"
-              type="text"
-              value={serviceClient?.service}
-              
-            /> */}
+
             <select
               name="service"
               id=""
               className="md:w-[95%] w-full h-[6vh] mt-3 px-2  rounded-md cursor-pointer"
-              onChange={(e) => EmpFormHandler(e)}
+              onChange={EmpFormHandler}
             >
-              <option value=""></option>
-              {services?.split(",")?.map((item, index) => (
+              {services?.map((item, index) => (
                 <option key={index} value={item}>
                   {item}
                 </option>
               ))}
             </select>
 
+            <div className="flex flex-col md:w-[45%]  w-full gap-3 md:ml-4">
+              <span>Selected Services</span>
+              {serviceClient.service.length > 0 ? (
+                <ul className="list-disc pl-5">
+                  {serviceClient.service.map((service, index) => (
+                    <li key={index}>
+                      {service}
+                      <button
+                        type="button"
+                        className="text-red-500 ml-2 bg-black cursor-pointer"
+                        onClick={() =>
+                          EmpFormHandler({
+                            target: {
+                              name: "removeService",
+                              value: service,
+                            },
+                          })
+                        }
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No service selected</p>
+              )}
+            </div>
+
             <div className="flex justify-center items-center mt-20 mb-5">
-              <Link to="/admin/allemployee">
-                <span
-                  className="px-5 py-2 text-[#F5CD15] bg-black BR rounded-lg mt-5 cursor-pointer "
-                  onClick={() => {
-                    clinetAllocation(), closePopup();
-                  }}
-                >
-                  Submit
-                </span>
-              </Link>
+              <span
+                className="px-5 py-2 text-[#F5CD15] bg-black BR rounded-lg mt-5 cursor-pointer "
+                onClick={submitForm}
+              >
+                Submit
+              </span>
             </div>
           </form>
         </div>

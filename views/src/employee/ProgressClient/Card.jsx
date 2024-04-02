@@ -92,7 +92,7 @@ console.log(item);
       <div className="w-full gradient rounded-br-3xl rounded-bl-3xl mt-2">
         <div className="flex text-white font-poppins flex-col ml-[2rem]">
           <p className="m-2 mt-6">Client Name - <span className="ml-4 font-extralight">{item.clientName.split("-")[0]}</span></p>
-          <p className="m-2">My Work - <span className="ml-[3rem] font-extralight">{clientWork} || {item.clientName.split("-")[1]}</span></p>
+          <p className="m-2">My Work - <span className="ml-[3rem] font-extralight">{item.clientName.split("-")[1].replaceAll("," , " | ")}</span></p>
           <p className="m-2">My Service - <span className="ml-8 font-extralight">{employeeData?.services.slice(0, 16)}...</span></p>
           <p className="m-2">
             Update Work - {" "}
