@@ -264,11 +264,15 @@ const Sheet = () => {
 
   const dateString = (dateStr) => {
     const dateObject = new Date(dateStr);
-    const timeOptions = { hour: 'numeric', minute: 'numeric' };
-    const time = dateObject.toLocaleTimeString([], timeOptions);
-    const dateOptions = { month: 'short', day: 'numeric', year: 'numeric' };
-    const date = dateObject.toLocaleDateString([], dateOptions);
-    return ` ${time} ${date}`;
+  
+    // Set time zone to Indian Standard Time (IST)
+    const options = { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: 'numeric' };
+    const time = dateObject.toLocaleTimeString('en-IN', options);
+  
+    const dateOptions = { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' };
+    const date = dateObject.toLocaleDateString('en-IN', dateOptions);
+  
+    return `${time} ${date}`;
   };
 
   //particular download

@@ -11,18 +11,19 @@ const unlinkAsync = promisify(fs.unlink);
 const mkdirAsync = promisify(fs.mkdir);
 const writeFileAsync = promisify(fs.writeFile);
 
-function formatDateTime(dateTimeString) {
-  const dateTime = new Date(dateTimeString);
-  const day = dateTime.toLocaleDateString(undefined, { weekday: "long" });
-  const time = dateTime.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true, // Enable AM/PM format
-  });
 
-  return `${day} ${time}`;
-}
+const formatDateTime = (dateStr) => {
+  const dateObject = new Date(dateStr);
+
+  // Set time zone to Indian Standard Time (IST)
+  const options = { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: 'numeric' };
+  const time = dateObject.toLocaleTimeString('en-IN', options);
+
+  const dateOptions = { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' };
+  const date = dateObject.toLocaleDateString('en-IN', dateOptions);
+
+  return `${time} ${date}`;
+};
 
 exports.createTask = async (req, res) => {
   try {

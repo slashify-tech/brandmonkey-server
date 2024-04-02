@@ -259,7 +259,7 @@ exports.storeClientDistributionData = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const servicesArray = service.split(",");
+    const clientType = await Clients.findOne({ name: client });
 
     let clientDistribution = await Employees.findOne({
       _id: user._id,
@@ -269,24 +269,40 @@ exports.storeClientDistributionData = async (req, res) => {
       clientDistribution = new Employees({
         _id: user._id,
         clients: [],
-        progressStatus: "start",
+        progressPercentage: "0",
       });
     }
 
-    servicesArray.forEach((service) => {
-      const existingClient = clientDistribution.clients.find(
-        (client) => client.clientName === client
-      );
-      if (existingClient) {
-        existingClient.progressValue = "0-10";
-      } else {
-        clientDistribution.clients.push({
-          clientName: client + "-" + service,
-          logo : client + ".png",
-          progressValue: "0-10",
-        });
+    const existingClientIndex = clientDistribution.clients.findIndex(
+      (clientObj) => {
+        // Check if clientObj.clientName starts with the provided client name
+        return clientObj.clientName.startsWith(client.trim());
       }
-    });
+    );
+
+    if (existingClientIndex !== -1) {
+      // Update existing client with new service
+      clientDistribution.clients[existingClientIndex].progressValue = "0-10";
+      clientDistribution.clients[existingClientIndex].clientName += `,${service.trim()}`;
+    } else {
+      // Add new client with service
+      clientDistribution.clients.push({
+        clientName: `${client.trim()} - ${service.trim()}`,
+        logo: `${client}.png`,
+        progressValue: "0-10",
+        clientType: clientType.clientType,
+      });
+    }
+
+    // Remove duplicates based on clientName
+    clientDistribution.clients = clientDistribution.clients.filter(
+      (client, index, self) =>
+        index ===
+        self.findIndex(
+          (c) => c.clientName === client.clientName
+        )
+    );
+
     const savedClientDistribution = await clientDistribution.save();
     res.status(201).json(savedClientDistribution);
   } catch (error) {
@@ -294,6 +310,9 @@ exports.storeClientDistributionData = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+
+
 
 exports.updateClientType = async (req, res) => {
   try {

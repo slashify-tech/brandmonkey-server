@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import apiurl from "../../util";
-
 import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
+import { FaCircleCheck } from "react-icons/fa6";
 import { useAuth } from "../../context/loginContext";
 function getDateFormatted() {
   const currentDate = new Date();
@@ -28,13 +28,11 @@ function getDateFormatted() {
   return `${dayOfMonth} ${month} ${year}`;
 }
 const Card = () => {
-
   // Function to generate the static time slots
   const { employeeData } = useAuth();
   const [click, setClick] = useState(false);
   const [clients, setClients] = useState([]);
   const extraSlots = [
-   
     "07:00 PM - 07:30 PM",
     "07:30 PM - 08:00 PM",
     "08:00 PM - 08:30 PM",
@@ -44,7 +42,6 @@ const Card = () => {
     "10:30 PM - 11:00 PM",
     "11:00 PM - 11:30 PM",
     "11:30 PM - 12:00 AM",
- 
   ];
   const generateTimeSlots = () => {
     const timeSlots = [
@@ -78,7 +75,7 @@ const Card = () => {
   const getClientData = async () => {
     try {
       const response = await apiurl.get(`/getclientName?clientOrNot=${true}`);
-      setClients(response.data?.client?.map((item => item.name)));
+      setClients(response.data?.client?.map((item) => item.name));
     } catch (err) {
       console.log(err);
     }
@@ -113,7 +110,7 @@ const Card = () => {
       }
     }
   };
- 
+
   // Initial state with static time slots
   const [rows, setRows] = useState(generateTimeSlots());
   const [dynamicRows, setDynamicRows] = useState([]);
@@ -148,7 +145,6 @@ const Card = () => {
 
   // Function to add a new row with two dropdowns and an input field
   const addRow = () => {
-    
     if (dynamicRows.length < 5) {
       const newRow = {
         id: dynamicRows.length, // Change this to use dynamic IDs
@@ -164,7 +160,7 @@ const Card = () => {
   const updateRowData = async (index, rowData) => {
     try {
       const currentDate = getDateFormatted();
-      const { clientName, timeSlot, activity, _id } = rowData;
+      const { clientName, timeSlot, activity, _id, id } = rowData;
       const employeeId = employeeData?._id;
 
       // Validate input data
@@ -180,7 +176,8 @@ const Card = () => {
         timeSlot,
         employeeId,
         _id,
-        date : currentDate
+        date: currentDate,
+        countId: id,
       });
 
       // Handle the response if needed
@@ -196,7 +193,7 @@ const Card = () => {
 
   const createExtraTask = async (index, dynamicRows) => {
     try {
-      const { clientName, timeSlot, activity, _id } = dynamicRows;
+      const { clientName, timeSlot, activity, _id, id } = dynamicRows;
       const currentDate = getDateFormatted();
       const employeeId = employeeData?._id;
       let response;
@@ -207,7 +204,8 @@ const Card = () => {
           activity,
           employeeId,
           _id,
-          date : currentDate
+          date: currentDate,
+          countId: id,
         });
       }
       setClick(true);
@@ -224,13 +222,13 @@ const Card = () => {
     setClick(false);
   }, [employeeData, click]);
 
-
   return (
     <div className="md:px-9 px-6  pt-9 mb-20  ">
-      <span className="flex justify-start mb-9 items-center text-white font-poppins font-medium md:ml-28 md:gap-78 gap-36 sm:gap-56 text-center text-[23px] w-full">
+      <span className="flex justify-start mb-9 items-center text-white font-poppins font-medium md:ml-9 md:gap-42 gap-36 sm:gap-56 text-center text-[23px] w-full">
         <span>Time</span>
         <span>Client</span>
-        <span className="ml-9">Activity</span>
+        <span className="">Activity</span>
+        <span>Save</span>
       </span>
       {rows.map((row) => (
         <div
@@ -242,48 +240,41 @@ const Card = () => {
           </span>
           {row.id < 18 ? (
             <span className="md:w-1/4 w-full ml-3 md:ml-0">
-      
               <Autocomplete
                 value={row.clientName}
-                
                 onChange={(event, newValue) => {
                   handleOptionChange(row.id, "clientName", newValue);
-                  
                 }}
                 options={clients}
                 renderInput={(params) => (
-                  
                   <TextField
                     {...params}
                     // Apply focused styles on input focus
-        className="glassn rounded-2xl text-white focus:outline-none"
-                       
+                    className="glassn rounded-2xl text-white focus:outline-none"
                   />
                 )}
               />
-            
             </span>
           ) : (
             <>
               <span className="md:w-1/4 w-full">
-              <Autocomplete
-      value={row.clientName}
-      onChange={(event, newValue) => handleOptionChange(row.id, "clientName", newValue)}
-      options={clients}
-      
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label="Client"
-          fullWidth
-        
-          // Combine custom and MUI classes
-          className="gradient rounded-2xl text-white focus:outline-none"
-        />
-      )}
-    />
+                <Autocomplete
+                  value={row.clientName}
+                  onChange={(event, newValue) =>
+                    handleOptionChange(row.id, "clientName", newValue)
+                  }
+                  options={clients}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Client"
+                      fullWidth
+                      // Combine custom and MUI classes
+                      className="gradient rounded-2xl text-white focus:outline-none"
+                    />
+                  )}
+                />
               </span>
-            
             </>
           )}
           <span className="md:w-1/3 md:ml-20 ml-9 sm:ml-16 w-full ">
@@ -294,6 +285,12 @@ const Card = () => {
               onBlur={() => updateRowData(row.id, row)}
               className="w-full py-4 rounded-xl px-2 bg-transparent border border-gray-300 focus:outline-none focus:border-primary text-white"
             />
+          </span>
+          <span
+            onClick={updateRowData}
+            className="text-primary text-4xl cursor-pointer md:w-1/6 md:ml-36 ml-9 sm:ml-16 w-full"
+          >
+            <FaCircleCheck />
           </span>
         </div>
       ))}
@@ -319,22 +316,21 @@ const Card = () => {
             </select>
           </span>
           <span className=" md:w-1/3 w-full sm:w-[38%]">
-          <div className="  md:w-3/4 mx-2 ">
-            <Autocomplete
-              value={row.clientName}
-              onChange={(event, newValue) => {
-                handleDynamicOptionChange(index, "clientName", newValue);
-              }}
-              options={clients}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Client"
-                  className="glassn rounded-3xl text-white focus:outline-none "
-              
-                />
-              )}
-            />
+            <div className="  md:w-3/4 mx-2 ">
+              <Autocomplete
+                value={row.clientName}
+                onChange={(event, newValue) => {
+                  handleDynamicOptionChange(index, "clientName", newValue);
+                }}
+                options={clients}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Client"
+                    className="glassn rounded-3xl text-white focus:outline-none "
+                  />
+                )}
+              />
             </div>
           </span>
 
@@ -343,16 +339,21 @@ const Card = () => {
               type="text"
               value={row.activity}
               onChange={(e) => handleDynamicInputChange(index, e.target.value)}
-              onBlur={() => createExtraTask(row.id, row)}
               className="w-full md:w-full sm:w-[39%] py-4 rounded-xl px-2 bg-transparent border border-gray-300 focus:outline-none focus:border-primary text-white"
             />
+          </span>
+          <span
+            onClick={() => createExtraTask(row.id, row)}
+            className="text-primary text-4xl cursor-pointer md:w-1/6 md:ml-36 ml-9 sm:ml-16 w-full"
+          >
+            <FaCircleCheck />
           </span>
         </div>
       ))}
       {dynamicRows.length < 5 && (
         <span
           onClick={addRow}
-          className="mt-4 text-[15px] px-6 py-3 z-50 cursor-pointer bg-black text-primary rounded-md hover:bg-primary border-gradient  focus:outline-none hover:text-black md:ml-12"
+          className="mt-4 text-[15px] px-6 py-3 z-50 cursor-pointer bg-black text-primary rounded-md hover:bg-primary border-gradient  focus:outline-none hover:text-black "
         >
           + Add Row
         </span>

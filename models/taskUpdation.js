@@ -25,7 +25,6 @@ const ActivitySchema = mongoose.Schema(
     },
     countId : {
       type: String,
-      required : true,
       default: "",
     }
   },
