@@ -89,7 +89,7 @@ const ClientDetails = () => {
 
   return (
     <div className="w-full flex bg-[#f5cd15] font-poppins">
-      <div className="bg-[#f5cd15] md:block hidden">
+      <div className="bg-[#f5cd15] md:block hidden  h-screen">
         <div className="ml-4 mt-4 sm:mt-0">
           <BrandIcon />
         </div>

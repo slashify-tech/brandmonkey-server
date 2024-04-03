@@ -43,6 +43,21 @@ const Header = () => {
       </span>
 
 
+      <div className="flex justify-between items-center">
+<span className=" mt-6 mx-5 md:hidden ">
+            {employeeData && employeeData?.imageUrl ? (
+              <div className="">
+                <img
+                  src={employeeData?.imageUrl}
+               
+                  alt=""
+                  className="w-[6vh] h-[6vh] mt-2 rounded-full"
+                />
+              </div>
+            ) : (
+              <img src={profile} alt=""  className="w-[6vh] h-[6vh] mt-2"/>
+            )}
+        </span>
       <div className=' right-0  mt-5 z-50 md:hidden block'>
       <div className=" flex flex-1 justify-end items-center  ">
  <div className='glassm  w-16 h-16 me-9'>
@@ -78,7 +93,7 @@ const Header = () => {
           </div>
         </div>
         </div>
-
+</div>
     </>
   );
 };

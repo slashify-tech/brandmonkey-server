@@ -35,7 +35,7 @@ const ProgressClient = () => {
   const filteredClients = clients.filter((client) => client.clientType === clientType);
 
   return (
-    <div className="flex bg-primary font-poppins">
+    <div className="flex bg-primary font-poppins  h-screen">
       <div className="child md:block hidden">
         <div className="ml-3">
           <BrandIcon />

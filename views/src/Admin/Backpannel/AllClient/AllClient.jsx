@@ -47,7 +47,7 @@ const AllClient = () => {
   return (
     <>
       <span className="w-full h-full flex flex-col sm:flex-row bg-[#f5cd15]">
-        <span className="bg-[#f5cd15] md:block hidden">
+        <span className="bg-[#f5cd15] md:block hidden  h-screen">
           <span className="ml-4 mt-4 sm:mt-0">
             <BrandIcon />
           </span>

@@ -27,7 +27,7 @@ const ResolvedComplaint = () => {
   return (
     <>
       <span className="w-full   flex flex-col sm:flex-row bg-primary font-poppins">
-        <span className="bg-primary md:block hidden">
+        <span className="bg-primary md:block hidden  h-screen">
           <span className="ml-4 mt-4 sm:mt-0">
             <BrandIcon />
           </span>

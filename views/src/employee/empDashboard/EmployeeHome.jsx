@@ -27,9 +27,9 @@ const EmployeeHome = () => {
   
   return (
     <>
-      <div className="w-full h-full flex bg-primary font-poppins">
+      <div className="w-full h-full flex bg-primary font-poppins  ">
         {/* Sidebar */}
-        <div className="bg-primary md:block hidden">
+        <div className="bg-primary md:block hidden  h-screen">
           <div className="ml-4 mt-4">
             <BrandIcon />
           </div>

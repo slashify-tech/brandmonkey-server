@@ -24,7 +24,7 @@ const AdminHome = () => {
     <>
       <span className="w-full  h-full  flex   bg-primary font-poppins ">
         {/* Sidebar */}
-        <span className=" bg-primary md:block hidden">
+        <span className=" bg-primary md:block hidden  h-screen">
           <span className="ml-4  mt-4 ">
             <BrandIcon />
           </span>

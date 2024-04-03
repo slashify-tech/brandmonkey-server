@@ -76,7 +76,7 @@ const CreateClient = ({ edit }) => {
   return (
     <>
       <span className=" flex flex-col sm:flex-row bg-[#f5cd15]  font-poppins">
-      <span className="bg-[#f5cd15] md:block hidden">
+      <span className="bg-[#f5cd15] md:block hidden  h-screen">
         <span className="ml-4 mt-4 ">
           <BrandIcon />
         </span>

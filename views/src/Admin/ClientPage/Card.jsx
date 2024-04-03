@@ -7,7 +7,7 @@ import { profile } from "../../assets";
 const Card = ({ item,  }) => {
   const color = item.colorZone || "white";
   return (
-    <div className="border-gradient rounded-3xl  m-2  md:w-full w-[40vh] sm:w-[30vh] ">
+    <div className="border-gradient rounded-3xl  m-2  md:w-full w-[40vh] sm:w-[30vh] xl:w-[45vh]  ">
       <span className="text-white flex justify-start items-start    ">
         <span>
           {item  && item ?.clientLogo ? (

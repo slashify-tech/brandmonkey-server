@@ -9,6 +9,7 @@ import Header from "../AllServices/Header";
 import { useEmployee } from "../../../context/employeeContext";
 
 
+
 const AddEmployee = ({ edit }) => {
   const [empForm, setEmpForm] = useState({
     employeeId: "",
@@ -20,7 +21,9 @@ const AddEmployee = ({ edit }) => {
     email: "",
     password: "",
     image : "",
-    ImageFile : ""
+    ImageFile : "",
+    Gender: "",
+    DateOfJoining: ""
   });
   const navigate = useNavigate();
 
@@ -39,6 +42,8 @@ const AddEmployee = ({ edit }) => {
         service: response.data.employee.services.split(","),
         email: response.data.employee.email,
         password: response.data.employee.password,
+        Gender: response.data.employee.Gender,
+        DateOfJoining: response.data.employee.DateOfJoining,
       });
     } catch (err) {
       console.log(err);
@@ -99,10 +104,11 @@ const AddEmployee = ({ edit }) => {
     }
   }, []);
 
+  console.log(empForm);
   return (
     <>
       <span className="w-full h-full flex flex-col sm:flex-row bg-[#f5cd15]">
-      <span className="bg-[#f5cd15] md:block hidden">
+      <span className="bg-[#f5cd15] md:block hidden  h-screen">
         <span className="ml-4 mt-4 sm:mt-0">
           <BrandIcon />
         </span>
@@ -188,6 +194,28 @@ const AddEmployee = ({ edit }) => {
                   onChange={(e) => EmpFormHandler(e)}
                 />
               </div>
+              <div className="flex flex-col md:w-[45%]  w-full gap-3 md:ml-4">
+                <span>Gender.</span>
+               <select name="Gender"   value={empForm?.Gender}  onChange={(e) => EmpFormHandler(e)}   className="h-[6vh] sm:h-[3vh] md:h-[6vh] bg-[#c5c4c4] rounded-md mb-2 px-2 placeholder:text-slate-700 ">
+               <option >Selct gender</option>
+               
+                <option  value="male">Male</option>
+                <option  value="female">Female</option>
+               </select>
+              </div>
+
+              <div className="flex flex-col md:w-[45%]  w-full gap-3 md:ml-4">
+                <span>DOJ.</span>
+                <input
+                  type="date"
+                  name="DateOfJoining"
+                  className=" md:h-[6vh] h-[6vh] sm:h-[3vh] bg-[#c5c4c4] rounded-md mb-2 px-2 placeholder:text-slate-700"
+                  placeholder="Enter Eemployee Phone number"
+                  value={empForm?.DateOfJoining}
+                  onChange={(e) => EmpFormHandler(e)}
+                />
+              </div>
+
               <div className="flex flex-col md:w-[45%]  w-full gap-3 md:ml-4">
                 <span>Services</span>
                 <select

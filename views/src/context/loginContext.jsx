@@ -67,6 +67,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("isAdmin");
     setEmployeeData(null);
+
     navigate("/");
    
   };

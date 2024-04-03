@@ -26,9 +26,9 @@ const Navbar = () => {
   return (
     <>
       {showNavbar && (
-        <span className="flex flex-col items-start justify-center  w-full font-poppins ml-4 ">
+        <span className="hidden md:block items-start justify-center  w-full font-poppins ml-4 h-full navbar-container scrollbar-hide">
           <span className="flex flex-col  justify-center items-center">
-            <span className="text-2xl ml-[10rem] cursor-pointer p-4">
+            <span className="text-2xl ml-[10rem] cursor-pointer px-5">
               <IoBackspaceOutline onClick={clickhandler} />
             </span>
             {employeeData && employeeData?.imageUrl ? (
@@ -37,11 +37,11 @@ const Navbar = () => {
                   src={employeeData?.imageUrl}
                
                   alt=""
-                  className="w-[10vh] h-[10vh] mt-2 rounded-full"
+                  className="w-[10vh] h-[10vh]  rounded-full"
                 />
               </div>
             ) : (
-              <img src={profile} alt=""  className="w-[6vh] h-[6vh] mt-2"/>
+              <img src={profile} alt=""  className="w-[6vh] h-[6vh] "/>
             )}
             <p className="font-poppins font-medium mt-0">
               {employeeData?.name}{" "}
@@ -52,30 +52,30 @@ const Navbar = () => {
           </span>
           <span className="ml-5">
             <Link to="/admin/dashboard">
-              <span className={`ml-3 flex items-center gap-3 font-normal z-50  pt-7`} >
+              <span className={`ml-3 flex items-center gap-3 font-normal z-50  pt-2`} >
               <RiHome5Line size={27} />
                 <p className="font-poppins font-normal z-50 ">Home</p>
               </span>
             </Link>
             <Link to="/admin/allserve" className="">
-              <span className={ `ml-3 flex items-center gap-3 font-normal pt-9  z-50  ${path === '/admin/allserve'  && "activeservice activeback"}`}>
+              <span className={ `ml-3 flex items-center gap-3 font-normal pt-7  z-50  ${path === '/admin/allserve'  && "activeservice activeback"}`}>
               <BiSolidShoppingBags size={27} />
                 <p className="font-poppins font-normal z-50 ">All Services </p>
               </span>
             </Link>
             <Link to="/admin/allclients">
-              <span className={`ml-3 flex items-center gap-3 font-normal pt-9 z-50 ${(path === '/admin/allclients' || path.includes("/admin/addclient") || path.includes("/admin/edit-client-form/")) && "activeallcli activeback"}`}>
+              <span className={`ml-3 flex items-center gap-3 font-normal pt-7 z-50 ${(path === '/admin/allclients' || path.includes("/admin/addclient") || path.includes("/admin/edit-client-form/")) && "activeallcli activeback"}`}>
                 <FaAddressCard size={24} />
                 <p className="font-poppins font-normal mt-[-1] z-50">All Client</p>
               </span>
             </Link>
             <Link to="/admin/allemployee">
-              <span className={`ml-3 flex items-center gap-3 font-normal pt-9 z-50 ${(path === '/admin/allemployee' || path.includes("/admin/addemployee") || path.includes("/admin/edit-employee-form/")) && "activeallemp activeback"}`}>
+              <span className={`ml-3 flex items-center gap-3 font-normal pt-7 z-50 ${(path === '/admin/allemployee' || path.includes("/admin/addemployee") || path.includes("/admin/edit-employee-form/")) && "activeallemp activeback"}`}>
               <IoIosPeople size={27}/>
                 <p className="font-poppins font-normal mt-[-1] z-50">All Employee</p>
               </span>
             </Link>
-            <span onClick={handleLogout} className="ml-2.5 flex items-center gap-3 font-normal pt-9 cursor-pointer">
+            <span onClick={handleLogout} className="ml-2.5 flex items-center gap-3 font-normal pt-7 cursor-pointer">
               <RiLogoutCircleRLine size={26} />
               <p>Logout</p>
             </span>

@@ -40,14 +40,15 @@ const Login = () => {
       setToken(token);
       localStorage.setItem("isAuthenticated", true);
       localStorage.setItem("isAdmin", employee.type);
+
       document.cookie = `brandMonkeyAccessKey=` +token;
       if (employee.type === "superadmin" ) {
-        navigate("/admin");
-       
+        navigate("/admin/dashboard");
+        window.location.reload();
       }
       else if (employee.type === "employee") {
         navigate("/home");
-       
+        window.location.reload();
       }
     } catch (err) {
       console.log(err);

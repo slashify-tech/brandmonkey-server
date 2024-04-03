@@ -38,15 +38,15 @@ const TotalEmploye = () => {
     setClicked(true); // Indicate that a service has been deleted
   };
   return (
-    <span className=" flex flex-col sm:flex-row bg-[#f5cd15]  font-poppins">
-      <span className="bg-[#f5cd15] md:block hidden">
+    <span className=" flex flex-col sm:flex-row bg-[#f5cd15]  font-poppins ">
+      <span className="bg-[#f5cd15] md:block hidden  h-screen" >
         <span className="ml-4 mt-4 ">
           <BrandIcon />
         </span>
 
         <Navbar />
       </span>
-      <span className="w-full bg-black   md:rounded-tl-[2rem] md:rounded-bl-[2rem] overflow-x-hidden h-screen">
+      <span className="w-full bg-black   md:rounded-tl-[2rem] md:rounded-bl-[2rem] overflow-x-hidden h-screen scrollbar-hide  ">
         <Header />
         <div className="w-[70%]  p-3 right-10   rounded-lg  text-[#000000] text-center flex flex-col justify-between items-start">
           <p className="text-white font-poppins  pt-9 mb-3 text-lg md:mx-16 mx-6">

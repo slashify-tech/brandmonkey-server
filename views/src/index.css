@@ -592,6 +592,8 @@ a {
   
   
 }
+
+
 /* .active::before{
   background: transparent;
   position: absolute;
@@ -696,8 +698,8 @@ a {
   border-top-left-radius: 80px;
   border-bottom-left-radius: 80px;
   padding: 15px  0 15px 9px;
-  margin: 25px 0 0 0 ;
-  width: 123%;
+  margin: 20px 0 0 0 ;
+  width: 115%;
   
   
 }
@@ -800,7 +802,7 @@ a {
   border-bottom-left-radius: 80px;
   padding: 15px  0 15px 9px;
   margin: 25px 0 0 0 ;
-  width: 183%;
+  width: 100%;
   }
   /* .activedash::before{
     background: transparent;

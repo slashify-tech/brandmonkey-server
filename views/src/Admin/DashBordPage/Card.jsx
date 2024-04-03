@@ -6,7 +6,7 @@ import "react-calendar/dist/Calendar.css";
 import { toast } from "react-toastify"
 import apiurl from "../../util.jsx";
 import { useEmployee } from "../../context/employeeContext.jsx";
-
+import { Link } from "react-router-dom";
 const Card = () => {
   const {getAdminDashBoard, dashboardAdminData} = useEmployee();
 
@@ -45,14 +45,14 @@ console.log(notes)
     getNotes();
     
     getAdminDashBoard();
-  },[]);
+  },[])
   return (
     <>
 
 
 
       <div className=" md:grid md:grid-cols-3 sm:grid sm:grid-cols-2  gap-5  justify-center md:mx-12 md:mr-20 mx-6 mr-12 sm:mx-16 ">
-        <div className="  md:w-full rg:w-[35vh] w-full sm:w-[25vh] mx-3">
+      <Link to= "/admin/myclient" className="cursor-pointer">     <div className="  md:w-full rg:w-[35vh] w-full sm:w-[25vh] mx-3">
           <div className="BR gradient    rounded-3xl  border border-[#F5CD15]  md:mt-9 mt-6 ">
             <div className="flex justify-center items-center  flex-col mt-8">
               <p className=" text-white font-semibold text-lg ">
@@ -68,7 +68,8 @@ console.log(notes)
             </span>
           </div>
         </div>
-
+        </Link>
+<Link to= "/admin/myemployee" className="cursor-pointer">
         <div className="  md:w-full  w-full sm:w-[25vh] mx-3 ">
           <div className="BR gradient    rounded-3xl  border border-[#F5CD15]  md:mt-9 mt-6 ">
             <div className="flex justify-center items-center  flex-col mt-9">
@@ -86,7 +87,7 @@ console.log(notes)
               </span>
           </div>
         </div>
-        
+        </Link>
 
       {/* notes */}
 
@@ -98,6 +99,7 @@ console.log(notes)
     
          <textarea name="notes" value={notes} onChange={handleChange} placeholder="Add Your Notes" className="text-[15px] background   rounded-3xl w-full md:w-[37vh]  md:h-[22vh] h-[20vh] p-3 mt-1 mb-3 text-white scrollbar-hide"></textarea> */}
       {/* </div> */}
+   
       <div className="  md:w-full  w-full sm:w-4/5   mx-3 ">
           <div className="BR gradient flex flex-col justify-start   py-3 rounded-3xl  md:mt-9 mt-6 ">
     

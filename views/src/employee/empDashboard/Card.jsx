@@ -10,7 +10,7 @@ import { NotesAdd, NotesIcon } from "../../Icon.jsx";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import apiurl from "../../util";
-
+import { Link } from "react-router-dom";
 
 const Card = ({ dashboardEmployeeData }) => {
   const [notes, setNotes] = useState("No notes Yet");
@@ -29,6 +29,7 @@ const Card = ({ dashboardEmployeeData }) => {
       }
     }
   };
+console.log(notes);
   useEffect(() => {
     getNotes();
   }, []);
@@ -36,7 +37,7 @@ const Card = ({ dashboardEmployeeData }) => {
   return (
     <>
       <div className=" md:grid md:grid-cols-3 sm:grid sm:grid-cols-2  gap-5  justify-center md:mx-12 md:mr-20 mx-3 mr-9 sm:mx-16 ">
-        <div className="  md:w-full rg:w-[35vh] w-full sm:w-[25vh] mx-3">
+   <Link to= "/clients" className = "cursor-pointer">    <div className="  md:w-full rg:w-[35vh] w-full sm:w-[25vh] mx-3">
           <div className="BR gradient    rounded-3xl  border border-[#F5CD15]  md:mt-9 mt-6  ">
             <div className="flex justify-center items-center  flex-col mt-8">
               <p className=" text-white font-semibold text-lg ">
@@ -50,8 +51,8 @@ const Card = ({ dashboardEmployeeData }) => {
             <span className="flex items-center justify-end mb-10 "></span>
           </div>
         </div>
-
-        <div className="  md:w-full  w-full sm:w-[25vh] mx-3 ">
+</Link> 
+       <Link to= "/raised-complaint" className = "cursor-pointer" >    <div className="  md:w-full  w-full sm:w-[25vh] mx-3 ">
           <div className="BR gradient    rounded-3xl  border border-[#F5CD15]  md:mt-9 mt-6 ">
             <div className="flex justify-center items-center  flex-col mt-9">
               <p className=" text-white font-semibold text-lg ">
@@ -64,7 +65,7 @@ const Card = ({ dashboardEmployeeData }) => {
 
             <span className="flex items-center justify-end mb-10 "></span>
           </div>
-        </div>
+        </div></Link> 
 
         <div className="  md:w-full  w-full sm:w-[25vh]   mx-3 ">
           <div className="BR gradient flex flex-col justify-start   py-3 rounded-3xl  md:mt-9 mt-6 ">

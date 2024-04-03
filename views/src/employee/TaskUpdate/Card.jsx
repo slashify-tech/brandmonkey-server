@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import apiurl from "../../util";
 import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
-import { FaCircleCheck } from "react-icons/fa6";
+import { FaCircleCheck, FaCirclePlus } from "react-icons/fa6";
 import { useAuth } from "../../context/loginContext";
+import { toast } from "react-toastify";
 function getDateFormatted() {
   const currentDate = new Date();
   currentDate.setDate(currentDate.getDate());
@@ -28,11 +29,13 @@ function getDateFormatted() {
   return `${dayOfMonth} ${month} ${year}`;
 }
 const Card = () => {
+
   // Function to generate the static time slots
   const { employeeData } = useAuth();
   const [click, setClick] = useState(false);
   const [clients, setClients] = useState([]);
   const extraSlots = [
+   
     "07:00 PM - 07:30 PM",
     "07:30 PM - 08:00 PM",
     "08:00 PM - 08:30 PM",
@@ -42,6 +45,7 @@ const Card = () => {
     "10:30 PM - 11:00 PM",
     "11:00 PM - 11:30 PM",
     "11:30 PM - 12:00 AM",
+ 
   ];
   const generateTimeSlots = () => {
     const timeSlots = [
@@ -75,7 +79,7 @@ const Card = () => {
   const getClientData = async () => {
     try {
       const response = await apiurl.get(`/getclientName?clientOrNot=${true}`);
-      setClients(response.data?.client?.map((item) => item.name));
+      setClients(response.data?.client?.map((item => item.name)));
     } catch (err) {
       console.log(err);
     }
@@ -110,11 +114,12 @@ const Card = () => {
       }
     }
   };
-
+ 
   // Initial state with static time slots
   const [rows, setRows] = useState(generateTimeSlots());
   const [dynamicRows, setDynamicRows] = useState([]);
-
+  const [successIcon, setSuccessIcon] = useState([]);
+  const [successStatic, setSuccessStatic] = useState([]);
   // Function to handle dropdown option change
   const handleOptionChange = (index, field, value) => {
     const updatedRows = [...rows];
@@ -145,6 +150,7 @@ const Card = () => {
 
   // Function to add a new row with two dropdowns and an input field
   const addRow = () => {
+    
     if (dynamicRows.length < 5) {
       const newRow = {
         id: dynamicRows.length, // Change this to use dynamic IDs
@@ -176,16 +182,21 @@ const Card = () => {
         timeSlot,
         employeeId,
         _id,
-        date: currentDate,
-        countId: id,
+        date : currentDate,
+        countId: id
       });
 
+    setSuccessStatic(prevState => ({
+          ...prevState,
+          [index]: true
+        }));
       // Handle the response if needed
       setClick(true);
-      // toast.info("activity updated successfully");
+      toast.success("activity updated successfully");
     } catch (error) {
       // Handle errors
       console.error("Error creating or updating task:", error.message);
+      toast.error("something went wrong");
       // Optionally, rethrow the error to propagate it further
       throw error;
     }
@@ -193,7 +204,7 @@ const Card = () => {
 
   const createExtraTask = async (index, dynamicRows) => {
     try {
-      const { clientName, timeSlot, activity, _id, id } = dynamicRows;
+      const { clientName, timeSlot, activity, _id, id} = dynamicRows;
       const currentDate = getDateFormatted();
       const employeeId = employeeData?._id;
       let response;
@@ -204,15 +215,22 @@ const Card = () => {
           activity,
           employeeId,
           _id,
-          date: currentDate,
-          countId: id,
+          date : currentDate,
+          countId: id
         });
+
+        setSuccessIcon(prevState => ({
+          ...prevState,
+          [index]: true
+        }));
       }
       setClick(true);
-      // toast.info("extra activity updated successfully");
+      toast.success("extra activity updated successfully");
     } catch (error) {
       console.error("Error creating extra task:", error);
+      toast.error("something went wrong");
       throw error; // Rethrow error to handle it in the caller
+    
     }
   };
 
@@ -222,82 +240,90 @@ const Card = () => {
     setClick(false);
   }, [employeeData, click]);
 
+
   return (
-    <div className="md:px-9 px-6  pt-9 mb-20  ">
-      <span className="flex justify-start mb-9 items-center text-white font-poppins font-medium md:ml-9 md:gap-42 gap-36 sm:gap-56 text-center text-[23px] w-full">
-        <span>Time</span>
-        <span>Client</span>
-        <span className="">Activity</span>
-        <span>Save</span>
+   <div className=" overflow-scroll scrollbar-hide sm:overflow-hidden">
+
+    <div className="md:px-16 px-6  pt-9 mb-20 ">
+      <span className="flex justify-start mb-9 items-center text-white font-poppins font-medium  md:w-full w-[225%] text-center text-[23px] ">
+        <span className="md:w-1/4 w-full sm:w-1/5 text-start">Time</span>
+        <span className="md:w-1/4 w-full sm:w-1/5 md:text-start md:ml-0  text-center">Client</span>
+        <span className="md:w-1/4 w-full sm:w-1/4 ">Activity</span>
+        <span className="md:w-1/3  md:text-center text-start w-full sm:w-full ml-9 md:ml-0">Save</span>
       </span>
       {rows.map((row) => (
         <div
           key={row.id}
-          className="flex md:justify-center justify-start  md:w-full w-[150%] sm:w-full items-center  text-white mb-3"
+          className="flex md:justify-center justify-start  md:w-full w-[225%] sm:w-[120%] items-center  text-white mb-3"
         >
-          <span className="md:w-1/4 w-full">
+          <span className="md:w-1/4 w-full sm:w-full">
             <p className=" font-poppins font-extralight z-50">{row.timeSlot}</p>
           </span>
           {row.id < 18 ? (
-            <span className="md:w-1/4 w-full ml-3 md:ml-0">
+            <span className="md:w-1/4 w-full ml-3 md:ml-0 sm:w-full">
+      
               <Autocomplete
                 value={row.clientName}
+                
                 onChange={(event, newValue) => {
                   handleOptionChange(row.id, "clientName", newValue);
+                  
                 }}
                 options={clients}
                 renderInput={(params) => (
+                  
                   <TextField
                     {...params}
                     // Apply focused styles on input focus
-                    className="glassn rounded-2xl text-white focus:outline-none"
+        className="glassn rounded-2xl text-white focus:outline-none"
+                       
                   />
                 )}
               />
+            
             </span>
           ) : (
             <>
-              <span className="md:w-1/4 w-full">
-                <Autocomplete
-                  value={row.clientName}
-                  onChange={(event, newValue) =>
-                    handleOptionChange(row.id, "clientName", newValue)
-                  }
-                  options={clients}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Client"
-                      fullWidth
-                      // Combine custom and MUI classes
-                      className="gradient rounded-2xl text-white focus:outline-none"
-                    />
-                  )}
-                />
+              <span className="md:w-1/4 w-full sm:w-full">
+              <Autocomplete
+      value={row.clientName}
+      onChange={(event, newValue) => handleOptionChange(row.id, "clientName", newValue)}
+      options={clients}
+      
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label="Client"
+          fullWidth
+        
+          // Combine custom and MUI classes
+          className="gradient rounded-2xl text-white focus:outline-none"
+        />
+      )}
+    />
               </span>
+            
             </>
           )}
-          <span className="md:w-1/3 md:ml-20 ml-9 sm:ml-16 w-full ">
+          <span className="md:w-1/3 md:ml-20 ml-9 sm:ml-16 w-full sm:w-full ">
             <input
               type="text"
               value={row.activity}
               onChange={(e) => handleInputChange(row.id, e.target.value)}
-              onBlur={() => updateRowData(row.id, row)}
+          
+
               className="w-full py-4 rounded-xl px-2 bg-transparent border border-gray-300 focus:outline-none focus:border-primary text-white"
             />
           </span>
-          <span
-            onClick={updateRowData}
-            className="text-primary text-4xl cursor-pointer md:w-1/6 md:ml-36 ml-9 sm:ml-16 w-full"
-          >
-            <FaCircleCheck />
-          </span>
+          <span onClick={() => updateRowData(row.id, row)} className="text-primary text-4xl cursor-pointer md:w-1/5 md:ml-36 ml-16  sm:ml-16 w-full">
+  {successStatic[row.id] ? <FaCircleCheck /> : <FaCirclePlus />}
+</span>
         </div>
       ))}
       {dynamicRows.map((row, index) => (
         <div
           key={index}
-          className="flex justify-center items-center md:w-full  w-[150%] text-white mb-3"
+          className="flex justify-center items-center md:w-full sm:w-[120%]  w-[222%] text-white mb-3"
         >
           <span className="md:w-1/4 w-full mr-5 md:mr-0 sm:w-[35%]">
             <select
@@ -306,7 +332,7 @@ const Card = () => {
                 handleDynamicOptionChange(index, "timeSlot", e.target.value)
               }
               // onBlur={() => createExtraTask(row.id, row)}
-              className="w-full md:w-[70%] sm:w-[90%] py-4 px-2  gradient rounded-xl text-white focus:outline-none focus:border-primary mb-4"
+              className="md:w-full   py-4 px-2  gradient rounded-xl text-white focus:outline-none focus:border-primary mb-4"
             >
               {extraSlots?.map((item, index) => (
                 <option className="text-black" value={item}>
@@ -315,22 +341,23 @@ const Card = () => {
               ))}
             </select>
           </span>
-          <span className=" md:w-1/3 w-full sm:w-[38%]">
-            <div className="  md:w-3/4 mx-2 ">
-              <Autocomplete
-                value={row.clientName}
-                onChange={(event, newValue) => {
-                  handleDynamicOptionChange(index, "clientName", newValue);
-                }}
-                options={clients}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Client"
-                    className="glassn rounded-3xl text-white focus:outline-none "
-                  />
-                )}
-              />
+          <span className=" md:w-1/3 w-full sm:w-full sm:ml-5">
+          <div className="  md:w-3/4    ">
+            <Autocomplete
+              value={row.clientName}
+              onChange={(event, newValue) => {
+                handleDynamicOptionChange(index, "clientName", newValue);
+              }}
+              options={clients}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Client"
+                  className="glassn rounded-3xl text-white focus:outline-none "
+              
+                />
+              )}
+            />
             </div>
           </span>
 
@@ -339,15 +366,11 @@ const Card = () => {
               type="text"
               value={row.activity}
               onChange={(e) => handleDynamicInputChange(index, e.target.value)}
-              className="w-full md:w-full sm:w-[39%] py-4 rounded-xl px-2 bg-transparent border border-gray-300 focus:outline-none focus:border-primary text-white"
+            
+              className="w-full md:w-full sm:w-full py-4 rounded-xl px-2 bg-transparent border border-gray-300 focus:outline-none focus:border-primary text-white"
             />
           </span>
-          <span
-            onClick={() => createExtraTask(row.id, row)}
-            className="text-primary text-4xl cursor-pointer md:w-1/6 md:ml-36 ml-9 sm:ml-16 w-full"
-          >
-            <FaCircleCheck />
-          </span>
+          <span onClick={() => createExtraTask(row.id, row)} className="text-primary text-4xl cursor-pointer md:w-1/5 md:ml-36 ml-16  sm:ml-16 w-full">    {successIcon[row.id] ? <FaCircleCheck /> : <FaCirclePlus />}</span>
         </div>
       ))}
       {dynamicRows.length < 5 && (
@@ -358,6 +381,7 @@ const Card = () => {
           + Add Row
         </span>
       )}
+    </div>
     </div>
   );
 };

@@ -29,7 +29,7 @@ console.log(employeeData);
   return (
     <>
       {showNavbar && (
-        <div className={`hidden md:block items-start justify-center mt-[5rem] w-full font-poppins ml-4 max-h-[100vh] navbar-container  `}>
+        <div className={`hidden md:block items-start justify-center mt-[5rem] w-full font-poppins ml-4 h-full navbar-container fixed `}>
           <span className="flex flex-col mt-[-6rem] justify-center items-center">
             <span className="text-2xl ml-[10rem] cursor-pointer p-4 ">
               <IoBackspaceOutline onClick={clickhandler} />

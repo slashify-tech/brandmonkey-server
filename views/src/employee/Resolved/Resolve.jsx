@@ -9,7 +9,7 @@ const Resolve = () => {
   
   return (
     <>
-      <span className=" flex bg-primary font-poppins">
+      <span className=" flex bg-primary font-poppins  h-screen">
         <span className="child md:block hidden ">
           <span className="ml-3">
             <BrandIcon />

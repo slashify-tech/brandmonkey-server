@@ -28,7 +28,7 @@ export const EmployeeProvider = ({ children }) => {
     totalClients: 0,
     totalTickets: 0,
     totalWorkProgress: 0,
-    totalTicketsResolved : 0
+    totalTicketsResolved: 0,
   });
 
   const addEmployee = async (empFormData, edit, id) => {
@@ -43,7 +43,9 @@ export const EmployeeProvider = ({ children }) => {
         email,
         password,
         ImageFile,
-        image
+        image,
+        Gender,
+        DateOfJoining,
       } = empFormData;
       const services = service.join(",");
       const config = {
@@ -54,31 +56,43 @@ export const EmployeeProvider = ({ children }) => {
       };
       try {
         if (edit) {
-          await apiurl.put(`/editEmployee/${id}`, {
-            employeeId,
-            team,
-            image,
-            name,
-            designation,
-            phoneNumber,
-            services,
-            email,
-            password,
-            ImageFile
-          }, config);
+          await apiurl.put(
+            `/editEmployee/${id}`,
+            {
+              employeeId,
+              team,
+              image,
+              name,
+              designation,
+              phoneNumber,
+              services,
+              email,
+              password,
+              ImageFile,
+              Gender,
+              DateOfJoining,
+            },
+            config
+          );
         } else {
-          await apiurl.post(`/addEmployee`, {
-            employeeId,
-            team,
-            image,
-            name,
-            designation,
-            phoneNumber,
-            services,
-            email,
-            password,
-            ImageFile
-          }, config);
+          await apiurl.post(
+            `/addEmployee`,
+            {
+              employeeId,
+              team,
+              image,
+              name,
+              designation,
+              phoneNumber,
+              services,
+              email,
+              password,
+              ImageFile,
+              Gender,
+              DateOfJoining,
+            },
+            config
+          );
         }
       } catch (err) {
         console.log(err);
@@ -215,8 +229,8 @@ export const EmployeeProvider = ({ children }) => {
                 key !== "Address" &&
                 key !== "GST" &&
                 key !== "__v" &&
-                key !== "ticketsCount"&&
-                key !== "colorZone"&&
+                key !== "ticketsCount" &&
+                key !== "colorZone" &&
                 key !== "clientLogo" &&
                 key !== "logo"
             )
@@ -327,7 +341,7 @@ export const EmployeeProvider = ({ children }) => {
         totalClients: response.data.totalClients,
         totalTickets: response.data.totalTickets,
         totalWorkProgress: response.data.totalWorkProgress,
-        totalTicketsResolved : response.data.totalTicketsResolved
+        totalTicketsResolved: response.data.totalTicketsResolved,
       });
     } catch (err) {
       console.log(err);

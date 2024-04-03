@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { IoClose } from "react-icons/io5";
 import { useParams } from "react-router-dom";
-import { Link } from "react-router-dom";
+import { Link, useNavigate  } from "react-router-dom";
 import { toast } from "react-toastify";
 import apiurl from "../../../util";
 import setupInterceptors from "../../../Interceptors";
+
 
 const EclientAllotForm = () => {
   const { id } = useParams();
@@ -15,6 +16,7 @@ const EclientAllotForm = () => {
     service: [],
     employeeName: id,
   });
+  const navigate = useNavigate();
   const [isPopupOpen, setPopupOpen] = useState(true);
 
   const closePopup = () => {
@@ -69,14 +71,21 @@ const EclientAllotForm = () => {
   };
 
   const submitForm = async () => {
+    let {client,
+    service,
+    employeeName} = serviceClient;
+    service = service.join(",")
     if (id && serviceClient.service.length > 0) {
       try {
-        await apiurl.put(`/clientAllocation/${id}`, { ...serviceClient });
+        await apiurl.put(`/clientAllocation/${id}`, {   client,
+          service,
+          employeeName});
         toast.success("Client Allotted");
         closePopup();
       } catch (err) {
         console.log(err);
         toast.error("Something went wrong");
+        navigate("/admin/allemployee")
       }
     } else {
       toast.error("Please select at least one service");
@@ -87,6 +96,8 @@ const EclientAllotForm = () => {
     getClients();
     getEmployee();
   }, []);
+
+  console.log(services);
 
   return (
     <>
@@ -135,8 +146,9 @@ const EclientAllotForm = () => {
               id=""
               className="md:w-[95%] w-full h-[6vh] mt-3 px-2  rounded-md cursor-pointer"
               onChange={EmpFormHandler}
-            >
+            >  <option>Select Service</option>
               {services?.map((item, index) => (
+              
                 <option key={index} value={item}>
                   {item}
                 </option>
@@ -173,12 +185,14 @@ const EclientAllotForm = () => {
             </div>
 
             <div className="flex justify-center items-center mt-20 mb-5">
+            <Link to = "/admin/allemployee">
               <span
                 className="px-5 py-2 text-[#F5CD15] bg-black BR rounded-lg mt-5 cursor-pointer "
                 onClick={submitForm}
               >
                 Submit
               </span>
+              </Link>
             </div>
           </form>
         </div>
