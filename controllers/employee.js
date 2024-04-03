@@ -371,10 +371,11 @@ exports.getClientEmployeeRel = async (req, res) => {
 
     if (clientAssigned) {
       const clientNames = clientAssigned.clients.map((item) =>
-        item.clientName.split("-")[0].trim().toLowerCase()
+        item.clientName.split("-")[0].trim()
       );
 
       const clientData = await getClient(clientNames);
+
 
       const clientsWithData = await Promise.all(clientAssigned.clients.map(async (client) => {
         const clientInfo = clientData.find(
@@ -410,7 +411,7 @@ exports.getClientEmployeeRel = async (req, res) => {
 const getClient = async (clientNames) => {
   try {
     const clientData = await Clients.find({
-      name: { $in: clientNames.map((name) => new RegExp(`^${name}$`, "i")) },
+      name: { $in: clientNames.map((name) => name.trim()) },
     });
 
     return clientData.map((client) => ({
@@ -452,7 +453,6 @@ exports.getClientWork = async (req, res) => {
       clientWork = "Youtube Management";
     }
 
-    // Query for clients using the correct field name
     const client = await Clients.find({ name: clientName });
 
     if (client.length === 0) {

@@ -47,6 +47,7 @@ exports.addEmployee = async (req, res, next) => {
     if (req.body.password) {
       hashedPass = simpleEncrypt(req.body.password, 5);
     }
+    const {name, email} = req.body;
     if (req.file) {
       const { buffer, originalname, mimetype } = req.file;
 
@@ -57,6 +58,8 @@ exports.addEmployee = async (req, res, next) => {
 
       await Employees.create({
         ...req.body,
+        name : name.trim(),
+        email : email.toLowerCase(),
         password: hashedPass,
         phoneNumber: req.body.phoneNumber,
         type: "employee",
@@ -65,6 +68,8 @@ exports.addEmployee = async (req, res, next) => {
     } else {
       await Employees.create({
         ...req.body,
+        name : name.trim(),
+        email : email.toLowerCase(),
         password: hashedPass,
         phoneNumber: req.body.phoneNumber,
         type: "employee",
@@ -79,6 +84,7 @@ exports.addEmployee = async (req, res, next) => {
 
 exports.addClient = async (req, res, next) => {
   try {
+    const {name} = req.body;
     if (req.file) {
       const { buffer, originalname, mimetype } = req.file;
 
@@ -87,9 +93,9 @@ exports.addClient = async (req, res, next) => {
 
       await uploadToS3(resizedImageBuffer, fileName, mimetype);
 
-      await Clients.create({ ...req.body, logo: fileName });
+      await Clients.create({ ...req.body, logo: fileName, name : name.trim() });
     } else {
-      await Clients.create({ ...req.body });
+      await Clients.create({ ...req.body, name : name.trim() });
     }
     // await client.save();
     res.status(201).json("adding succesful");
@@ -100,6 +106,7 @@ exports.addClient = async (req, res, next) => {
 
 exports.editClient = async (req, res, next) => {
   try {
+    const {name} = req.body;
     const client = await Clients.findById(req.params.id);
 
     if (!client) {
@@ -107,7 +114,7 @@ exports.editClient = async (req, res, next) => {
     }
 
     let upadatedClient;
-    upadatedClient = { ...req.body };
+    upadatedClient = { ...req.body , name : name.trim()};
     if (req.file) {
       const { buffer, originalname, mimetype } = req.file;
 
@@ -134,6 +141,7 @@ exports.editClient = async (req, res, next) => {
 
 exports.editEmployee = async (req, res, next) => {
   try {
+    const {name, email} = req.body;
     const employee = await Employees.findById(req.params.id);
 
     if (!employee) {
@@ -142,6 +150,8 @@ exports.editEmployee = async (req, res, next) => {
 
     let upadatedEmployee = {
       ...req.body,
+      name : name.trim(),
+      email : email.toLowerCase(),
       password: simpleEncrypt(req.body.password, 5),
     };
     if (req.file) {

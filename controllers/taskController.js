@@ -28,7 +28,7 @@ const formatDateTime = (dateStr) => {
 exports.createTask = async (req, res) => {
   try {
     const { employeeId, activity, clientName, timeSlot, _id, date, countId } = req.body;
-    console.log(employeeId, activity, clientName, timeSlot, _id, date, countId);
+    // console.log(employeeId, activity, clientName, timeSlot, _id, date, countId);
 
     let newTask = await Task.findOne({ employeeId });
 
@@ -100,7 +100,7 @@ exports.createTask = async (req, res) => {
 exports.createAdditionalTask = async (req, res) => {
   try {
     const { employeeId, activity, clientName, timeSlot, _id, date, countId } = req.body;
-    console.log(employeeId, activity, clientName, timeSlot, _id, date);
+    // console.log(employeeId, activity, clientName, timeSlot, _id, date);
 
     let newTask = await Task.findOne({ employeeId });
 
@@ -374,9 +374,9 @@ exports.downloadAllEmployeeData = async (req, res) => {
       const combinedActivities = [...task.activity, ...task.extraActivity];
       combinedActivities.forEach((activity) => {
         allEmployeeData.push({
-          EmployeeName: task.employeeId.name,
+          EmployeeName: task.employeeId?.name,
           ClientName: activity.clientName,
-          Activity: activity.activity,
+          Activity: activity.activity?.replace("=", ""),
           TimeSlot: activity.timeSlot,
           Time: formatDateTime(activity.createdAt),
           Date: activity.date,
@@ -410,7 +410,7 @@ exports.downloadAllEmployeeHit = async (req, res) => {
       if (task.hits && task.hits.length > 0) {
         task.hits.forEach((hit) => {
           allHits.push({
-            "Employee Name": task.employeeId.name,
+            "Employee Name": task.employeeId?.name,
             "Client Name": hit.clientName,
             "Total Hours": (hit.noOfHits * 30) / 60 + " hrs",
           });
