@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import apiurl from "../../util";
 import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
-import { FaCircleCheck, FaCirclePlus } from "react-icons/fa6";
+import { FaCircleCheck } from "react-icons/fa6";
 import { useAuth } from "../../context/loginContext";
 import { toast } from "react-toastify";
 function getDateFormatted() {
@@ -151,7 +151,7 @@ const Card = () => {
   // Function to add a new row with two dropdowns and an input field
   const addRow = () => {
     
-    if (dynamicRows.length < 5) {
+    if (dynamicRows.length < 9) {
       const newRow = {
         id: dynamicRows.length, // Change this to use dynamic IDs
         clientName: "",
@@ -186,10 +186,7 @@ const Card = () => {
         countId: id
       });
 
-    setSuccessStatic(prevState => ({
-          ...prevState,
-          [index]: true
-        }));
+  
       // Handle the response if needed
       setClick(true);
       toast.success("activity updated successfully");
@@ -205,6 +202,7 @@ const Card = () => {
   const createExtraTask = async (index, dynamicRows) => {
     try {
       const { clientName, timeSlot, activity, _id, id} = dynamicRows;
+      console.log({ clientName, timeSlot, activity, _id, index});
       const currentDate = getDateFormatted();
       const employeeId = employeeData?._id;
       let response;
@@ -219,10 +217,7 @@ const Card = () => {
           countId: id
         });
 
-        setSuccessIcon(prevState => ({
-          ...prevState,
-          [index]: true
-        }));
+      
       }
       setClick(true);
       toast.success("extra activity updated successfully");
@@ -316,7 +311,7 @@ const Card = () => {
             />
           </span>
           <span onClick={() => updateRowData(row.id, row)} className="text-primary text-4xl cursor-pointer md:w-1/5 md:ml-36 ml-16  sm:ml-16 w-full">
-  {successStatic[row.id] ? <FaCircleCheck /> : <FaCirclePlus />}
+   <FaCircleCheck />  
 </span>
         </div>
       ))}
@@ -334,6 +329,7 @@ const Card = () => {
               // onBlur={() => createExtraTask(row.id, row)}
               className="md:w-full   py-4 px-2  gradient rounded-xl text-white focus:outline-none focus:border-primary mb-4"
             >
+            <option value=""> Choose Time Slot</option>
               {extraSlots?.map((item, index) => (
                 <option className="text-black" value={item}>
                   {item}
@@ -370,7 +366,7 @@ const Card = () => {
               className="w-full md:w-full sm:w-full py-4 rounded-xl px-2 bg-transparent border border-gray-300 focus:outline-none focus:border-primary text-white"
             />
           </span>
-          <span onClick={() => createExtraTask(row.id, row)} className="text-primary text-4xl cursor-pointer md:w-1/5 md:ml-36 ml-16  sm:ml-16 w-full">    {successIcon[row.id] ? <FaCircleCheck /> : <FaCirclePlus />}</span>
+          <span onClick={() => createExtraTask(row.id, row)} className="text-primary text-4xl cursor-pointer md:w-1/5 md:ml-36 ml-16  sm:ml-16 w-full">    <FaCircleCheck /> </span>
         </div>
       ))}
       {dynamicRows.length < 5 && (
