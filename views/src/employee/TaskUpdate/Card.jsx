@@ -107,8 +107,23 @@ const Card = () => {
         const extraResponse = await apiurl.get(
           `/getExtraTaskForEmployee?employeeId=${employeeData?._id}&date=${currentDate}`
         );
-        setDynamicRows(extraResponse.data);
-        console.log(extraResponse.data);
+        // Sort extraResponse.data based on timeSlot
+      const sortedExtraResponse = extraResponse.data.sort((a, b) => {
+        // Extract start times
+        const startTimeA = parseInt(a.timeSlot.split(" to ")[0].replace(":", ""));
+        const startTimeB = parseInt(b.timeSlot.split(" to ")[0].replace(":", ""));
+        // Compare start times
+        if (startTimeA !== startTimeB) {
+          return startTimeA - startTimeB;
+        } else {
+          // If start times are equal, compare end times
+          const endTimeA = parseInt(a.timeSlot.split(" to ")[1].replace(":", ""));
+          const endTimeB = parseInt(b.timeSlot.split(" to ")[1].replace(":", ""));
+          return endTimeA - endTimeB;
+        }
+      });
+  
+        setDynamicRows(sortedExtraResponse);
       } catch (error) {
         console.error("Error fetching activities:", error);
       }
