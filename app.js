@@ -10,6 +10,7 @@ const moment = require("moment");
 const {
   deleteTasksForMonth,
   sendEmailToAdmin,
+  sendEmailToAdmin15Days,
 } = require("./controllers/taskController");
 
 const apiRoute = require("./routes/clientRelRoute");
@@ -39,7 +40,20 @@ mongoose
   .catch((err) => console.error("MongoDB connection error:", err));
 
 cron.schedule(
-  "59 23 27 1-11 *",
+  "59 23 15 1-12 *",
+  async () => {
+    // Here, you can perform any task you want to run one day before the deletion cron job
+    console.log("Sending reminder email...");
+    sendEmailToAdmin15Days(); // Send email reminder
+  },
+  {
+    scheduled: true,
+    timezone: "Asia/Kolkata", // Specify your timezone here, e.g., 'America/New_York'
+  }
+);
+
+cron.schedule(
+  "59 23 26-29 1-12 *",
   async () => {
     // Here, you can perform any task you want to run one day before the deletion cron job
     console.log("Sending reminder email...");
@@ -51,12 +65,20 @@ cron.schedule(
   }
 );
 
-// Schedule cron job to run every 10 seconds
-cron.schedule("59 23 28-31 * *", () => {
+
+// cron.schedule("59 23 L * *", () => {
+//   const currentTime = moment().format("MMMM Do YYYY, h:mm:ss a");
+//   console.log(`This delete job ran at ${currentTime}`);
+
+//   // Call the deleteTasksForMonth function
+//   deleteTasksForMonth();
+// });
+
+cron.schedule("59 23 30 */6 *", () => {
   const currentTime = moment().format("MMMM Do YYYY, h:mm:ss a");
   console.log(`This delete job ran at ${currentTime}`);
 
-  // Call the deleteTasksForMonth function
+  // Call the deleteTasksForEveryThreeMonth function
   deleteTasksForMonth();
 });
 

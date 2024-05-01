@@ -362,6 +362,7 @@ exports.downloadSingleEmployeeSheet = async (req, res) => {
 
 exports.downloadAllEmployeeData = async (req, res) => {
   try {
+    const { date } = req.query;
     const tasks = await Task.find({}).populate("employeeId", "name");
 
     if (!tasks || tasks.length === 0) {
@@ -372,6 +373,12 @@ exports.downloadAllEmployeeData = async (req, res) => {
 
     tasks.forEach((task) => {
       const combinedActivities = [...task.activity, ...task.extraActivity];
+      // Filter activities by date if date is provided
+      if (date) {
+        combinedActivities = combinedActivities.filter((activity) => {
+          return activity.date.split(" ").slice(1).join(" ") === date;
+        });
+      }
       combinedActivities.forEach((activity) => {
         allEmployeeData.push({
           EmployeeName: task.employeeId?.name,
@@ -438,85 +445,6 @@ exports.downloadAllEmployeeHit = async (req, res) => {
 // Function to delete tasks for a specific month
 
 exports.deleteTasksForMonth = async () => {
-  // try {
-  //   // Parse the month and year from the provided string
-  //   const parsedDate = moment(monthYear, "MMM YYYY");
-  //   const month = parsedDate.month();
-  //   const year = parsedDate.year();
-
-  //   // Calculate the start and end dates of the provided month
-  //   const startDate = moment().month(month).year(year).startOf("month");
-  //   const endDate = moment().month(month).year(year).endOf("month");
-
-  //   // Find tasks matching the provided month and year
-  //   const tasks = await Task.find({
-  //     $or: [
-  //       { "activity.date": { $gte: startDate, $lt: endDate } },
-  //       { "extraActivity.date": { $gte: startDate, $lt: endDate } },
-  //     ],
-  //   });
-
-  //   // Log activities and extra activities to be deleted
-  //   tasks.forEach((task) => {
-  //     console.log(`Task ID: ${task._id}`);
-  //     console.log("Activities to be deleted:");
-  //     task.activity.forEach((activity) => {
-  //       if (
-  //         moment(activity.date, "DD MMM YYYY").isBetween(
-  //           startDate,
-  //           endDate,
-  //           null,
-  //           "[]"
-  //         )
-  //       ) {
-  //         console.log(activity);
-  //       }
-  //     });
-  //     console.log("Extra activities to be deleted:");
-  //     task.extraActivity.forEach((extraActivity) => {
-  //       if (
-  //         moment(extraActivity.date, "DD MMM YYYY").isBetween(
-  //           startDate,
-  //           endDate,
-  //           null,
-  //           "[]"
-  //         )
-  //       ) {
-  //         console.log(extraActivity);
-  //       }
-  //     });
-  //   });
-
-  //   // Delete activities and extra activities matching the provided month and year
-  //   await Promise.all(
-  //     tasks.map(async (task) => {
-  //       task.activity = task.activity.filter(
-  //         (activity) =>
-  //           !moment(activity.date, "DD MMM YYYY").isBetween(
-  //             startDate,
-  //             endDate,
-  //             null,
-  //             "[]"
-  //           )
-  //       );
-  //       task.extraActivity = task.extraActivity.filter(
-  //         (extraActivity) =>
-  //           !moment(extraActivity.date, "DD MMM YYYY").isBetween(
-  //             startDate,
-  //             endDate,
-  //             null,
-  //             "[]"
-  //           )
-  //       );
-  //       task.hits = []; // Empty the hits array
-  //       await task.save();
-  //     })
-  //   );
-
-  //   // console.log(`Tasks for ${monthYear} deleted successfully`);
-  // } catch (error) {
-  //   console.error("Error:", error);
-  // }
   try {
     await Task.deleteMany();
     console.log("deleted succesfully");
@@ -538,10 +466,30 @@ exports.sendEmailToAdmin = async() =>{
     const adminEmails = admins.map((admin) => admin.email);
     const adminMsg = {
       to: adminEmails,
-      // to: ["pmrutunjay928@gmail.com"],
       from: "info@brandmonkey.in",
       subject: 'Urgent Message: Task Deletion Reminder',
       text: `Urgent Message\n\nKindly download the employee sheet details and the hit details in hours as it's soon going to be cleaned.`, // Email body,
+    };
+    await sgMail.send(adminMsg);
+    console.log('Email sent successfully.');
+  } catch (error) {
+    console.error('Error sending email:', error);
+  }
+
+}
+exports.sendEmailToAdmin15Days = async() =>{
+  // Function to send email
+  try {
+    const admins = await Employees.find({
+      type: { $in: ["admin", "superadmin"] },
+    }).select("email");
+
+    const adminEmails = admins.map((admin) => admin.email);
+    const adminMsg = {
+      to: adminEmails,
+      from: "info@brandmonkey.in",
+      subject: 'Urgent Message: Task Deletion Reminder',
+      text: `Urgent Message\n\nKindly download the employee sheet details and the hit details of the last 15 Days`, // Email body,
     };
     await sgMail.send(adminMsg);
     console.log('Email sent successfully.');
