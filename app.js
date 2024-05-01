@@ -65,7 +65,6 @@ cron.schedule(
   }
 );
 
-
 // cron.schedule("59 23 L * *", () => {
 //   const currentTime = moment().format("MMMM Do YYYY, h:mm:ss a");
 //   console.log(`This delete job ran at ${currentTime}`);
