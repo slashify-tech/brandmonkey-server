@@ -174,12 +174,41 @@ sudo nano /etc/nginx/sites-available/default
     }
 ```
 
-check nginx config and restart it if no error occur :
+##### check nginx config and restart it if no error occur :
 ```bash
 sudo nginx -t
 ```
 ```bash
 sudo service nginx restart
+```
+
+#### Obtain and Install SSL Certificate
+##### Use Let's Encrypt to obtain a free SSL certificate with Certbot:
+```bash 
+sudo apt install certbot python3-certbot-nginx
+```
+##### Run Certbot to obtain the SSL certificate:
+```bash
+sudo certbot --nginx -d yourdomain.com -d subdomain.yourdomain.com
+```
+#### Configure Nginx for SSL
+##### Modify the Nginx configuration to use SSL:
+```bash
+sudo nano /etc/nginx/sites-available/default
+```
+##### Update the configuration to include SSL settings:
+```bash
+server {
+    listen 443 ssl;
+    server_name yourdomain.com;
+
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+
+    location / {
+        # Your Nginx configuration goes here
+    }
+}
 ```
 
 #### You should now be able to visit your IP with no port (port 80) and see your app. Now let's add a domain
