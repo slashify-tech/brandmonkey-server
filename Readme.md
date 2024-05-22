@@ -183,6 +183,9 @@ sudo service nginx restart
 ```
 
 #### Obtain and Install SSL Certificate
+
+##### Installing Certbot
+
 ##### Use Let's Encrypt to obtain a free SSL certificate with Certbot:
 ```bash 
 sudo apt install certbot python3-certbot-nginx
@@ -216,30 +219,6 @@ server {
 #### This step is to point your ip address from the domain
      ->Check that Port 80 redirect to Nodejs server
 
-#### In this step lets install free SSL using Certbot
-
-##### Installing Certbot
-```bash
-sudo snap install core; sudo snap refresh core
-```
-```bash
-sudo apt remove certbot
-```
-```bash
-sudo snap install --classic certbot
-```
-```bash
-sudo ln -s /snap/bin/certbot /usr/bin/certbot
-```
-
-lets finalise out Nginx's Configuration
-```bash
-sudo nano /etc/nginx/sites-available/default
-```
-```bash
-server_name domain.com www.subdomain.com;
-```
-
 confirm it by the same testing command
 ```bash
 sudo nginx -t
@@ -249,16 +228,31 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Now Lets obtain the Free SSL Certificate:
-```bash
-sudo certbot --nginx -d domain.com -d iftwodomain.com 
-```
 Now you have successfully applied the SSL to your domain
 
 #### The last step is to set the certbot for auto-renewal
 
 ```bash
 sudo systemctl status snap.certbot.renew.service
+```
+##### Check the crontab for Certbot's auto-renewal job:
+
+##### Certbot usually adds a cron job or a systemd timer to handle the renewal process. You can check if it exists by running:
+```bash
+sudo crontab -u root -l
+```
+##### You should see something like this:
+```bash
+0 */12 * * * /usr/bin/certbot renew --quiet
+```
+
+##### If it's not set up, you can manually edit the cron job:
+```bash
+sudo crontab -u root -e
+```
+##### Add the following line to restart Nginx after renewal:
+```bash
+0 */12 * * * /usr/bin/certbot renew --quiet --deploy-hook "systemctl restart nginx"
 ```
 
 To test the renewal process, you can do a dry run with certbot:
