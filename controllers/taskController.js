@@ -334,8 +334,8 @@ exports.downloadSingleEmployeeSheet = async (req, res) => {
 
     if (date) {
       combinedActivities = combinedActivities.filter((item) => {
-        const itemMonthYear = item.date.split(" ").slice(1).join(" ");
-        return itemMonthYear === date;
+        let itemMonthYear = item.date.split(" ").slice(1).join(" ");
+        return itemMonthYear === date.split(" ").slice(1).join(" ");;
       });
     }
 
@@ -372,12 +372,13 @@ exports.downloadAllEmployeeData = async (req, res) => {
     const allEmployeeData = [];
 
     tasks.forEach((task) => {
-      const combinedActivities = [...task.activity, ...task.extraActivity];
+      let combinedActivities = [...task.activity, ...task.extraActivity];
       // Filter activities by date if date is provided
       if (date) {
         combinedActivities = combinedActivities.filter((item) => {
-          const itemMonthYear = item.date.split(" ").slice(1).join(" ");
-          return itemMonthYear === date;
+          let itemMonthYear = item.date.split(" ").slice(1).join(" ");
+          console.log(itemMonthYear);
+          return itemMonthYear === date.split(" ").slice(1).join(" ");
         });
       }
       combinedActivities.forEach((activity) => {
@@ -400,7 +401,7 @@ exports.downloadAllEmployeeData = async (req, res) => {
       res
     );
   } catch (err) {
-    console.error(err);
+    console.log(err);
     res.status(500).send("Internal Server Error");
   }
 };
