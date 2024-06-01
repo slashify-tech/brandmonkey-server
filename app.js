@@ -11,6 +11,7 @@ const {
   deleteTasksForMonth,
   sendEmailToAdmin,
   sendEmailToAdmin15Days,
+  deleteAllHits,
 } = require("./controllers/taskController");
 
 const apiRoute = require("./routes/clientRelRoute");
@@ -80,6 +81,22 @@ cron.schedule("59 23 30 */6 *", () => {
   // Call the deleteTasksForEveryThreeMonth function
   deleteTasksForMonth();
 });
+
+cron.schedule("59 23 30 * *", () => {
+  const currentTime = moment().format("MMMM Do YYYY, h:mm:ss a");
+  console.log(`This delete job ran at ${currentTime}`);
+
+  // Call the deleteTasksForEveryThreeMonth function
+  deleteAllHits();
+});
+
+// cron.schedule('*/5 * * * * *', () => {
+//   const currentTime = moment().format('MMMM Do YYYY, h:mm:ss a');
+//   console.log(`This delete job ran at ${currentTime}`);
+
+//   // Call the deleteAllHits function
+//   deleteAllHits();
+// });
 
 // Routes
 app.use(userRoutes);

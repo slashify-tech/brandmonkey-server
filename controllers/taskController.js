@@ -375,8 +375,9 @@ exports.downloadAllEmployeeData = async (req, res) => {
       const combinedActivities = [...task.activity, ...task.extraActivity];
       // Filter activities by date if date is provided
       if (date) {
-        combinedActivities = combinedActivities.filter((activity) => {
-          return activity.date.split(" ").slice(1).join(" ") === date;
+        combinedActivities = combinedActivities.filter((item) => {
+          const itemMonthYear = item.date.split(" ").slice(1).join(" ");
+          return itemMonthYear === date;
         });
       }
       combinedActivities.forEach((activity) => {
@@ -390,6 +391,7 @@ exports.downloadAllEmployeeData = async (req, res) => {
         });
       });
     });
+    
 
     await generateAndDownloadCSV(
       allEmployeeData,
@@ -455,6 +457,19 @@ exports.deleteTasksForMonth = async () => {
 };
 
 
+exports.deleteAllHits = async () => {
+  try {
+    const result = await Task.updateMany(
+      {},
+      { $unset: { hits: [] } }
+    );
+    console.log("deleted succesfully");
+    console.log({ message: 'Hits array deleted from all tasks successfully' });
+  } catch (err) {
+    console.error('Error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
 
 exports.sendEmailToAdmin = async() =>{
   // Function to send email
