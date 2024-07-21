@@ -244,6 +244,10 @@ sudo crontab -u root -l
 ##### You should see something like this:
 ```bash
 0 */12 * * * /usr/bin/certbot renew --quiet
+#12 hrs
+
+0 0 1 * * /usr/bin/certbot renew --quiet --deploy-hook "systemctl restart nginx"
+#1st day of month
 ```
 
 ##### If it's not set up, you can manually edit the cron job:
