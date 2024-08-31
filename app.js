@@ -15,9 +15,9 @@ const {
 } = require("./controllers/taskController");
 
 const apiRoute = require("./routes/clientRelRoute");
-const userRoutes = require("./routes/auth");
+const authRoutes = require("./routes/auth.route");
 const employeeRoutes = require("./routes/employeeHandler");
-const noteRoutes = require("./routes/noteRoute");
+const noteRoutes = require("./routes/note.route");
 
 dotenv.config();
 const app = express();
@@ -99,7 +99,7 @@ cron.schedule("59 23 30 * *", () => {
 // });
 
 // Routes
-app.use(userRoutes);
+app.use(authRoutes);
 app.use(apiRoute);
 app.use(employeeRoutes);
 app.use(noteRoutes);
