@@ -123,3 +123,140 @@ exports.createAdditionalTask = async (req, res) => {
   }
 };
 
+exports.getActivityByEmployeeIdAndDate = async (req, res) => {
+  try {
+    const { employeeId, date, type = "activity" } = req.query; // Type defaults to "activity"
+
+    // Find tasks based on employeeId and type
+    const tasks = await Task.find({ employeeId, type });
+
+    if (!tasks || tasks.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No tasks found for the employee" });
+    }
+
+    // Filter tasks based on date
+    let activities;
+    if (date) {
+      activities = tasks.filter((task) => task.date === date);
+    } else {
+      activities = tasks.filter((task) => task.date === getDateFormatted());
+    }
+
+    if (activities.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No activities found for the specified date" });
+    }
+
+    // Sort activities by countId in ascending order (assuming countId is a date string)
+    activities.sort((a, b) => new Date(a.countId) - new Date(b.countId));
+
+    res.status(200).json(activities);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+exports.getExtraActivityByEmployeeIdAndDate = async (req, res) => {
+  try {
+    const { employeeId, date } = req.query;
+
+    // Find tasks based on employeeId and type "extraActivity"
+    const tasks = await Task.find({ employeeId, type: "extraActivity" });
+
+    if (!tasks || tasks.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No extra activities found for the employee" });
+    }
+
+    // Filter tasks based on date
+    let activities;
+    if (date) {
+      activities = tasks.filter((task) => task.date === date);
+    } else {
+      activities = tasks.filter((task) => task.date === getDateFormatted());
+    }
+
+    if (activities.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No extra activities found for the specified date" });
+    }
+
+    // Sort activities by countId in ascending order (assuming countId is a date string)
+    activities.sort((a, b) => new Date(a.countId) - new Date(b.countId));
+
+    res.status(200).json(activities);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+exports.getExtraActivityByEmployeeIdAndDate = async (req, res) => {
+  try {
+    const { employeeId, date } = req.query;
+
+    // Find tasks based on employeeId and type "extraActivity"
+    const tasks = await Task.find({ employeeId, type: "extraActivity" });
+
+    if (!tasks || tasks.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No extra activities found for the employee" });
+    }
+
+    // Filter tasks based on date
+    let activities;
+    if (date) {
+      activities = tasks.filter((task) => task.date === date);
+    } else {
+      activities = tasks.filter((task) => task.date === getDateFormatted());
+    }
+
+    if (activities.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No extra activities found for the specified date" });
+    }
+
+    // Sort activities by countId in ascending order (assuming countId is a date string)
+    activities.sort((a, b) => new Date(a.countId) - new Date(b.countId));
+
+    res.status(200).json(activities);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+exports.getHitsByEmployees = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find hits based on employeeId
+    const hits = await Hits.find({ employeeId: id });
+
+    if (!hits || hits.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No hits found for the provided employee ID" });
+    }
+
+    // Map hits to extract relevant information
+    const hitsData = hits.map((hit) => ({
+      clientName: hit.clientName,
+      noOfHits: hit.noOfHits,
+    }));
+
+    res.status(200).json({ hits: hitsData });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
