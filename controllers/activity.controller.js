@@ -260,3 +260,27 @@ exports.getHitsByEmployees = async (req, res) => {
   }
 };
 
+exports.deleteAllHits = async () => {
+  try {
+    const result = await Hits.deleteMany();
+
+    console.log("Hits deleted successfully");
+    console.log({
+      message: "All hits deleted successfully",
+      deletedCount: result.deletedCount,
+    });
+  } catch (err) {
+    console.error("Error:", err);
+  }
+};
+
+
+exports.deleteTasksForMonth = async () => {
+  try {
+    await Task.deleteMany();
+    console.log("deleted succesfully");
+    console.log({ message: 'All tasks deleted successfully' });
+  } catch (error) {
+    console.log({ message: error.message });
+  }
+};
