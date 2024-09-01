@@ -1,6 +1,14 @@
 const { Task, Hits } = require("../models/activities");
 const { formatDateTime } = require("../utils/formattedDate");
 const { generateAndDownloadCSV } = require("../utils/generate-download-csv");
+const Clients = require("../models/clients");
+const Employees = require("../models/employee");
+const json2csv = require("json2csv").parse;
+const dotenv = require("dotenv");
+dotenv.config();
+const sgMail = require("@sendgrid/mail");
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const fs = require("fs");
 
 exports.downloadSingleEmployeeSheet = async (req, res) => {
   try {
