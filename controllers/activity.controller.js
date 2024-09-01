@@ -9,6 +9,8 @@ exports.createTask = async (req, res) => {
     // Find existing task for the employeeId with the same timeSlot and type
     let task = await Task.findOne({ employeeId, timeSlot, date, type });
 
+    let isNewTask = false;
+
     if (!task) {
       // If no existing task found, create a new one
       task = new Task({
@@ -23,6 +25,7 @@ exports.createTask = async (req, res) => {
 
       // Save the task
       await task.save();
+      isNewTask = true;
     } else {
       // Update the existing task
       task.activity = activity;
@@ -34,23 +37,25 @@ exports.createTask = async (req, res) => {
       await task.save();
     }
 
-    // Update hits or create new hit entry
-    let hit = await Hits.findOne({ employeeId, clientName });
+    if (isNewTask) {
+      // Update hits or create new hit entry only if it's a new task
+      let hit = await Hits.findOne({ employeeId, clientName });
 
-    if (hit) {
-      // Increment the number of hits
-      hit.noOfHits += 1;
-    } else {
-      // Create a new hit entry
-      hit = new Hits({
-        employeeId,
-        clientName,
-        noOfHits: 1,
-      });
+      if (hit) {
+        // Increment the number of hits
+        hit.noOfHits += 1;
+      } else {
+        // Create a new hit entry
+        hit = new Hits({
+          employeeId,
+          clientName,
+          noOfHits: 1,
+        });
+      }
+
+      // Save the hit
+      await hit.save();
     }
-
-    // Save the hit
-    await hit.save();
 
     res.status(201).json({ message: "Task created successfully", task });
   } catch (error) {
@@ -71,6 +76,8 @@ exports.createAdditionalTask = async (req, res) => {
     // Find existing task for the employeeId with the same timeSlot and type
     let task = await Task.findOne({ employeeId, date, timeSlot, type });
 
+    let isNewTask = false;
+
     if (!task) {
       // If no existing task found, create a new one
       task = new Task({
@@ -85,6 +92,7 @@ exports.createAdditionalTask = async (req, res) => {
 
       // Save the task
       await task.save();
+      isNewTask = true;
     } else {
       // Update the existing task
       task.activity = activity;
@@ -96,23 +104,25 @@ exports.createAdditionalTask = async (req, res) => {
       await task.save();
     }
 
-    // Update hits or create new hit entry
-    let hit = await Hits.findOne({ employeeId, clientName });
+    if (isNewTask) {
+      // Update hits or create new hit entry only if it's a new task
+      let hit = await Hits.findOne({ employeeId, clientName });
 
-    if (hit) {
-      // Increment the number of hits
-      hit.noOfHits += 1;
-    } else {
-      // Create a new hit entry
-      hit = new Hits({
-        employeeId,
-        clientName,
-        noOfHits: 1,
-      });
+      if (hit) {
+        // Increment the number of hits
+        hit.noOfHits += 1;
+      } else {
+        // Create a new hit entry
+        hit = new Hits({
+          employeeId,
+          clientName,
+          noOfHits: 1,
+        });
+      }
+
+      // Save the hit
+      await hit.save();
     }
-
-    // Save the hit
-    await hit.save();
 
     res
       .status(201)
@@ -122,6 +132,7 @@ exports.createAdditionalTask = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 exports.getActivityByEmployeeIdAndDate = async (req, res) => {
   try {
