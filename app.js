@@ -9,15 +9,20 @@ const moment = require("moment");
 
 const {
   deleteTasksForMonth,
+  deleteAllHits,
+} = require("./controllers/activity.controller");
+
+const {
   sendEmailToAdmin,
   sendEmailToAdmin15Days,
-  deleteAllHits,
-} = require("./controllers/taskController");
+} = require("./controllers/email.controller");
 
-const apiRoute = require("./routes/clientRelRoute");
-const userRoutes = require("./routes/auth");
-const employeeRoutes = require("./routes/employeeHandler");
-const noteRoutes = require("./routes/noteRoute");
+const adminRoutes = require("./routes/admin.route");
+const authRoutes = require("./routes/auth.route");
+const employeeRoutes = require("./routes/employee.route");
+const noteRoutes = require("./routes/note.route");
+const downloadRoutes = require("./routes/download-csv.route");
+const ticketsRoutes = require("./routes/ticket.route");
 
 dotenv.config();
 const app = express();
@@ -99,10 +104,12 @@ cron.schedule("59 23 30 * *", () => {
 // });
 
 // Routes
-app.use(userRoutes);
-app.use(apiRoute);
+app.use(authRoutes);
+app.use(adminRoutes);
 app.use(employeeRoutes);
 app.use(noteRoutes);
+app.use(downloadRoutes);
+app.use(ticketsRoutes);
 
 // Default route
 app.get("/", (req, res) => {
