@@ -260,21 +260,15 @@ exports.deleteFieldsFromClients = async (req, res) => {
 
 exports.storeClientDistributionData = async (req, res) => {
   try {
-    const { client, service } = req.body;
+    const { clients, service } = req.body; // Expecting an array of clients and a single service
     const userId = req.params.id;
 
     const user = await Employees.findById(userId);
-
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const clientType = await Clients.findOne({ name: client });
-
-    let clientDistribution = await Employees.findOne({
-      _id: user._id,
-    });
-
+    let clientDistribution = await Employees.findOne({ _id: user._id });
     if (!clientDistribution) {
       clientDistribution = new Employees({
         _id: user._id,
@@ -283,34 +277,32 @@ exports.storeClientDistributionData = async (req, res) => {
       });
     }
 
-    const existingClientIndex = clientDistribution.clients.findIndex(
-      (clientObj) => {
-        // Check if clientObj.clientName starts with the provided client name
-        return clientObj.clientName.startsWith(client.trim());
-      }
-    );
+    for (const client of clients) {
+      const clientType = await Clients.findOne({ name: client });
+      
+      const existingClientIndex = clientDistribution.clients.findIndex(
+        (clientObj) => clientObj.clientName.startsWith(client.trim())
+      );
 
-    if (existingClientIndex !== -1) {
-      // Update existing client with new service
-      clientDistribution.clients[existingClientIndex].progressValue = "0-10";
-      clientDistribution.clients[existingClientIndex].clientName += `,${service.trim()}`;
-    } else {
-      // Add new client with service
-      clientDistribution.clients.push({
-        clientName: `${client.trim()} - ${service.trim()}`,
-        logo: `${client}.png`,
-        progressValue: "0-10",
-        clientType: clientType.clientType,
-      });
+      if (existingClientIndex !== -1) {
+        // Update existing client with new service
+        clientDistribution.clients[existingClientIndex].progressValue = "0-10";
+        clientDistribution.clients[existingClientIndex].clientName += `, ${service.trim()}`;
+      } else {
+        // Add new client with service
+        clientDistribution.clients.push({
+          clientName: `${client.trim()} - ${service.trim()}`,
+          logo: `${client}.png`,
+          progressValue: "0-10",
+          clientType: clientType?.clientType || "Unknown",
+        });
+      }
     }
 
     // Remove duplicates based on clientName
     clientDistribution.clients = clientDistribution.clients.filter(
       (client, index, self) =>
-        index ===
-        self.findIndex(
-          (c) => c.clientName === client.clientName
-        )
+        index === self.findIndex((c) => c.clientName === client.clientName)
     );
 
     const savedClientDistribution = await clientDistribution.save();
