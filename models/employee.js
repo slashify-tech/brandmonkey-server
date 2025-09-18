@@ -108,6 +108,22 @@ const employeeSchema = mongoose.Schema({
     type: Number,
     default: 0,
   },
+  // Allocation tracking fields
+  allocationMetrics: {
+    hourlyRate: { type: Number, default: 0 },
+    currentHoursWorked: { type: Number, default: 0 },
+    currentPeriodStart: { type: Date, default: Date.now },
+    currentPeriodEnd: { type: Date },
+    totalCostCurrentPeriod: { type: Number, default: 0 },
+    contributionPercentage: { type: Number, default: 0 }
+  },
+  // Performance tracking
+  performanceMetrics: {
+    averageTaskCompletionTime: { type: Number, default: 0 },
+    productivityScore: { type: Number, default: 0 },
+    lastPerformanceReview: { type: Date },
+    overallRating: { type: Number, min: 1, max: 5, default: 0 }
+  }
 });
 
 const Employees = mongoose.model("employees", employeeSchema);
