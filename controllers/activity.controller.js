@@ -1,10 +1,18 @@
 const { Task, Hits } = require("../models/activities"); // Adjust the path to where your models are defined
 const { getDateFormatted } = require("../utils/formattedDate");
+const Clients = require("../models/clients");
 
 exports.createTask = async (req, res) => {
   try {
     const { employeeId, activity, clientName, timeSlot, date, countId, type } =
       req.body;
+
+    // Find client by name to get clientId
+    const client = await Clients.findOne({ name: clientName });
+    if (!client) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+    const clientId = client._id;
 
     // Find existing task for the employeeId with the same timeSlot and type
     let task = await Task.findOne({ employeeId, timeSlot, date, type });
@@ -17,6 +25,7 @@ exports.createTask = async (req, res) => {
         employeeId,
         activity,
         clientName,
+        clientId,
         timeSlot,
         date,
         type,
@@ -30,6 +39,7 @@ exports.createTask = async (req, res) => {
       // Update the existing task
       task.activity = activity;
       task.clientName = clientName;
+      task.clientId = clientId;
       task.date = date;
       task.countId = countId;
 
@@ -38,8 +48,12 @@ exports.createTask = async (req, res) => {
     }
 
     if (isNewTask) {
+      // Extract month from date (assuming date format is YYYY-MM-DD or similar)
+      const dateObj = new Date(date);
+      const month = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+      
       // Update hits or create new hit entry only if it's a new task
-      let hit = await Hits.findOne({ employeeId, clientName });
+      let hit = await Hits.findOne({ employeeId, clientName, month });
 
       if (hit) {
         // Increment the number of hits
@@ -49,7 +63,9 @@ exports.createTask = async (req, res) => {
         hit = new Hits({
           employeeId,
           clientName,
+          clientId,
           noOfHits: 1,
+          month,
         });
       }
 
@@ -70,6 +86,13 @@ exports.createAdditionalTask = async (req, res) => {
       req.body;
     date = date?.trim();
 
+    // Find client by name to get clientId
+    const client = await Clients.findOne({ name: clientName });
+    if (!client) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+    const clientId = client._id;
+
     // The type for additional tasks should be "extraActivity"
     const type = "extraActivity";
 
@@ -84,6 +107,7 @@ exports.createAdditionalTask = async (req, res) => {
         employeeId,
         activity,
         clientName,
+        clientId,
         timeSlot,
         date,
         type,
@@ -97,6 +121,7 @@ exports.createAdditionalTask = async (req, res) => {
       // Update the existing task
       task.activity = activity;
       task.clientName = clientName;
+      task.clientId = clientId;
       task.date = date;
       task.countId = countId;
 
@@ -105,8 +130,12 @@ exports.createAdditionalTask = async (req, res) => {
     }
 
     if (isNewTask) {
+      // Extract month from date (assuming date format is YYYY-MM-DD or similar)
+      const dateObj = new Date(date);
+      const month = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+      
       // Update hits or create new hit entry only if it's a new task
-      let hit = await Hits.findOne({ employeeId, clientName });
+      let hit = await Hits.findOne({ employeeId, clientName, month });
 
       if (hit) {
         // Increment the number of hits
@@ -116,7 +145,9 @@ exports.createAdditionalTask = async (req, res) => {
         hit = new Hits({
           employeeId,
           clientName,
+          clientId,
           noOfHits: 1,
+          month,
         });
       }
 
@@ -258,10 +289,22 @@ exports.getHitsByEmployees = async (req, res) => {
         .json({ message: "No hits found for the provided employee ID" });
     }
 
-    // Map hits to extract relevant information
-    const hitsData = hits.map((hit) => ({
-      clientName: hit.clientName,
-      noOfHits: hit.noOfHits,
+    // Aggregate hits by clientName to get total hits per client
+    const hitsMap = new Map();
+    
+    hits.forEach((hit) => {
+      const clientName = hit.clientName;
+      if (hitsMap.has(clientName)) {
+        hitsMap.set(clientName, hitsMap.get(clientName) + hit.noOfHits);
+      } else {
+        hitsMap.set(clientName, hit.noOfHits);
+      }
+    });
+    
+    // Convert map to array of objects
+    const hitsData = Array.from(hitsMap.entries()).map(([clientName, totalHits]) => ({
+      clientName,
+      totalHits,
     }));
 
     res.status(200).json({ hits: hitsData });

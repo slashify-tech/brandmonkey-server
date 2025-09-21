@@ -103,10 +103,32 @@ exports.downloadAllEmployeeHit = async (req, res) => {
       return res.status(404).send("No hits found for any employee");
     }
 
-    let allHits = hits.map((hit) => ({
-      "Employee Name": hit.employeeId?.name,
+    // Aggregate hits by employee and client to get total hits per combination
+    const hitsMap = new Map();
+    
+    hits.forEach((hit) => {
+      const key = `${hit.employeeId?.name}_${hit.clientName}`;
+      if (hitsMap.has(key)) {
+        const existing = hitsMap.get(key);
+        hitsMap.set(key, {
+          employeeName: existing.employeeName,
+          clientName: existing.clientName,
+          totalHits: existing.totalHits + hit.noOfHits,
+        });
+      } else {
+        hitsMap.set(key, {
+          employeeName: hit.employeeId?.name,
+          clientName: hit.clientName,
+          totalHits: hit.noOfHits,
+        });
+      }
+    });
+    
+    // Convert map to array and calculate total hours
+    let allHits = Array.from(hitsMap.values()).map((hit) => ({
+      "Employee Name": hit.employeeName,
       "Client Name": hit.clientName,
-      "Total Hours": (hit.noOfHits * 30) / 60 + " hrs",
+      "Total Hours": (hit.totalHits * 30) / 60 + " hrs",
     }));
 
     await generateAndDownloadCSV(

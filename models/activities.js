@@ -4,6 +4,8 @@ const HitsSchema = mongoose.Schema({
   employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "employees" },
   clientName: { type: String },
   noOfHits: { type: Number },
+  month: { type: String, required: false },
+  clientId: { type: mongoose.Schema.Types.ObjectId, ref: "clients" , required: false }
 });
 
 const TaskSchema = mongoose.Schema({
@@ -11,6 +13,7 @@ const TaskSchema = mongoose.Schema({
   clientName: {
     type: String,
   },
+  clientId: { type: mongoose.Schema.Types.ObjectId, ref: "clients" , required: false },
   activity: {
     type: String,
   },
