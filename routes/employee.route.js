@@ -16,6 +16,7 @@ router.put('/updateWork/:id', employeeWorkController.updateWork);
 router.get('/getTaskForEmployee', activityController.getActivityByEmployeeIdAndDate);
 router.get('/getExtraTaskForEmployee', activityController.getExtraActivityByEmployeeIdAndDate);
 router.get("/gethitemployee/:id", activityController.getHitsByEmployees);
+router.get("/gethitsbyclients", activityController.getHitsByClients);
 router.get('/getOneEmployee/:id', employeeController.getOneEmployee);
 router.get('/getclientemployeedistribution/:id' , employeeController.getClientEmployeeRel);
 router.get('/getclientWork/:id' , employeeController.getClientWork);

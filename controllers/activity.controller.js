@@ -329,6 +329,134 @@ exports.deleteAllHits = async () => {
 };
 
 
+exports.getHitsByClients = async (req, res) => {
+  try {
+    const { clientId, month, employeeName, startDate, endDate } = req.body;
+    console.log(clientId, month, employeeName, startDate, endDate);
+
+    // Build query object
+    const query = {};
+    if (clientId) {
+      query.clientId = clientId;
+    }
+    if (month) {
+      query.month = month;
+    }
+
+    // Find hits based on query parameters
+    let hits = await Hits.find(query).populate("employeeId", "name designation").populate("clientId", "name");
+
+    // Filter by employee name if provided
+    if (employeeName) {
+      hits = hits.filter(hit => 
+        hit.employeeId?.name?.toLowerCase().includes(employeeName.toLowerCase())
+      );
+    }
+
+    // Filter by date range if provided
+    if (startDate || endDate) {
+      hits = hits.filter(hit => {
+        // Extract month from hit.month (format: YYYY-MM)
+        if (!hit.month) return false;
+        
+        const hitMonth = hit.month;
+        const hitYear = parseInt(hitMonth.split('-')[0]);
+        const hitMonthNum = parseInt(hitMonth.split('-')[1]);
+        
+        // Create date objects for comparison
+        const hitDate = new Date(hitYear, hitMonthNum - 1, 1);
+        
+        if (startDate) {
+          const start = new Date(startDate);
+          if (hitDate < start) return false;
+        }
+        
+        if (endDate) {
+          const end = new Date(endDate);
+          // Set end date to last day of the month
+          end.setMonth(end.getMonth() + 1, 0);
+          if (hitDate > end) return false;
+        }
+        
+        return true;
+      });
+    }
+
+    if (!hits || hits.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No hits found for the provided criteria" });
+    }
+
+    // Aggregate hits by client to get total hits per client
+    const hitsMap = new Map();
+    
+    hits.forEach((hit) => {
+      const clientKey = hit.clientId ? hit.clientId._id.toString() : hit.clientName;
+      if (hitsMap.has(clientKey)) {
+        const existing = hitsMap.get(clientKey);
+        hitsMap.set(clientKey, {
+          clientId: existing.clientId,
+          clientName: existing.clientName,
+          totalHits: existing.totalHits + hit.noOfHits,
+          employees: [...existing.employees, {
+            employeeId: hit.employeeId?._id,
+            employeeName: hit.employeeId?.name,
+            designation: hit.employeeId?.designation,
+            hoursWorked: hit.noOfHits * 30 / 60,
+            hits: hit.noOfHits
+          }]
+        });
+      } else {
+        hitsMap.set(clientKey, {
+          clientId: hit.clientId?._id,
+          clientName: hit.clientId?.name || hit.clientName,
+          totalHits: hit.noOfHits,
+          employees: [{
+            employeeId: hit.employeeId?._id,
+            employeeName: hit.employeeId?.name,
+            designation: hit.employeeId?.designation,
+            hoursWorked: hit.noOfHits * 30 / 60,
+            hits: hit.noOfHits
+          }]
+        });
+      }
+    });
+
+    // Convert map to array of objects and calculate contribution percentages
+    const hitsData = Array.from(hitsMap.values()).map((client) => {
+      // Calculate contribution percentage for each employee
+      const employeesWithContribution = client.employees.map(emp => ({
+        ...emp,
+        contributionPercentage: ((emp.hits / client.totalHits) * 100).toFixed(2)
+      }));
+
+      return {
+        clientId: client.clientId,
+        clientName: client.clientName,
+        totalHits: client.totalHits,
+        totalHours: (client.totalHits * 30) / 60, // Convert hits to hours (30 min per hit)
+        employees: employeesWithContribution
+      };
+    });
+
+    // Sort by total hits descending
+    hitsData.sort((a, b) => b.totalHits - a.totalHits);
+
+    res.status(200).json({ 
+      hits: hitsData,
+      summary: {
+        totalClients: hitsData.length,
+        totalHits: hitsData.reduce((sum, client) => sum + client.totalHits, 0),
+        totalHours: hitsData.reduce((sum, client) => sum + client.totalHours, 0)
+      }
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 exports.deleteTasksForMonth = async () => {
   try {
     await Task.deleteMany();
