@@ -24,6 +24,7 @@ const noteRoutes = require("./routes/note.route");
 const downloadRoutes = require("./routes/download-csv.route");
 const ticketsRoutes = require("./routes/ticket.route");
 const dashboardRoutes = require("./routes/dashboard.route");
+const financeRoutes = require("./routes/finance.route");
 
 dotenv.config();
 const app = express();
@@ -112,6 +113,7 @@ app.use(noteRoutes);
 app.use(downloadRoutes);
 app.use(ticketsRoutes);
 app.use(dashboardRoutes);
+app.use("/api/finance", financeRoutes);
 
 // Default route
 app.get("/", (req, res) => {
