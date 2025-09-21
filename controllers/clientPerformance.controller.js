@@ -2,15 +2,6 @@ const mongoose = require('mongoose');
 const ClientPerformance = require('../models/clientPerformance');
 const Clients = require('../models/clients');
 
-// Helper function for logging week calculations
-const logWeekCalculation = (context, data) => {
-  console.log(`=== WEEK CALCULATION LOG - ${context} ===`);
-  console.log('Timestamp:', new Date().toISOString());
-  console.log('Context:', context);
-  console.log('Data:', data);
-  console.log('==========================================');
-};
-
 // Validation functions
 const validateMonth = (month) => {
   if (!month) return { isValid: false, message: 'Month is required' };
@@ -682,371 +673,371 @@ const updateGoogleAdsMetrics = async (req, res) => {
 };
 
 // Get all client performance data
-const getAllClientPerformance = async (req, res) => {
-  try {
-    const { 
-      search, 
-      status, 
-      clientType,
-      page = 1, 
-      limit = 20 
-    } = req.query;
+// const getAllClientPerformance = async (req, res) => {
+//   try {
+//     const { 
+//       search, 
+//       status, 
+//       clientType,
+//       page = 1, 
+//       limit = 20 
+//     } = req.query;
 
-    // Build match stage for aggregation
-    let matchStage = {};
+//     // Build match stage for aggregation
+//     let matchStage = {};
     
-    // Filter by status
-    if (status && status !== 'all') {
-      matchStage.status = status;
-    }
+//     // Filter by status
+//     if (status && status !== 'all') {
+//       matchStage.status = status;
+//     }
 
-    // Build aggregation pipeline
-    const pipeline = [
-      { $match: matchStage },
-      {
-        $lookup: {
-          from: 'clients',
-          localField: 'clientId',
-          foreignField: '_id',
-          as: 'client'
-        }
-      },
-      { $unwind: '$client' }
-    ];
+//     // Build aggregation pipeline
+//     const pipeline = [
+//       { $match: matchStage },
+//       {
+//         $lookup: {
+//           from: 'clients',
+//           localField: 'clientId',
+//           foreignField: '_id',
+//           as: 'client'
+//         }
+//       },
+//       { $unwind: '$client' }
+//     ];
 
-    // Add search and client type filters
-    let clientMatch = {};
-    if (search) {
-      clientMatch['client.name'] = { $regex: search, $options: 'i' };
-    }
-    if (clientType && clientType !== 'all') {
-      clientMatch['client.clientType'] = clientType;
-    }
+//     // Add search and client type filters
+//     let clientMatch = {};
+//     if (search) {
+//       clientMatch['client.name'] = { $regex: search, $options: 'i' };
+//     }
+//     if (clientType && clientType !== 'all') {
+//       clientMatch['client.clientType'] = clientType;
+//     }
     
-    if (Object.keys(clientMatch).length > 0) {
-      pipeline.push({ $match: clientMatch });
-    }
+//     if (Object.keys(clientMatch).length > 0) {
+//       pipeline.push({ $match: clientMatch });
+//     }
 
-    // Group by clientId and merge all documents
-    pipeline.push({
-      $group: {
-        _id: '$clientId',
-        client: { $first: '$client' },
-        // Get all months data for comparison
-        monthsData: {
-          $push: {
-            month: '$month',
-            metaSpend: { $ifNull: ['$metaAdsMetrics.spentAmount', 0] },
-            googleSpend: { $ifNull: ['$googleAdsMetrics.spentAmount', 0] },
-            conversions: { $ifNull: ['$googleAdsMetrics.conversions', 0] },
-            clicks: { $ifNull: ['$googleAdsMetrics.clicks', 0] },
-            leads: { $ifNull: ['$metaAdsMetrics.leads', 0] },
-            calls: { $ifNull: ['$googleAdsMetrics.calls', 0] },
-            messages: { $ifNull: ['$metaAdsMetrics.messages', 0] },
-            status: '$status',
-            statusDuration: '$statusDuration'
-          }
-        },
-        // Sum spend breakdown
-        metaSpend: { $sum: { $ifNull: ['$metaAdsMetrics.spentAmount', 0] } },
-        googleSpend: { $sum: { $ifNull: ['$googleAdsMetrics.spentAmount', 0] } },
-        // Sum all results
-        totalConversions: { $sum: { $ifNull: ['$googleAdsMetrics.conversions', 0] } },
-        totalClicks: { $sum: { $ifNull: ['$googleAdsMetrics.clicks', 0] } },
-        totalLeads: { $sum: { $ifNull: ['$metaAdsMetrics.leads', 0] } },
-        totalCalls: { $sum: { $ifNull: ['$googleAdsMetrics.calls', 0] } },
-        totalMessages: { $sum: { $ifNull: ['$metaAdsMetrics.messages', 0] } },
-        // Latest update time
-        lastUpdated: { $max: '$lastUpdated' },
-        // Count of records merged
-        recordCount: { $sum: 1 },
-        // Merge all months
-        months: { $addToSet: '$month' },
-        // Merge all services
-        services: { $push: '$services' }
-      }
-    });
+//     // Group by clientId and merge all documents
+//     pipeline.push({
+//       $group: {
+//         _id: '$clientId',
+//         client: { $first: '$client' },
+//         // Get all months data for comparison
+//         monthsData: {
+//           $push: {
+//             month: '$month',
+//             metaSpend: { $ifNull: ['$metaAdsMetrics.spentAmount', 0] },
+//             googleSpend: { $ifNull: ['$googleAdsMetrics.spentAmount', 0] },
+//             conversions: { $ifNull: ['$googleAdsMetrics.conversions', 0] },
+//             clicks: { $ifNull: ['$googleAdsMetrics.clicks', 0] },
+//             leads: { $ifNull: ['$metaAdsMetrics.leads', 0] },
+//             calls: { $ifNull: ['$googleAdsMetrics.calls', 0] },
+//             messages: { $ifNull: ['$metaAdsMetrics.messages', 0] },
+//             status: '$status',
+//             statusDuration: '$statusDuration'
+//           }
+//         },
+//         // Sum spend breakdown
+//         metaSpend: { $sum: { $ifNull: ['$metaAdsMetrics.spentAmount', 0] } },
+//         googleSpend: { $sum: { $ifNull: ['$googleAdsMetrics.spentAmount', 0] } },
+//         // Sum all results
+//         totalConversions: { $sum: { $ifNull: ['$googleAdsMetrics.conversions', 0] } },
+//         totalClicks: { $sum: { $ifNull: ['$googleAdsMetrics.clicks', 0] } },
+//         totalLeads: { $sum: { $ifNull: ['$metaAdsMetrics.leads', 0] } },
+//         totalCalls: { $sum: { $ifNull: ['$googleAdsMetrics.calls', 0] } },
+//         totalMessages: { $sum: { $ifNull: ['$metaAdsMetrics.messages', 0] } },
+//         // Latest update time
+//         lastUpdated: { $max: '$lastUpdated' },
+//         // Count of records merged
+//         recordCount: { $sum: 1 },
+//         // Merge all months
+//         months: { $addToSet: '$month' },
+//         // Merge all services
+//         services: { $push: '$services' }
+//       }
+//     });
 
-    // Add pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    pipeline.push(
-      { $sort: { lastUpdated: -1 } },
-      { $skip: skip },
-      { $limit: parseInt(limit) }
-    );
+//     // Add pagination
+//     const skip = (parseInt(page) - 1) * parseInt(limit);
+//     pipeline.push(
+//       { $sort: { lastUpdated: -1 } },
+//       { $skip: skip },
+//       { $limit: parseInt(limit) }
+//     );
 
-    // Execute aggregation
-    const aggregatedData = await ClientPerformance.aggregate(pipeline);
+//     // Execute aggregation
+//     const aggregatedData = await ClientPerformance.aggregate(pipeline);
 
-    // Get total count for pagination (separate aggregation for count)
-    const countPipeline = [
-      { $match: matchStage },
-      {
-        $lookup: {
-          from: 'clients',
-          localField: 'clientId',
-          foreignField: '_id',
-          as: 'client'
-        }
-      },
-      { $unwind: '$client' }
-    ];
+//     // Get total count for pagination (separate aggregation for count)
+//     const countPipeline = [
+//       { $match: matchStage },
+//       {
+//         $lookup: {
+//           from: 'clients',
+//           localField: 'clientId',
+//           foreignField: '_id',
+//           as: 'client'
+//         }
+//       },
+//       { $unwind: '$client' }
+//     ];
 
-    if (Object.keys(clientMatch).length > 0) {
-      countPipeline.push({ $match: clientMatch });
-    }
+//     if (Object.keys(clientMatch).length > 0) {
+//       countPipeline.push({ $match: clientMatch });
+//     }
 
-    countPipeline.push({
-      $group: { _id: '$clientId' }
-    });
+//     countPipeline.push({
+//       $group: { _id: '$clientId' }
+//     });
 
-    const totalCount = await ClientPerformance.aggregate([
-      ...countPipeline,
-      { $count: 'total' }
-    ]);
+//     const totalCount = await ClientPerformance.aggregate([
+//       ...countPipeline,
+//       { $count: 'total' }
+//     ]);
 
-    console.log(aggregatedData);
+//     console.log(aggregatedData);
 
-    // Format data for response
-    const formattedData = aggregatedData.map(item => {
-      const client = item.client;
-      const totalSpend = Number(item.metaSpend) + Number(item.googleSpend);
+//     // Format data for response
+//     const formattedData = aggregatedData.map(item => {
+//       const client = item.client;
+//       const totalSpend = Number(item.metaSpend) + Number(item.googleSpend);
       
-      // Calculate cost per result
-      const totalResults = item.totalLeads + item.totalCalls + item.totalMessages;
-      const costPerResult = totalResults > 0 ? (totalSpend / totalResults).toFixed(2) : 0;
+//       // Calculate cost per result
+//       const totalResults = item.totalLeads + item.totalCalls + item.totalMessages;
+//       const costPerResult = totalResults > 0 ? (totalSpend / totalResults).toFixed(2) : 0;
 
-      // Calculate trend and status based on month-to-month comparison
-      let trendDirection = 'stable';
-      let trendPercentage = 0;
-      let status = 'Active';
-      let statusDuration = '';
+//       // Calculate trend and status based on month-to-month comparison
+//       let trendDirection = 'stable';
+//       let trendPercentage = 0;
+//       let status = 'Active';
+//       let statusDuration = '';
 
-      if (item.weeksData && item.weeksData.length >= 2) {
-        // Sort months data by month (newest first)
-        const sortedMonths = item.weeksData.sort((a, b) => b.month.localeCompare(a.month));
-        const currentWeek = sortedMonths[0];
-        const previousWeek = sortedMonths[1];
+//       if (item.weeksData && item.weeksData.length >= 2) {
+//         // Sort months data by month (newest first)
+//         const sortedMonths = item.weeksData.sort((a, b) => b.month.localeCompare(a.month));
+//         const currentWeek = sortedMonths[0];
+//         const previousWeek = sortedMonths[1];
 
-        // Calculate total spend for comparison
-        const currentTotalSpend = currentWeek.metaSpend + currentWeek.googleSpend;
-        const previousTotalSpend = previousWeek.metaSpend + previousWeek.googleSpend;
+//         // Calculate total spend for comparison
+//         const currentTotalSpend = currentWeek.metaSpend + currentWeek.googleSpend;
+//         const previousTotalSpend = previousWeek.metaSpend + previousWeek.googleSpend;
 
-        // Calculate percentage change
-        if (previousTotalSpend > 0) {
-          trendPercentage = ((currentTotalSpend - previousTotalSpend) / previousTotalSpend) * 100;
-          trendDirection = trendPercentage > 5 ? 'up' : trendPercentage < -5 ? 'down' : 'stable';
-        }
+//         // Calculate percentage change
+//         if (previousTotalSpend > 0) {
+//           trendPercentage = ((currentTotalSpend - previousTotalSpend) / previousTotalSpend) * 100;
+//           trendDirection = trendPercentage > 5 ? 'up' : trendPercentage < -5 ? 'down' : 'stable';
+//         }
 
-        // Determine status based on trend
-        if (trendPercentage > 15) {
-          status = 'Growth';
-          statusDuration = '1wk';
-        } else if (trendPercentage < -15) {
-          status = 'Decline';
-          statusDuration = '1wk';
-        } else {
-          status = 'Active';
-          statusDuration = '1wk';
-        }
+//         // Determine status based on trend
+//         if (trendPercentage > 15) {
+//           status = 'Growth';
+//           statusDuration = '1wk';
+//         } else if (trendPercentage < -15) {
+//           status = 'Decline';
+//           statusDuration = '1wk';
+//         } else {
+//           status = 'Active';
+//           statusDuration = '1wk';
+//         }
 
-        // Use the latest status and duration if available
-        if (currentWeek.status) {
-          status = currentWeek.status;
-        }
-        if (currentWeek.statusDuration) {
-          statusDuration = currentWeek.statusDuration;
-        }
-      } else if (item.weeksData && item.weeksData.length === 1) {
-        // Only one month of data - mark as new
-        status = 'New';
-        statusDuration = '1wk';
-      } else if (item.weeksData && item.weeksData.length > 0) {
-        // Calculate duration based on available documents for cases with data but no trend comparison
-        const documentCount = item.weeksData.length;
-        let durationText = `${item.uniqueWeekCount}wk`;
+//         // Use the latest status and duration if available
+//         if (currentWeek.status) {
+//           status = currentWeek.status;
+//         }
+//         if (currentWeek.statusDuration) {
+//           statusDuration = currentWeek.statusDuration;
+//         }
+//       } else if (item.weeksData && item.weeksData.length === 1) {
+//         // Only one month of data - mark as new
+//         status = 'New';
+//         statusDuration = '1wk';
+//       } else if (item.weeksData && item.weeksData.length > 0) {
+//         // Calculate duration based on available documents for cases with data but no trend comparison
+//         const documentCount = item.weeksData.length;
+//         let durationText = `${item.uniqueWeekCount}wk`;
         
-        status = 'Active';
-        statusDuration = durationText;
-      }
+//         status = 'Active';
+//         statusDuration = durationText;
+//       }
 
-      // Determine status color
-      let statusColor = 'green';
-      if (status === 'Decline') {
-        statusColor = 'red';
-      } else if (status === 'Growth') {
-        statusColor = 'yellow';
-      } else if (status === 'New') {
-        statusColor = 'green';
-      }
+//       // Determine status color
+//       let statusColor = 'green';
+//       if (status === 'Decline') {
+//         statusColor = 'red';
+//       } else if (status === 'Growth') {
+//         statusColor = 'yellow';
+//       } else if (status === 'New') {
+//         statusColor = 'green';
+//       }
 
-      return {
-        _id: item._id,
-        clientId: item._id,
-        client: client,
-        status: status,
-        statusDuration: statusDuration,
-        statusColor: statusColor,
-        totalSpend,
-        spendBreakdown: {
-          meta: item.metaSpend,
-          google: item.googleSpend
-        },
-        results: {
-          conversions: item.totalConversions,
-          clicks: item.totalClicks,
-          leads: item.totalLeads,
-          calls: item.totalCalls,
-          messages: item.totalMessages
-        },
-        costPerResult: parseFloat(costPerResult),
-        trend: {
-          direction: trendDirection,
-          percentage: Math.abs(trendPercentage)
-        },
-        hasWarning: status === 'Decline',
-        lastUpdated: item.lastUpdated,
-        recordCount: item.recordCount, // Number of records merged
-        months: item.months,
-        services: item.services.flat() // Flatten services array
-      };
-    });
+//       return {
+//         _id: item._id,
+//         clientId: item._id,
+//         client: client,
+//         status: status,
+//         statusDuration: statusDuration,
+//         statusColor: statusColor,
+//         totalSpend,
+//         spendBreakdown: {
+//           meta: item.metaSpend,
+//           google: item.googleSpend
+//         },
+//         results: {
+//           conversions: item.totalConversions,
+//           clicks: item.totalClicks,
+//           leads: item.totalLeads,
+//           calls: item.totalCalls,
+//           messages: item.totalMessages
+//         },
+//         costPerResult: parseFloat(costPerResult),
+//         trend: {
+//           direction: trendDirection,
+//           percentage: Math.abs(trendPercentage)
+//         },
+//         hasWarning: status === 'Decline',
+//         lastUpdated: item.lastUpdated,
+//         recordCount: item.recordCount, // Number of records merged
+//         months: item.months,
+//         services: item.services.flat() // Flatten services array
+//       };
+//     });
 
-    res.status(200).json({
-      message: 'Client performance data retrieved successfully',
-      data: {
-        clients: formattedData,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil((totalCount[0]?.total || 0) / parseInt(limit)),
-          totalItems: totalCount[0]?.total || 0,
-          itemsPerPage: parseInt(limit)
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Error retrieving client performance:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-};
+//     res.status(200).json({
+//       message: 'Client performance data retrieved successfully',
+//       data: {
+//         clients: formattedData,
+//         pagination: {
+//           currentPage: parseInt(page),
+//           totalPages: Math.ceil((totalCount[0]?.total || 0) / parseInt(limit)),
+//           totalItems: totalCount[0]?.total || 0,
+//           itemsPerPage: parseInt(limit)
+//         }
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Error retrieving client performance:', error);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// };
 
-// Get client performance by ID
-const getClientPerformanceById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const clientPerformance = await ClientPerformance.findById(id)
-      .populate('clientId', 'name clientLogo GST State Country Address clientType');
+// // Get client performance by ID
+// const getClientPerformanceById = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const clientPerformance = await ClientPerformance.findById(id)
+//       .populate('clientId', 'name clientLogo GST State Country Address clientType');
 
-    if (!clientPerformance) {
-      return res.status(404).json({ error: 'Client performance not found' });
-    }
+//     if (!clientPerformance) {
+//       return res.status(404).json({ error: 'Client performance not found' });
+//     }
 
-    res.status(200).json({
-      message: 'Client performance retrieved successfully',
-      data: clientPerformance
-    });
-  } catch (error) {
-    console.error('Error retrieving client performance:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-};
+//     res.status(200).json({
+//       message: 'Client performance retrieved successfully',
+//       data: clientPerformance
+//     });
+//   } catch (error) {
+//     console.error('Error retrieving client performance:', error);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// };
 
-// Get client performance by client ID
-const getClientPerformanceByClientId = async (req, res) => {
-  try {
-    const { clientId } = req.params;
-    const clientPerformance = await ClientPerformance.findOne({ clientId })
-      .populate('clientId', 'name clientLogo GST State Country Address clientType');
+// // Get client performance by client ID
+// const getClientPerformanceByClientId = async (req, res) => {
+//   try {
+//     const { clientId } = req.params;
+//     const clientPerformance = await ClientPerformance.findOne({ clientId })
+//       .populate('clientId', 'name clientLogo GST State Country Address clientType');
 
-    if (!clientPerformance) {
-      return res.status(404).json({ error: 'Client performance not found' });
-    }
+//     if (!clientPerformance) {
+//       return res.status(404).json({ error: 'Client performance not found' });
+//     }
 
-    res.status(200).json({
-      message: 'Client performance retrieved successfully',
-      data: clientPerformance
-    });
-  } catch (error) {
-    console.error('Error retrieving client performance:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-};
+//     res.status(200).json({
+//       message: 'Client performance retrieved successfully',
+//       data: clientPerformance
+//     });
+//   } catch (error) {
+//     console.error('Error retrieving client performance:', error);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// };
 
-// Update client metrics (general)
-const updateClientMetrics = async (req, res) => {
-  try {
-    const { clientId } = req.params;
-    const updateData = req.body;
+// // Update client metrics (general)
+// const updateClientMetrics = async (req, res) => {
+//   try {
+//     const { clientId } = req.params;
+//     const updateData = req.body;
 
-    console.log('=== CLIENT PERFORMANCE UPDATE DEBUG ===');
-    console.log('Client ID:', clientId);
-    console.log('Update Data:', updateData);
-    console.log('Current Date:', new Date().toISOString());
+//     console.log('=== CLIENT PERFORMANCE UPDATE DEBUG ===');
+//     console.log('Client ID:', clientId);
+//     console.log('Update Data:', updateData);
+//     console.log('Current Date:', new Date().toISOString());
 
-    if (!clientId) {
-      return res.status(400).json({ error: 'Client ID is required' });
-    }
+//     if (!clientId) {
+//       return res.status(400).json({ error: 'Client ID is required' });
+//     }
 
-    // Check if client exists
-    const client = await Clients.findById(clientId);
-    if (!client) {
-      return res.status(404).json({ error: 'Client not found' });
-    }
+//     // Check if client exists
+//     const client = await Clients.findById(clientId);
+//     if (!client) {
+//       return res.status(404).json({ error: 'Client not found' });
+//     }
 
-    // Find existing performance record or create new one
-    let clientPerformance = await ClientPerformance.findOne({ clientId });
+//     // Find existing performance record or create new one
+//     let clientPerformance = await ClientPerformance.findOne({ clientId });
     
-    if (clientPerformance) {
-      console.log('Updating existing record...');
-      console.log('Current week in existing record:', clientPerformance.week);
-      console.log('Current month in existing record:', clientPerformance.month);
+//     if (clientPerformance) {
+//       console.log('Updating existing record...');
+//       console.log('Current week in existing record:', clientPerformance.week);
+//       console.log('Current month in existing record:', clientPerformance.month);
       
-      // Update existing record
-      Object.assign(clientPerformance, updateData);
-      clientPerformance.lastUpdated = new Date();
-      await clientPerformance.save();
+//       // Update existing record
+//       Object.assign(clientPerformance, updateData);
+//       clientPerformance.lastUpdated = new Date();
+//       await clientPerformance.save();
       
-      console.log('Updated record week:', clientPerformance.week);
-      console.log('Updated record month:', clientPerformance.month);
-    } else {
-      console.log('Creating new record...');
-      // Create new record
-      clientPerformance = new ClientPerformance({
-        clientId,
-        ...updateData,
-        lastUpdated: new Date()
-      });
-      await clientPerformance.save();
-    }
+//       console.log('Updated record week:', clientPerformance.week);
+//       console.log('Updated record month:', clientPerformance.month);
+//     } else {
+//       console.log('Creating new record...');
+//       // Create new record
+//       clientPerformance = new ClientPerformance({
+//         clientId,
+//         ...updateData,
+//         lastUpdated: new Date()
+//       });
+//       await clientPerformance.save();
+//     }
 
-    res.status(200).json({
-      message: 'Client metrics updated successfully',
-      data: clientPerformance
-    });
-  } catch (error) {
-    console.error('Error updating client metrics:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-};
+//     res.status(200).json({
+//       message: 'Client metrics updated successfully',
+//       data: clientPerformance
+//     });
+//   } catch (error) {
+//     console.error('Error updating client metrics:', error);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// };
 
-// Delete client performance
-const deleteClientPerformance = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const clientPerformance = await ClientPerformance.findByIdAndDelete(id);
+// // Delete client performance
+// const deleteClientPerformance = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const clientPerformance = await ClientPerformance.findByIdAndDelete(id);
 
-    if (!clientPerformance) {
-      return res.status(404).json({ error: 'Client performance not found' });
-    }
+//     if (!clientPerformance) {
+//       return res.status(404).json({ error: 'Client performance not found' });
+//     }
 
-    res.status(200).json({
-      message: 'Client performance deleted successfully'
-    });
-  } catch (error) {
-    console.error('Error deleting client performance:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-};
+//     res.status(200).json({
+//       message: 'Client performance deleted successfully'
+//     });
+//   } catch (error) {
+//     console.error('Error deleting client performance:', error);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// };
 
 // Get 4-week comparison data for social media, Meta ads, and Google ads
 const getFourWeekComparison = async (req, res) => {
@@ -1225,7 +1216,7 @@ const getFourWeekComparison = async (req, res) => {
       message: '4-week comparison data retrieved successfully',
       data: {
         weeklyData: formattedData,
-        totals: totals,
+        // totals: totals,
         trends: trends,
         summary: {
           totalWeeks: formattedData.length,
@@ -1248,61 +1239,10 @@ const getFourWeekComparison = async (req, res) => {
   }
 };
 
-// Test endpoint to trigger week calculation logging
-const testWeekCalculation = async (req, res) => {
-  try {
-    console.log('=== TESTING WEEK CALCULATION ===');
-    
-    // Create a test record to trigger the week calculation
-    const testData = {
-      clientId: new mongoose.Types.ObjectId(),
-      socialMediaMetrics: {
-        reach: 1000,
-        followers: 500
-      }
-    };
-    
-    logWeekCalculation('TEST_CREATION', testData);
-    
-    // This will trigger the week calculation in the model
-    const testRecord = new ClientPerformance(testData);
-    
-    console.log('Test record created:');
-    console.log('- Week:', testRecord.week);
-    console.log('- Month:', testRecord.month);
-    console.log('- Date:', new Date().toISOString());
-    
-    res.status(200).json({
-      success: true,
-      message: 'Week calculation test completed',
-      data: {
-        week: testRecord.week,
-        month: testRecord.month,
-        currentDate: new Date().toISOString(),
-        dayOfMonth: new Date().getDate()
-      }
-    });
-    
-  } catch (error) {
-    console.error('Error in week calculation test:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error testing week calculation',
-      error: error.message
-    });
-  }
-};
-
 module.exports = {
   updateSocialMediaMetrics,
   updateMetaAdsMetrics,
   updateGoogleAdsMetrics,
   getClientOverviewDashboard,
-  getAllClientPerformance,
-  getClientPerformanceById,
-  getClientPerformanceByClientId,
-  updateClientMetrics,
-  deleteClientPerformance,
-  testWeekCalculation,
   getFourWeekComparison
 };
