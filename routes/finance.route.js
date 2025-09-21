@@ -12,11 +12,10 @@ router.get('/get-finance/:clientId', financeController.getFinanceByClient);
 // router.delete('/delete-finance/:id', financeController.deleteFinance);
 
 // Client Feedback routes
-// router.post('/create-feedback', clientFeedbackController.createFeedback);
-// router.get('/get-feedback/:clientId', clientFeedbackController.getFeedbackByClient);
+router.post('/create-feedback', clientFeedbackController.createFeedback);
+router.get('/get-feedback/:clientId', clientFeedbackController.getFeedbackByClient);
 // router.get('/get-all-feedback', clientFeedbackController.getAllFeedback);
 // router.put('/update-feedback/:id', clientFeedbackController.updateFeedback);
 // router.delete('/delete-feedback/:id', clientFeedbackController.deleteFeedback);
-// router.get('/get-client-health-analytics', clientFeedbackController.getClientHealthAnalytics);
 
 module.exports = router;
