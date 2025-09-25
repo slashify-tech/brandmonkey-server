@@ -7,6 +7,7 @@ const clientFeedbackController = require('../controllers/clientFeedback.controll
 // Finance routes
 router.post('/create-finance', financeController.createOrUpdateFinance);
 router.get('/get-finance/:clientId', financeController.getFinanceByClient);
+router.get('/cost-breakdown/:clientId', financeController.getCostBreakdown);
 // router.get('/get-all-finance', financeController.getAllFinance);
 // router.get('/get-profit-analytics', financeController.getProfitAnalytics);
 // router.delete('/delete-finance/:id', financeController.deleteFinance);

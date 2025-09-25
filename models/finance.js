@@ -23,36 +23,24 @@ const financeSchema = mongoose.Schema(
         message: "Month must be in YYYY-MM format with valid month (01-12)",
       },
     },
-    // Revenue details
-    revenue: {
-      clientRevenue: { type: Number, default: 0 },
-      marketing: { type: Number, default: 0 },
-      reimbursement: { type: Number, default: 0 },
-      salaries: { type: Number, default: 0 },
+    // Cost breakdown structure
+    clientRevenue: {
+      type: Number,
+      default: 0,
     },
-    // Cost details
     costs: {
-      officeRentMaintenance: { type: Number, default: 0 },
-      emi: { type: Number, default: 0 },
-      it: { type: Number, default: 0 },
-      miscellaneous: { type: Number, default: 0 },
+      officeRent: { type: Number, default: 0 },
+      tools: { type: Number, default: 0 },
+      overheads: { type: Number, default: 0 },
+      total: { type: Number, default: 0 },
     },
-    // Calculated fields
-    totalRevenue: {
-      type: Number,
-      default: 0,
-    },
-    totalCosts: {
-      type: Number,
-      default: 0,
-    },
-    profitMargin: {
-      type: Number,
-      default: 0,
-    },
-    profitAmount: {
-      type: Number,
-      default: 0,
+    // Profitability metrics
+    profitability: {
+      revenue: { type: Number, default: 0 },
+      cost: { type: Number, default: 0 },
+      profit: { type: Number, default: 0 },
+      margin: { type: String, default: "0%" },
+      isUp: { type: Boolean, default: true },
     },
   },
   { timestamps: true }
@@ -60,29 +48,24 @@ const financeSchema = mongoose.Schema(
 
 // Pre-save middleware to calculate totals and profit
 financeSchema.pre("save", function (next) {
-  // Calculate total revenue
-  this.totalRevenue =
-    this.revenue.clientRevenue +
-    this.revenue.marketing +
-    this.revenue.reimbursement +
-    this.revenue.salaries;
-
   // Calculate total costs
-  this.totalCosts =
-    this.costs.officeRentMaintenance +
-    this.costs.emi +
-    this.costs.it +
-    this.costs.miscellaneous;
+  this.costs.total = this.costs.officeRent + this.costs.tools + this.costs.overheads;
 
-  // Calculate profit amount
-  this.profitAmount = this.totalRevenue - this.totalCosts;
+  // Set profitability metrics
+  this.profitability.revenue = this.clientRevenue;
+  this.profitability.cost = this.costs.total;
+  this.profitability.profit = this.clientRevenue - this.costs.total;
 
   // Calculate profit margin percentage
-  if (this.totalRevenue > 0) {
-    this.profitMargin = ((this.profitAmount / this.totalRevenue) * 100).toFixed(
-      2
-    );
+  if (this.clientRevenue > 0) {
+    const marginPercentage = ((this.profitability.profit / this.clientRevenue) * 100).toFixed(1);
+    this.profitability.margin = `${marginPercentage}%`;
+  } else {
+    this.profitability.margin = "0%";
   }
+
+  // Determine if profit is positive (isUp)
+  this.profitability.isUp = this.profitability.profit > 0;
 
   next();
 });

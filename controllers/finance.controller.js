@@ -8,7 +8,7 @@ exports.createOrUpdateFinance = async (req, res) => {
       clientId, 
       clientName, 
       month,
-      revenue,
+      clientRevenue,
       costs
     } = req.body;
 
@@ -50,17 +50,16 @@ exports.createOrUpdateFinance = async (req, res) => {
 
     if (financeRecord) {
       // Update existing record
-      financeRecord.revenue = { ...financeRecord.revenue, ...revenue };
-      financeRecord.costs = { ...financeRecord.costs, ...costs };
+      if (clientRevenue !== undefined) financeRecord.clientRevenue = clientRevenue;
+      if (costs) financeRecord.costs = { ...financeRecord.costs, ...costs };
       await financeRecord.save();
     } else {
       // Create new record
       financeRecord = new Finance({
         clientId: actualClientId,
-        clientName: actualClientName,
         month: currentMonth,
-        revenue: revenue || {},
-        costs: costs || {}
+        clientRevenue: clientRevenue || 0,
+        costs: costs || { officeRent: 0, tools: 0, overheads: 0 }
       });
       await financeRecord.save();
     }
@@ -93,6 +92,54 @@ exports.getFinanceByClient = async (req, res) => {
     }
 
     res.status(200).json({ finance: financeRecords });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+// Get cost breakdown for a specific client
+exports.getCostBreakdown = async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const { month } = req.query;
+
+    const query = { clientId };
+    if (month) {
+      query.month = new Date(month).toISOString().slice(0, 7);
+    }
+
+    const financeRecord = await Finance.findOne(query).sort({ month: -1 });
+
+    if (!financeRecord) {
+      return res.status(404).json({ message: "No finance record found for this client" });
+    }
+
+    // Format the response to match the specified structure
+    const costBreakdown = {
+      clientRevenue: `$${financeRecord.clientRevenue.toLocaleString()}`,
+      costs: {
+        officeRent: `$${financeRecord.costs.officeRent.toLocaleString()}`,
+        tools: `$${financeRecord.costs.tools.toLocaleString()}`,
+        overheads: `$${financeRecord.costs.overheads.toLocaleString()}`,
+        total: `$${financeRecord.costs.total.toLocaleString()}`,
+      },
+      profitability: {
+        revenue: `$${financeRecord.profitability.revenue.toLocaleString()}`,
+        cost: `$${financeRecord.profitability.cost.toLocaleString()}`,
+        profit: `$${financeRecord.profitability.profit.toLocaleString()}`,
+        margin: financeRecord.profitability.margin,
+        isUp: financeRecord.profitability.isUp,
+      },
+    };
+
+    res.status(200).json({ 
+      success: true,
+      message: "Cost breakdown retrieved successfully",
+      data: costBreakdown,
+      month: financeRecord.month,
+      lastUpdated: financeRecord.updatedAt
+    });
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Internal Server Error" });
