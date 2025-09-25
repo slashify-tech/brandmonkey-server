@@ -1105,121 +1105,64 @@ const getFourWeekComparison = async (req, res) => {
 
     console.log('Weekly Data Retrieved:', weeklyData.length, 'weeks');
 
-    // Format data for comparison
-    const formattedData = weeklyData.map((week, index) => {
+    // Format data for comparison in the specified format
+    const socialMediaData = weeklyData.map((week, index) => {
       const weekNumber = 4 - index; // Week 4, 3, 2, 1
+      const weekLabel = `W${weekNumber}`;
       
       return {
+        week: weekLabel,
+        posts: (week.socialMediaMetrics.graphicsPost || 0) + (week.socialMediaMetrics.ugc || 0) + (week.socialMediaMetrics.reels || 0),
+        engagement: week.socialMediaMetrics.avgEngagement || 0,
+        reach: week.socialMediaMetrics.reach || 0,
         weekNumber: weekNumber,
-        weekIdentifier: week.weekIdentifier,
         month: week.month,
-        week: week.week,
-        lastUpdated: week.lastUpdated,
-        socialMedia: {
-          reach: week.socialMediaMetrics.reach || 0,
-          followers: week.socialMediaMetrics.followers || 0,
-          avgEngagement: week.socialMediaMetrics.avgEngagement || 0,
-          graphicsPost: week.socialMediaMetrics.graphicsPost || 0,
-          ugc: week.socialMediaMetrics.ugc || 0,
-          reels: week.socialMediaMetrics.reels || 0,
-          maxReels: week.socialMediaMetrics.maxReels || 0,
-          maxGraphicsPost: week.socialMediaMetrics.maxGraphicsPost || 0,
-          maxUgc: week.socialMediaMetrics.maxUgc || 0
-        },
-        metaAds: {
-          spentAmount: week.metaAdsMetrics.spentAmount || 0,
-          roas: week.metaAdsMetrics.roas || 0,
-          leads: week.metaAdsMetrics.leads || 0,
-          messages: week.metaAdsMetrics.messages || 0,
-          costPerLead: week.metaAdsMetrics.costPerLead || 0,
-          costPerMessage: week.metaAdsMetrics.costPerMessage || 0
-        },
-        googleAds: {
-          spentAmount: week.googleAdsMetrics.spentAmount || 0,
-          clicks: week.googleAdsMetrics.clicks || 0,
-          conversions: week.googleAdsMetrics.conversions || 0,
-          calls: week.googleAdsMetrics.calls || 0,
-          costPerClick: week.googleAdsMetrics.costPerClick || 0,
-          costPerConversion: week.googleAdsMetrics.costPerConversion || 0,
-          costPerCall: week.googleAdsMetrics.costPerCall || 0
-        }
+        weekIdentifier: week.weekIdentifier,
+        lastUpdated: week.lastUpdated
       };
     });
 
-    // Calculate totals and averages
-    const totals = {
-      socialMedia: {
-        reach: formattedData.reduce((sum, week) => sum + week.socialMedia.reach, 0),
-        followers: formattedData.reduce((sum, week) => sum + week.socialMedia.followers, 0),
-        avgEngagement: formattedData.reduce((sum, week) => sum + week.socialMedia.avgEngagement, 0) / formattedData.length,
-        graphicsPost: formattedData.reduce((sum, week) => sum + week.socialMedia.graphicsPost, 0),
-        ugc: formattedData.reduce((sum, week) => sum + week.socialMedia.ugc, 0),
-        reels: formattedData.reduce((sum, week) => sum + week.socialMedia.reels, 0)
-      },
-      metaAds: {
-        spentAmount: formattedData.reduce((sum, week) => sum + week.metaAds.spentAmount, 0),
-        roas: formattedData.reduce((sum, week) => sum + week.metaAds.roas, 0) / formattedData.length,
-        leads: formattedData.reduce((sum, week) => sum + week.metaAds.leads, 0),
-        messages: formattedData.reduce((sum, week) => sum + week.metaAds.messages, 0),
-        costPerLead: formattedData.reduce((sum, week) => sum + week.metaAds.costPerLead, 0) / formattedData.length,
-        costPerMessage: formattedData.reduce((sum, week) => sum + week.metaAds.costPerMessage, 0) / formattedData.length
-      },
-      googleAds: {
-        spentAmount: formattedData.reduce((sum, week) => sum + week.googleAds.spentAmount, 0),
-        clicks: formattedData.reduce((sum, week) => sum + week.googleAds.clicks, 0),
-        conversions: formattedData.reduce((sum, week) => sum + week.googleAds.conversions, 0),
-        calls: formattedData.reduce((sum, week) => sum + week.googleAds.calls, 0),
-        costPerClick: formattedData.reduce((sum, week) => sum + week.googleAds.costPerClick, 0) / formattedData.length,
-        costPerConversion: formattedData.reduce((sum, week) => sum + week.googleAds.costPerConversion, 0) / formattedData.length,
-        costPerCall: formattedData.reduce((sum, week) => sum + week.googleAds.costPerCall, 0) / formattedData.length
-      }
-    };
+    const metaAdsData = weeklyData.map((week, index) => {
+      const weekNumber = 4 - index; // Week 4, 3, 2, 1
+      const weekLabel = `W${weekNumber}`;
+      
+      return {
+        week: weekLabel,
+        spend: week.metaAdsMetrics.spentAmount || 0,
+        leads: week.metaAdsMetrics.leads || 0,
+        roas: week.metaAdsMetrics.roas || 0,
+        weekNumber: weekNumber,
+        month: week.month,
+        weekIdentifier: week.weekIdentifier,
+        lastUpdated: week.lastUpdated
+      };
+    });
 
-    // Calculate week-over-week trends
-    const trends = [];
-    for (let i = 0; i < formattedData.length - 1; i++) {
-      const currentWeek = formattedData[i];
-      const previousWeek = formattedData[i + 1];
+    const googleAdsData = weeklyData.map((week, index) => {
+      const weekNumber = 4 - index; // Week 4, 3, 2, 1
+      const weekLabel = `W${weekNumber}`;
       
-      const socialMediaTrend = {
-        reach: previousWeek.socialMedia.reach > 0 ? 
-          ((currentWeek.socialMedia.reach - previousWeek.socialMedia.reach) / previousWeek.socialMedia.reach) * 100 : 0,
-        followers: previousWeek.socialMedia.followers > 0 ? 
-          ((currentWeek.socialMedia.followers - previousWeek.socialMedia.followers) / previousWeek.socialMedia.followers) * 100 : 0
+      return {
+        week: weekLabel,
+        spend: week.googleAdsMetrics.spentAmount || 0,
+        clicks: week.googleAdsMetrics.clicks || 0,
+        conversions: week.googleAdsMetrics.conversions || 0,
+        weekNumber: weekNumber,
+        month: week.month,
+        weekIdentifier: week.weekIdentifier,
+        lastUpdated: week.lastUpdated
       };
-      
-      const metaAdsTrend = {
-        spentAmount: previousWeek.metaAds.spentAmount > 0 ? 
-          ((currentWeek.metaAds.spentAmount - previousWeek.metaAds.spentAmount) / previousWeek.metaAds.spentAmount) * 100 : 0,
-        leads: previousWeek.metaAds.leads > 0 ? 
-          ((currentWeek.metaAds.leads - previousWeek.metaAds.leads) / previousWeek.metaAds.leads) * 100 : 0
-      };
-      
-      const googleAdsTrend = {
-        spentAmount: previousWeek.googleAds.spentAmount > 0 ? 
-          ((currentWeek.googleAds.spentAmount - previousWeek.googleAds.spentAmount) / previousWeek.googleAds.spentAmount) * 100 : 0,
-        clicks: previousWeek.googleAds.clicks > 0 ? 
-          ((currentWeek.googleAds.clicks - previousWeek.googleAds.clicks) / previousWeek.googleAds.clicks) * 100 : 0
-      };
-      
-      trends.push({
-        fromWeek: previousWeek.weekNumber,
-        toWeek: currentWeek.weekNumber,
-        socialMedia: socialMediaTrend,
-        metaAds: metaAdsTrend,
-        googleAds: googleAdsTrend
-      });
-    }
+    });
 
     res.status(200).json({
       success: true,
       message: '4-week comparison data retrieved successfully',
       data: {
-        weeklyData: formattedData,
-        // totals: totals,
-        trends: trends,
+        socialMediaData,
+        metaAdsData,
+        googleAdsData,
         summary: {
-          totalWeeks: formattedData.length,
+          totalWeeks: weeklyData.length,
           dateRange: {
             start: startDate,
             end: endDate
