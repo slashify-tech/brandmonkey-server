@@ -440,7 +440,7 @@ const updateSocialMediaMetrics = async (req, res) => {
     }
 
     // Use current month if not provided
-    const currentWeek = month || new Date().toISOString().slice(0, 7);
+    const currentWeek = new Date(month).toISOString().slice(0, 7) || new Date().toISOString().slice(0, 7);
     console.log('Using month:', currentWeek);
 
     // Validate month and week
@@ -524,7 +524,7 @@ const updateMetaAdsMetrics = async (req, res) => {
     }
 
     // Use current month if not provided
-    const currentWeek = month || new Date().toISOString().slice(0, 7);
+    const currentWeek = new Date(month).toISOString().slice(0, 7) || new Date().toISOString().slice(0, 7);
 
     // Validate month and week
     const validation = validateMonthWeekCombination(currentWeek, week);
@@ -607,7 +607,7 @@ const updateGoogleAdsMetrics = async (req, res) => {
     }
 
     // Use current month if not provided
-    const currentWeek = month || new Date().toISOString().slice(0, 7);
+    const currentWeek = new Date(month).toISOString().slice(0, 7) || new Date().toISOString().slice(0, 7);
 
     // Validate month and week
     const validation = validateMonthWeekCombination(currentWeek, week);
@@ -1182,10 +1182,253 @@ const getFourWeekComparison = async (req, res) => {
   }
 };
 
+// Get Social Media metrics
+const getSocialMediaMetrics = async (req, res) => {
+  try {
+    const { clientId, month, week } = req.query;
+
+    if (!clientId) {
+      return res.status(400).json({ error: 'Client ID is required' });
+    }
+
+    // Use current month if not provided
+    const currentMonth = new Date(month).toISOString().slice(0, 7) || new Date().toISOString().slice(0, 7);
+    const currentWeek = week || 1;
+
+    // Validate month and week if provided
+    if (month && week) {
+      const validation = validateMonthWeekCombination(currentMonth, currentWeek);
+      if (!validation.isValid) {
+        return res.status(400).json({ 
+          error: 'Validation failed', 
+          message: validation.message 
+        });
+      }
+    }
+
+    // Build query
+    let query = { clientId: new mongoose.Types.ObjectId(clientId) };
+    
+    if (month) {
+      query.month = currentMonth;
+    }
+    
+    if (week) {
+      query.week = parseInt(currentWeek);
+    }
+
+    // Find records matching the criteria
+    const records = await ClientPerformance.find(query)
+      .populate('clientId', 'name clientLogo clientType')
+      .sort({ month: -1, week: -1, lastUpdated: -1 });
+
+    if (!records || records.length === 0) {
+      return res.status(404).json({ 
+        message: 'No social media metrics found for the specified criteria',
+        data: []
+      });
+    }
+
+    // Format response data
+    const formattedData = records.map(record => ({
+      id: record._id,
+      clientId: record.clientId._id,
+      clientName: record.clientId.name,
+      clientLogo: record.clientId.clientLogo,
+      clientType: record.clientId.clientType,
+      month: record.month,
+      week: record.week,
+      weekIdentifier: `${record.month}-W${record.week}`,
+      socialMediaMetrics: record.socialMediaMetrics || {},
+      lastUpdated: record.lastUpdated,
+      status: record.status,
+      statusDuration: record.statusDuration
+    }));
+
+    res.status(200).json({
+      message: 'Social media metrics retrieved successfully',
+      data: formattedData,
+      summary: {
+        totalRecords: formattedData.length,
+        clientId: clientId,
+        month: currentMonth,
+        week: currentWeek
+      }
+    });
+
+  } catch (error) {
+    console.error('Error retrieving social media metrics:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+// Get Meta Ads metrics
+const getMetaAdsMetrics = async (req, res) => {
+  try {
+    const { clientId, month, week } = req.query;
+
+    if (!clientId) {
+      return res.status(400).json({ error: 'Client ID is required' });
+    }
+
+    // Use current month if not provided
+    const currentMonth = new Date(month).toISOString().slice(0, 7) || new Date().toISOString().slice(0, 7);
+    const currentWeek = week || 1;
+
+    // Validate month and week if provided
+    if (month && week) {
+      const validation = validateMonthWeekCombination(currentMonth, currentWeek);
+      if (!validation.isValid) {
+        return res.status(400).json({ 
+          error: 'Validation failed', 
+          message: validation.message 
+        });
+      }
+    }
+
+    // Build query
+    let query = { clientId: new mongoose.Types.ObjectId(clientId) };
+    
+    if (month) {
+      query.month = currentMonth;
+    }
+    
+    if (week) {
+      query.week = parseInt(currentWeek);
+    }
+
+    // Find records matching the criteria
+    const records = await ClientPerformance.find(query)
+      .populate('clientId', 'name clientLogo clientType')
+      .sort({ month: -1, week: -1, lastUpdated: -1 });
+
+    if (!records || records.length === 0) {
+      return res.status(404).json({ 
+        message: 'No meta ads metrics found for the specified criteria',
+        data: []
+      });
+    }
+
+    // Format response data
+    const formattedData = records.map(record => ({
+      id: record._id,
+      clientId: record.clientId._id,
+      clientName: record.clientId.name,
+      clientLogo: record.clientId.clientLogo,
+      clientType: record.clientId.clientType,
+      month: record.month,
+      week: record.week,
+      weekIdentifier: `${record.month}-W${record.week}`,
+      metaAdsMetrics: record.metaAdsMetrics || {},
+      lastUpdated: record.lastUpdated,
+      status: record.status,
+      statusDuration: record.statusDuration
+    }));
+
+    res.status(200).json({
+      message: 'Meta ads metrics retrieved successfully',
+      data: formattedData,
+      summary: {
+        totalRecords: formattedData.length,
+        clientId: clientId,
+        month: currentMonth,
+        week: currentWeek
+      }
+    });
+
+  } catch (error) {
+    console.error('Error retrieving meta ads metrics:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+// Get Google Ads metrics
+const getGoogleAdsMetrics = async (req, res) => {
+  try {
+    const { clientId, month, week } = req.query;
+
+    if (!clientId) {
+      return res.status(400).json({ error: 'Client ID is required' });
+    }
+
+    // Use current month if not provided
+    const currentMonth = new Date(month).toISOString().slice(0, 7) || new Date().toISOString().slice(0, 7);
+    const currentWeek = week || 1;
+
+    // Validate month and week if provided
+    if (month && week) {
+      const validation = validateMonthWeekCombination(currentMonth, currentWeek);
+      if (!validation.isValid) {
+        return res.status(400).json({ 
+          error: 'Validation failed', 
+          message: validation.message 
+        });
+      }
+    }
+
+    // Build query
+    let query = { clientId: new mongoose.Types.ObjectId(clientId) };
+    
+    if (month) {
+      query.month = currentMonth;
+    }
+    
+    if (week) {
+      query.week = parseInt(currentWeek);
+    }
+
+    // Find records matching the criteria
+    const records = await ClientPerformance.find(query)
+      .populate('clientId', 'name clientLogo clientType')
+      .sort({ month: -1, week: -1, lastUpdated: -1 });
+
+    if (!records || records.length === 0) {
+      return res.status(404).json({ 
+        message: 'No google ads metrics found for the specified criteria',
+        data: []
+      });
+    }
+
+    // Format response data
+    const formattedData = records.map(record => ({
+      id: record._id,
+      clientId: record.clientId._id,
+      clientName: record.clientId.name,
+      clientLogo: record.clientId.clientLogo,
+      clientType: record.clientId.clientType,
+      month: record.month,
+      week: record.week,
+      weekIdentifier: `${record.month}-W${record.week}`,
+      googleAdsMetrics: record.googleAdsMetrics || {},
+      lastUpdated: record.lastUpdated,
+      status: record.status,
+      statusDuration: record.statusDuration
+    }));
+
+    res.status(200).json({
+      message: 'Google ads metrics retrieved successfully',
+      data: formattedData,
+      summary: {
+        totalRecords: formattedData.length,
+        clientId: clientId,
+        month: currentMonth,
+        week: currentWeek
+      }
+    });
+
+  } catch (error) {
+    console.error('Error retrieving google ads metrics:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 module.exports = {
   updateSocialMediaMetrics,
   updateMetaAdsMetrics,
   updateGoogleAdsMetrics,
+  getSocialMediaMetrics,
+  getMetaAdsMetrics,
+  getGoogleAdsMetrics,
   getClientOverviewDashboard,
   getFourWeekComparison
 };
