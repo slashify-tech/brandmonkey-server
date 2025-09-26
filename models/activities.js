@@ -5,7 +5,11 @@ const HitsSchema = mongoose.Schema({
   clientName: { type: String },
   noOfHits: { type: Number },
   month: { type: String, required: false },
-  clientId: { type: mongoose.Schema.Types.ObjectId, ref: "clients" , required: false }
+  clientId: { type: mongoose.Schema.Types.ObjectId, ref: "clients" , required: false },
+  isDeleted : {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const TaskSchema = mongoose.Schema({
@@ -35,6 +39,10 @@ const TaskSchema = mongoose.Schema({
   countId : {
     type: String,
     default: "",
+  },
+  isDeleted : {
+    type: Boolean,
+    default: false,
   },
 }, {timestamps: true});
 

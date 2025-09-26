@@ -64,6 +64,7 @@ exports.addEmployee = async (req, res, next) => {
         phoneNumber: req.body.phoneNumber,
         type: "employee",
         image: fileName,
+        monthlySalary: req.body.monthlySalary,
       });
     } else {
       await Employees.create({
@@ -73,6 +74,7 @@ exports.addEmployee = async (req, res, next) => {
         password: hashedPass,
         phoneNumber: req.body.phoneNumber,
         type: "employee",
+        monthlySalary: req.body.monthlySalary,
       });
     }
     // await employee.save();

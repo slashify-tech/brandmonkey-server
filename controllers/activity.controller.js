@@ -1,6 +1,7 @@
 const { Task, Hits } = require("../models/activities"); // Adjust the path to where your models are defined
 const { getDateFormatted } = require("../utils/formattedDate");
 const Clients = require("../models/clients");
+const Employees = require("../models/employee");
 
 exports.createTask = async (req, res) => {
   try {
@@ -15,7 +16,7 @@ exports.createTask = async (req, res) => {
     const clientId = client._id;
 
     // Find existing task for the employeeId with the same timeSlot and type
-    let task = await Task.findOne({ employeeId, timeSlot, date, type });
+    let task = await Task.findOne({ employeeId, timeSlot, date, type, isDeleted: false });
 
     let isNewTask = false;
 
@@ -97,7 +98,7 @@ exports.createAdditionalTask = async (req, res) => {
     const type = "extraActivity";
 
     // Find existing task for the employeeId with the same timeSlot and type
-    let task = await Task.findOne({ employeeId, date, timeSlot, type });
+    let task = await Task.findOne({ employeeId, date, timeSlot, type, isDeleted: false });
 
     let isNewTask = false;
 
@@ -170,7 +171,7 @@ exports.getActivityByEmployeeIdAndDate = async (req, res) => {
     const { employeeId, date, type = "activity" } = req.query; // Type defaults to "activity"
 
     // Find tasks based on employeeId and type
-    const tasks = await Task.find({ employeeId, type });
+    const tasks = await Task.find({ employeeId, type, isDeleted: false });
 
     if (!tasks || tasks.length === 0) {
       return res
@@ -207,7 +208,7 @@ exports.getExtraActivityByEmployeeIdAndDate = async (req, res) => {
     const { employeeId, date } = req.query;
 
     // Find tasks based on employeeId and type "extraActivity"
-    const tasks = await Task.find({ employeeId, type: "extraActivity" });
+    const tasks = await Task.find({ employeeId, type: "extraActivity", isDeleted: false });
 
     if (!tasks || tasks.length === 0) {
       return res
@@ -244,7 +245,7 @@ exports.getExtraActivityByEmployeeIdAndDate = async (req, res) => {
     const { employeeId, date } = req.query;
 
     // Find tasks based on employeeId and type "extraActivity"
-    const tasks = await Task.find({ employeeId, type: "extraActivity" });
+    const tasks = await Task.find({ employeeId, type: "extraActivity", isDeleted: false });
 
     if (!tasks || tasks.length === 0) {
       return res
@@ -422,14 +423,75 @@ exports.getHitsByClients = async (req, res) => {
         });
       }
     });
-
+    
+    const employeeTotalHits = new Map();
     // Convert map to array of objects and calculate contribution percentages
+
+    // Get total hits for current month across all clients
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+    const currentMonthHits = await Hits.find({ month: currentMonth });
+    const totalHitsThisMonth = currentMonthHits.reduce((sum, hit) => sum + hit.noOfHits, 0);
+
+    // Calculate total hits for each employee in current month
+    currentMonthHits.forEach(hit => {
+      if (hit.employeeId) {
+        const empId = hit.employeeId.toString();
+        employeeTotalHits.set(empId, (employeeTotalHits.get(empId) || 0) + hit.noOfHits);
+      }
+    });
+
+    // Fetch employee salary data for per hour calculation
+    const employeeIds = Array.from(employeeTotalHits.keys());
+    const employees = await Employees.find({ _id: { $in: employeeIds } }, 'name monthlySalary designation');
+    
+    // Create a map of employee salary data
+    const employeeSalaryMap = new Map();
+    employees.forEach(emp => {
+      employeeSalaryMap.set(emp._id.toString(), {
+        name: emp.name,
+        monthlySalary: emp.monthlySalary,
+        designation: emp.designation
+      });
+    });
+
+    // Create array of employee data with their total hits for the month and per hour price
+    const employeeHitsData = Array.from(employeeTotalHits.entries()).map(([employeeId, totalHits]) => {
+      const employeeData = employeeSalaryMap.get(employeeId);
+      const totalHours = (totalHits * 30) / 60; // Convert hits to hours (30 min per hit)
+      const perHourPrice = employeeData && employeeData.monthlySalary > 0 && totalHours > 0 
+        ? (employeeData.monthlySalary / totalHours).toFixed(2)
+        : 0;
+
+      return {
+        employeeId: employeeId,
+        employeeName: employeeData?.name || 'Unknown',
+        designation: employeeData?.designation || 'Unknown',
+        monthlySalary: employeeData?.monthlySalary || 0,
+        totalHitsThisMonth: totalHits,
+        totalHoursThisMonth: totalHours,
+        perHourPrice: parseFloat(perHourPrice)
+      };
+    });
+
     const hitsData = Array.from(hitsMap.values()).map((client) => {
-      // Calculate contribution percentage for each employee
-      const employeesWithContribution = client.employees.map(emp => ({
-        ...emp,
-        contributionPercentage: ((emp.hits / client.totalHits) * 100).toFixed(2)
-      }));
+      // Calculate contribution percentage and total hits for each employee
+      const employeesWithContribution = client.employees.map(emp => {
+        const employeeData = employeeSalaryMap.get(emp.employeeId?.toString());
+        const totalHitsThisMonth = employeeTotalHits.get(emp.employeeId?.toString()) || 0;
+        const totalHoursThisMonth = (totalHitsThisMonth * 30) / 60;
+        const perHourPrice = employeeData && employeeData.monthlySalary > 0 && totalHoursThisMonth > 0 
+          ? (employeeData.monthlySalary / totalHoursThisMonth).toFixed(2)
+          : 0;
+
+        return {
+          ...emp,
+          contributionPercentage: ((emp.hits / client.totalHits) * 100).toFixed(2),
+          totalHitsThisMonth: totalHitsThisMonth,
+          totalHoursThisMonth: totalHoursThisMonth,
+          monthlySalary: employeeData?.monthlySalary || 0,
+          perHourPrice: parseFloat(perHourPrice)
+        };
+      });
 
       return {
         clientId: client.clientId,
@@ -445,10 +507,13 @@ exports.getHitsByClients = async (req, res) => {
 
     res.status(200).json({ 
       hits: hitsData,
+      employeeHitsData: employeeHitsData,
       summary: {
         totalClients: hitsData.length,
         totalHits: hitsData.reduce((sum, client) => sum + client.totalHits, 0),
-        totalHours: hitsData.reduce((sum, client) => sum + client.totalHours, 0)
+        totalHours: hitsData.reduce((sum, client) => sum + client.totalHours, 0),
+        totalHitsThisMonth: totalHitsThisMonth,
+        currentMonth: currentMonth
       }
     });
   } catch (error) {
@@ -459,7 +524,7 @@ exports.getHitsByClients = async (req, res) => {
 
 exports.deleteTasksForMonth = async () => {
   try {
-    await Task.deleteMany();
+    await Task.updateMany({ isDeleted: false }, { $set: { isDeleted: true } });
     console.log("deleted succesfully");
     console.log({ message: 'All tasks deleted successfully' });
   } catch (error) {
