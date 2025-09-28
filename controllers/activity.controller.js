@@ -522,6 +522,172 @@ exports.getHitsByClients = async (req, res) => {
   }
 };
 
+exports.getHitsByEmployee = async (req, res) => {
+  try {
+    const { employeeId, month, clientName, startDate, endDate } = req.body;
+    console.log(employeeId, month, clientName, startDate, endDate);
+
+    // Build query object
+    const query = {};
+    if (employeeId) {
+      query.employeeId = employeeId;
+    }
+    if (month) {
+      query.month = month;
+    }
+
+    // Find hits based on query parameters
+    let hits = await Hits.find(query).populate("employeeId", "name designation").populate("clientId", "name");
+
+    // Filter by client name if provided
+    if (clientName) {
+      hits = hits.filter(hit => 
+        hit.clientId?.name?.toLowerCase().includes(clientName.toLowerCase()) ||
+        hit.clientName?.toLowerCase().includes(clientName.toLowerCase())
+      );
+    }
+
+    // Filter by date range if provided
+    if (startDate || endDate) {
+      hits = hits.filter(hit => {
+        // Extract month from hit.month (format: YYYY-MM)
+        if (!hit.month) return false;
+        
+        const hitMonth = hit.month;
+        const hitYear = parseInt(hitMonth.split('-')[0]);
+        const hitMonthNum = parseInt(hitMonth.split('-')[1]);
+        
+        // Create date objects for comparison
+        const hitDate = new Date(hitYear, hitMonthNum - 1, 1);
+        
+        if (startDate) {
+          const start = new Date(startDate);
+          if (hitDate < start) return false;
+        }
+        
+        if (endDate) {
+          const end = new Date(endDate);
+          // Set end date to last day of the month
+          end.setMonth(end.getMonth() + 1, 0);
+          if (hitDate > end) return false;
+        }
+        
+        return true;
+      });
+    }
+
+    if (!hits || hits.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No hits found for the provided criteria" });
+    }
+
+    // Aggregate hits by employee to get total hits per employee
+    const hitsMap = new Map();
+    
+    hits.forEach((hit) => {
+      const employeeKey = hit.employeeId ? hit.employeeId._id.toString() : hit.employeeName;
+      if (hitsMap.has(employeeKey)) {
+        const existing = hitsMap.get(employeeKey);
+        hitsMap.set(employeeKey, {
+          employeeId: existing.employeeId,
+          employeeName: existing.employeeName,
+          designation: existing.designation,
+          totalHits: existing.totalHits + hit.noOfHits,
+          clients: [...existing.clients, {
+            clientId: hit.clientId?._id,
+            clientName: hit.clientId?.name || hit.clientName,
+            hoursWorked: hit.noOfHits * 30 / 60,
+            hits: hit.noOfHits
+          }]
+        });
+      } else {
+        hitsMap.set(employeeKey, {
+          employeeId: hit.employeeId?._id,
+          employeeName: hit.employeeId?.name || hit.employeeName,
+          designation: hit.employeeId?.designation,
+          totalHits: hit.noOfHits,
+          clients: [{
+            clientId: hit.clientId?._id,
+            clientName: hit.clientId?.name || hit.clientName,
+            hoursWorked: hit.noOfHits * 30 / 60,
+            hits: hit.noOfHits
+          }]
+        });
+      }
+    });
+    
+    const clientTotalHits = new Map();
+    // Convert map to array of objects and calculate contribution percentages
+
+    // Get total hits for current month across all employees
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+    const currentMonthHits = await Hits.find({ month: currentMonth });
+    const totalHitsThisMonth = currentMonthHits.reduce((sum, hit) => sum + hit.noOfHits, 0);
+
+    // Calculate total hits for each client in current month
+    currentMonthHits.forEach(hit => {
+      if (hit.clientId) {
+        const clientId = hit.clientId.toString();
+        clientTotalHits.set(clientId, (clientTotalHits.get(clientId) || 0) + hit.noOfHits);
+      }
+    });
+
+    // Fetch client data for additional information
+    const clientIds = Array.from(clientTotalHits.keys());
+    const clients = await Clients.find({ _id: { $in: clientIds } }, 'name');
+    
+    // Create a map of client data
+    const clientDataMap = new Map();
+    clients.forEach(client => {
+      clientDataMap.set(client._id.toString(), {
+        name: client.name
+      });
+    });
+
+    const hitsData = Array.from(hitsMap.values()).map((employee) => {
+      // Calculate contribution percentage and total hits for each client
+      const clientsWithContribution = employee.clients.map(client => {
+        const totalHitsThisMonth = clientTotalHits.get(client.clientId?.toString()) || 0;
+        const totalHoursThisMonth = (totalHitsThisMonth * 30) / 60;
+
+        return {
+          ...client,
+          contributionPercentage: ((client.hits / employee.totalHits) * 100).toFixed(2),
+          totalHitsThisMonth: totalHitsThisMonth,
+          totalHoursThisMonth: totalHoursThisMonth
+        };
+      });
+
+      return {
+        employeeId: employee.employeeId,
+        employeeName: employee.employeeName,
+        designation: employee.designation,
+        totalHits: employee.totalHits,
+        totalHours: (employee.totalHits * 30) / 60, // Convert hits to hours (30 min per hit)
+        clients: clientsWithContribution
+      };
+    });
+
+    // Sort by total hits descending
+    hitsData.sort((a, b) => b.totalHits - a.totalHits);
+
+    res.status(200).json({ 
+      hits: hitsData,
+      summary: {
+        totalEmployees: hitsData.length,
+        totalHits: hitsData.reduce((sum, employee) => sum + employee.totalHits, 0),
+        totalHours: hitsData.reduce((sum, employee) => sum + employee.totalHours, 0),
+        totalHitsThisMonth: totalHitsThisMonth,
+        currentMonth: currentMonth
+      }
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 exports.deleteTasksForMonth = async () => {
   try {
     await Task.updateMany({ isDeleted: false }, { $set: { isDeleted: true } });

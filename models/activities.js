@@ -10,7 +10,7 @@ const HitsSchema = mongoose.Schema({
     type: Boolean,
     default: false,
   },
-});
+}, {timestamps: true});
 
 const TaskSchema = mongoose.Schema({
   employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "employees" },

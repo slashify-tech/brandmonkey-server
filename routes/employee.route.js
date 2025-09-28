@@ -17,6 +17,7 @@ router.get('/getTaskForEmployee', activityController.getActivityByEmployeeIdAndD
 router.get('/getExtraTaskForEmployee', activityController.getExtraActivityByEmployeeIdAndDate);
 router.get("/gethitemployee/:id", activityController.getHitsByEmployees);
 router.get("/gethitsbyclients", activityController.getHitsByClients);
+router.get("/gethitsbyemployee", activityController.getHitsByEmployee);
 router.get('/getOneEmployee/:id', employeeController.getOneEmployee);
 router.get('/getclientemployeedistribution/:id' , employeeController.getClientEmployeeRel);
 router.get('/getclientWork/:id' , employeeController.getClientWork);
