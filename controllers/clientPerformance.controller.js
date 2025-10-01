@@ -1105,9 +1105,12 @@ const getFourWeekComparison = async (req, res) => {
 
     console.log('Weekly Data Retrieved:', weeklyData.length, 'weeks');
 
+    // Reverse the data to show oldest to newest (W1 = oldest, W4 = newest)
+    const reversedWeeklyData = weeklyData.reverse();
+
     // Format data for comparison in the specified format
-    const socialMediaData = weeklyData.map((week, index) => {
-      const weekNumber = 4 - index; // Week 4, 3, 2, 1
+    const socialMediaData = reversedWeeklyData.map((week, index) => {
+      const weekNumber = index + 1; // Week 1, 2, 3, 4 (oldest to newest)
       const weekLabel = `W${weekNumber}`;
       
       return {
@@ -1122,8 +1125,8 @@ const getFourWeekComparison = async (req, res) => {
       };
     });
 
-    const metaAdsData = weeklyData.map((week, index) => {
-      const weekNumber = 4 - index; // Week 4, 3, 2, 1
+    const metaAdsData = reversedWeeklyData.map((week, index) => {
+      const weekNumber = index + 1; // Week 1, 2, 3, 4 (oldest to newest)
       const weekLabel = `W${weekNumber}`;
       
       return {
@@ -1138,8 +1141,8 @@ const getFourWeekComparison = async (req, res) => {
       };
     });
 
-    const googleAdsData = weeklyData.map((week, index) => {
-      const weekNumber = 4 - index; // Week 4, 3, 2, 1
+    const googleAdsData = reversedWeeklyData.map((week, index) => {
+      const weekNumber = index + 1; // Week 1, 2, 3, 4 (oldest to newest)
       const weekLabel = `W${weekNumber}`;
       
       return {
@@ -1422,6 +1425,109 @@ const getGoogleAdsMetrics = async (req, res) => {
   }
 };
 
+// Get latest Meta and Google Ads data for a client
+const getLatestAdsData = async (req, res) => {
+  try {
+    const { clientId } = req.query;
+
+    if (!clientId) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Client ID is required' 
+      });
+    }
+
+    // Check if client exists
+    const client = await Clients.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Client not found' 
+      });
+    }
+
+    // Find the latest record for this client
+    const latestRecord = await ClientPerformance.findOne({ 
+      clientId: new mongoose.Types.ObjectId(clientId) 
+    })
+      .populate('clientId', 'name clientLogo clientType GST State Country Address')
+      .sort({ month: -1, week: -1, lastUpdated: -1 })
+      .limit(1);
+
+    if (!latestRecord) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'No performance data found for this client',
+        data: null
+      });
+    }
+
+    // Format response with latest data
+    const responseData = {
+      clientId: latestRecord.clientId._id,
+      clientName: latestRecord.clientId.name,
+      clientLogo: latestRecord.clientId.clientLogo,
+      clientType: latestRecord.clientId.clientType,
+      clientDetails: {
+        GST: latestRecord.clientId.GST,
+        state: latestRecord.clientId.State,
+        country: latestRecord.clientId.Country,
+        address: latestRecord.clientId.Address
+      },
+      period: {
+        month: latestRecord.month,
+        week: latestRecord.week,
+        weekIdentifier: `${latestRecord.month}-W${latestRecord.week}`,
+        lastUpdated: latestRecord.lastUpdated
+      },
+      socialMediaMetrics: {
+        reach: latestRecord.socialMediaMetrics.reach || 0,
+        followers: latestRecord.socialMediaMetrics.followers || 0,
+        avgEngagement: latestRecord.socialMediaMetrics.avgEngagement || 0,
+        graphicsPost: latestRecord.socialMediaMetrics.graphicsPost || 0,
+        ugc: latestRecord.socialMediaMetrics.ugc || 0,
+        reels: latestRecord.socialMediaMetrics.reels || 0,
+        maxReels: latestRecord.socialMediaMetrics.maxReels || 0,
+        maxGraphicsPost: latestRecord.socialMediaMetrics.maxGraphicsPost || 0,
+        maxUgc: latestRecord.socialMediaMetrics.maxUgc || 0
+      },
+      metaAdsMetrics: {
+        spentAmount: latestRecord.metaAdsMetrics.spentAmount || 0,
+        roas: latestRecord.metaAdsMetrics.roas || 0,
+        leads: latestRecord.metaAdsMetrics.leads || 0,
+        messages: latestRecord.metaAdsMetrics.messages || 0,
+        costPerLead: latestRecord.metaAdsMetrics.costPerLead || 0,
+        costPerMessage: latestRecord.metaAdsMetrics.costPerMessage || 0
+      },
+      googleAdsMetrics: {
+        spentAmount: latestRecord.googleAdsMetrics.spentAmount || 0,
+        clicks: latestRecord.googleAdsMetrics.clicks || 0,
+        conversions: latestRecord.googleAdsMetrics.conversions || 0,
+        calls: latestRecord.googleAdsMetrics.calls || 0,
+        costPerClick: latestRecord.googleAdsMetrics.costPerClick || 0,
+        costPerConversion: latestRecord.googleAdsMetrics.costPerConversion || 0,
+        costPerCall: latestRecord.googleAdsMetrics.costPerCall || 0
+      },
+      totalSpend: (latestRecord.metaAdsMetrics.spentAmount || 0) + (latestRecord.googleAdsMetrics.spentAmount || 0),
+      status: latestRecord.status
+    };
+
+    res.status(200).json({
+      success: true,
+      message: 'Latest ads data retrieved successfully',
+      data: responseData
+    });
+
+  } catch (error) {
+    console.error('Error fetching latest ads data:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal Server Error',
+      message: error.message 
+    });
+  }
+};
+
 module.exports = {
   updateSocialMediaMetrics,
   updateMetaAdsMetrics,
@@ -1430,5 +1536,6 @@ module.exports = {
   getMetaAdsMetrics,
   getGoogleAdsMetrics,
   getClientOverviewDashboard,
-  getFourWeekComparison
+  getFourWeekComparison,
+  getLatestAdsData
 };

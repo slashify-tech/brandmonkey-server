@@ -23,4 +23,7 @@ router.get('/google-ads-metrics', clientPerformanceController.getGoogleAdsMetric
 // 4-Week Comparison API
 router.get('/four-week-comparison', clientPerformanceController.getFourWeekComparison); //complete
 
+// Get Latest Meta and Google Ads Data
+router.get('/latest-ads-data', clientPerformanceController.getLatestAdsData); //complete
+
 module.exports = router;
