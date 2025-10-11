@@ -317,13 +317,9 @@ exports.getHitsByEmployees = async (req, res) => {
 
 exports.deleteAllHits = async () => {
   try {
-    const result = await Hits.deleteMany();
-
+    await Hits.updateMany({ isDeleted: false }, { $set: { isDeleted: true } });
     console.log("Hits deleted successfully");
-    console.log({
-      message: "All hits deleted successfully",
-      deletedCount: result.deletedCount,
-    });
+    console.log({ message: 'All hits deleted successfully' });
   } catch (err) {
     console.error("Error:", err);
   }
