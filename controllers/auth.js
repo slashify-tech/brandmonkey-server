@@ -87,7 +87,7 @@ exports.login = async (req, res) => {
       const decryptedPassword = simpleDecrypt(employee.password, 5);
 
       // Compare the decrypted password with the provided password
-      if (true) {
+      if (password === decryptedPassword) {
         const token = jwt.sign(
           {
             email: employee.email,

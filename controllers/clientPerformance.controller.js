@@ -202,6 +202,9 @@ const getClientOverviewDashboard = async (req, res) => {
       { $count: 'total' }
     ]);
 
+    // Check if user is admin
+    const isAdmin = req.user && (req.user.type === 'admin' || req.user.type === 'superadmin');
+
     // Format data to match dashboard card structure
     const formattedData = aggregatedData.map(item => {
       const client = item.client;
@@ -320,7 +323,7 @@ const getClientOverviewDashboard = async (req, res) => {
         statusColor = 'green';
       }
 
-      return {
+      const baseData = {
         id: item._id,
         clientId: item._id,
         clientName: client.name,
@@ -329,11 +332,6 @@ const getClientOverviewDashboard = async (req, res) => {
         status: status,
         statusDuration: statusDuration,
         statusColor,
-        totalSpend,
-        spendBreakdown: {
-          meta: item.metaSpend,
-          google: item.googleSpend
-        },
         results: {
           conversions: item.totalConversions,
           clicks: item.totalClicks,
@@ -352,6 +350,17 @@ const getClientOverviewDashboard = async (req, res) => {
         uniqueWeekCount: item.uniqueWeekCount,
         uniqueMonthCount: item.uniqueMonthCount
       };
+
+      // Only include financial data for admin users
+      if (isAdmin) {
+        baseData.totalSpend = totalSpend;
+        baseData.spendBreakdown = {
+          meta: item.metaSpend,
+          google: item.googleSpend
+        };
+      }
+
+      return baseData;
     });
 
     // Calculate summary statistics
@@ -392,13 +401,12 @@ const getClientOverviewDashboard = async (req, res) => {
     const summaryData = await ClientPerformance.aggregate(summaryPipeline);
     const summary = summaryData[0] || { totalClients: [], totalSpend: 0, activeClients: [] };
 
-    res.status(200).json({
+    const responseData = {
       message: 'Client overview dashboard retrieved successfully',
       data: {
         summary: {
           totalClients: summary.totalClients.length,
-          activeClients: summary.activeClients.filter(id => id !== null).length,
-          totalSpend: summary.totalSpend
+          activeClients: summary.activeClients.filter(id => id !== null).length
         },
         clients: formattedData,
         pagination: {
@@ -408,7 +416,14 @@ const getClientOverviewDashboard = async (req, res) => {
           itemsPerPage: parseInt(limit)
         }
       }
-    });
+    };
+
+    // Only include totalSpend in summary for admin users
+    if (isAdmin) {
+      responseData.data.summary.totalSpend = summary.totalSpend;
+    }
+
+    res.status(200).json(responseData);
   } catch (error) {
     console.error('Error retrieving client overview dashboard:', error);
     res.status(500).json({ error: 'Internal Server Error' });
