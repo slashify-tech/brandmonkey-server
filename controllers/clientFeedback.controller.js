@@ -9,8 +9,7 @@ exports.createFeedback = async (req, res) => {
       feedbackType,
       rating,
       comments,
-      categories,
-      createdBy
+      categories
     } = req.body;
 
     // Validate required fields
@@ -35,7 +34,7 @@ exports.createFeedback = async (req, res) => {
       rating,
       comments: comments || "",
       categories: categories || [],
-      createdBy: createdBy || null
+      createdBy: req.user.id || null
     });
 
     await feedback.save();
