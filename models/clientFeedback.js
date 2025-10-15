@@ -39,7 +39,7 @@ const clientFeedbackSchema = mongoose.Schema({
   },
   feedbackType: {
     type: String,
-    enum: ["Good", "Bad", "Neutral"],
+    enum: ["Good", "Bad", "Average"],
     required: true
   },
   rating: {
