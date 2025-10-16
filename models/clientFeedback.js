@@ -56,7 +56,6 @@ const clientFeedbackSchema = mongoose.Schema({
   categories: [{
     category: {
       type: String,
-      enum: ["Service Quality", "Communication", "Timeline", "Budget", "Overall Satisfaction"],
       required: true
     },
     rating: {
