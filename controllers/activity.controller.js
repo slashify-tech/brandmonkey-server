@@ -450,26 +450,8 @@ exports.getHitsByClients = async (req, res) => {
       });
     });
 
-    // Create array of employee data with their total hits for the month and per hour price
-    const employeeHitsData = Array.from(employeeTotalHits.entries()).map(([employeeId, totalHits]) => {
-      const employeeData = employeeSalaryMap.get(employeeId);
-      const totalHours = (totalHits * 30) / 60; // Convert hits to hours (30 min per hit)
-      const perHourPrice = employeeData && employeeData.monthlySalary > 0 && totalHours > 0 
-        ? (employeeData.monthlySalary / totalHours).toFixed(2)
-        : 0;
-
-      return {
-        employeeId: employeeId,
-        employeeName: employeeData?.name || 'Unknown',
-        designation: employeeData?.designation || 'Unknown',
-        monthlySalary: employeeData?.monthlySalary || 0,
-        totalHitsThisMonth: totalHits,
-        totalHoursThisMonth: totalHours,
-        perHourPrice: parseFloat(perHourPrice)
-      };
-    });
-
     const hitsData = Array.from(hitsMap.values()).map((client) => {
+      let totalPrice = 0;
       // Calculate contribution percentage and total hits for each employee
       const employeesWithContribution = client.employees.map(emp => {
         const employeeData = employeeSalaryMap.get(emp.employeeId?.toString());
@@ -478,6 +460,8 @@ exports.getHitsByClients = async (req, res) => {
         const perHourPrice = employeeData && employeeData.monthlySalary > 0 && totalHoursThisMonth > 0 
           ? (employeeData.monthlySalary / totalHoursThisMonth).toFixed(2)
           : 0;
+        totalPrice = totalPrice + (perHourPrice * emp.hits * 30 / 60);
+        perEmpTotalPrice = (perHourPrice * emp.hits * 30 / 60);
 
         return {
           ...emp,
@@ -485,7 +469,8 @@ exports.getHitsByClients = async (req, res) => {
           totalHitsThisMonth: totalHitsThisMonth,
           totalHoursThisMonth: totalHoursThisMonth,
           monthlySalary: employeeData?.monthlySalary || 0,
-          perHourPrice: parseFloat(perHourPrice)
+          perHourPrice: parseFloat(perHourPrice),
+          totalPrice: parseFloat(perEmpTotalPrice),
         };
       });
 
@@ -494,7 +479,8 @@ exports.getHitsByClients = async (req, res) => {
         clientName: client.clientName,
         totalHits: client.totalHits,
         totalHours: (client.totalHits * 30) / 60, // Convert hits to hours (30 min per hit)
-        employees: employeesWithContribution
+        employees: employeesWithContribution,
+        totalPrice: parseFloat(totalPrice)
       };
     });
 
@@ -503,7 +489,6 @@ exports.getHitsByClients = async (req, res) => {
 
     res.status(200).json({ 
       hits: hitsData,
-      employeeHitsData: employeeHitsData,
       summary: {
         totalClients: hitsData.length,
         totalHits: hitsData.reduce((sum, client) => sum + client.totalHits, 0),
