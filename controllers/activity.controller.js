@@ -170,6 +170,21 @@ exports.getActivityByEmployeeIdAndDate = async (req, res) => {
   try {
     const { employeeId, date, type = "activity" } = req.query; // Type defaults to "activity"
 
+    // Validate date if provided - should not be more than 30 days in the past
+    if (date) {
+      const requestedDate = new Date(date);
+      const currentDate = new Date();
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(currentDate.getDate() - 30);
+      
+      // Check if the requested date is more than 30 days in the past
+      if (requestedDate < thirtyDaysAgo) {
+        return res.status(400).json({ 
+          message: "Date cannot be more than 30 days in the past" 
+        });
+      }
+    }
+
     // Find tasks based on employeeId and type
     const tasks = await Task.find({ employeeId, type, isDeleted: false });
 
@@ -207,6 +222,21 @@ exports.getExtraActivityByEmployeeIdAndDate = async (req, res) => {
   try {
     const { employeeId, date } = req.query;
 
+    // Validate date if provided - should not be more than 30 days in the past
+    if (date) {
+      const requestedDate = new Date(date);
+      const currentDate = new Date();
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(currentDate.getDate() - 30);
+      
+      // Check if the requested date is more than 30 days in the past
+      if (requestedDate < thirtyDaysAgo) {
+        return res.status(400).json({ 
+          message: "Date cannot be more than 30 days in the past" 
+        });
+      }
+    }
+    
     // Find tasks based on employeeId and type "extraActivity"
     const tasks = await Task.find({ employeeId, type: "extraActivity", isDeleted: false });
 

@@ -112,7 +112,7 @@ const isSuperAdmin = async (req, res, next) => {
         return res.status(401).json({ message: "Employee not found." });
       }
       
-      if (user.type === "superadmin") {
+      if (user.type === "superadmin" || user.type === "hr") {
         req.user = user;
         next(); 
       } else {

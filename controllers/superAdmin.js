@@ -367,7 +367,7 @@ exports.deleteEmployeeData = async (req, res) => {
     if (employee.image !== "") {
       await deleteFromS3(employee.image);
     }
-    await Employees.findByIdAndDelete(id);
+    await Employees.findByIdAndUpdate(id, { isDeleted: true });
 
     // Delete related ticket list
     await TicketAssigned.deleteMany({ toEmployee: id });
