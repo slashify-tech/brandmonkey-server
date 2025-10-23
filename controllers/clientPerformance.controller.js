@@ -159,6 +159,21 @@ const getClientOverviewDashboard = async (req, res) => {
       }
     });
 
+    // Add lookup for latest client feedback
+    pipeline.push({
+      $lookup: {
+        from: 'clientfeedbacks',
+        let: { clientId: '$_id' },
+        pipeline: [
+          { $match: { $expr: { $eq: ['$clientId', '$$clientId'] } } },
+          { $sort: { feedbackDate: -1 } },
+          { $limit: 1 },
+          { $project: { feedbackType: 1, rating: 1, feedbackDate: 1 } }
+        ],
+        as: 'latestFeedback'
+      }
+    });
+
     // Add pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
     pipeline.push(
@@ -323,6 +338,11 @@ const getClientOverviewDashboard = async (req, res) => {
         statusColor = 'green';
       }
 
+      // Get latest feedback data
+      const latestFeedback = item.latestFeedback && item.latestFeedback.length > 0 
+        ? item.latestFeedback[0] 
+        : null;
+
       const baseData = {
         id: item._id,
         clientId: item._id,
@@ -348,7 +368,12 @@ const getClientOverviewDashboard = async (req, res) => {
         lastUpdated: item.lastUpdated,
         recordCount: item.recordCount, // Number of records merged
         uniqueWeekCount: item.uniqueWeekCount,
-        uniqueMonthCount: item.uniqueMonthCount
+        uniqueMonthCount: item.uniqueMonthCount,
+        latestFeedback: latestFeedback ? {
+          feedbackType: latestFeedback.feedbackType,
+          rating: latestFeedback.rating,
+          feedbackDate: latestFeedback.feedbackDate
+        } : null
       };
 
       // Only include financial data for admin users
