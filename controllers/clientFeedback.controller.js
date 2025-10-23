@@ -6,8 +6,6 @@ exports.createFeedback = async (req, res) => {
   try {
     const {
       clientId,
-      feedbackType,
-      rating,
       comments,
       categories
     } = req.body;
@@ -17,21 +15,37 @@ exports.createFeedback = async (req, res) => {
       return res.status(400).json({ error: "Client ID is required" });
     }
 
-    if (!feedbackType || !rating) {
-      return res.status(400).json({ error: "Feedback type and rating are required" });
-    }
-
     // Verify client exists
     const client = await Clients.findById(clientId);
     if (!client) {
       return res.status(404).json({ error: "Client not found" });
     }
 
+    // Calculate overall rating and feedback type from categories
+    let overallRating = 0;
+    let feedbackType = "Average";
+    
+    if (categories && categories.length > 0) {
+      // Calculate average rating from all categories
+      const totalRating = categories.reduce((sum, cat) => sum + (cat.rating || 0), 0);
+      // console.log(totalRating);
+      overallRating = totalRating / categories.length;
+      
+      // Determine feedback type based on average rating
+      if (overallRating >= 4) {
+        feedbackType = "Good";
+      } else if (overallRating <= 2) {
+        feedbackType = "Bad";
+      } else {
+        feedbackType = "Average";
+      }
+    }
+
     const feedback = new ClientFeedback({
       clientId: clientId,
       clientName: client.name,
-      feedbackType,
-      rating,
+      feedbackType: feedbackType,
+      rating: overallRating,
       comments: comments || "",
       categories: categories || [],
       createdBy: req.user.id || null
