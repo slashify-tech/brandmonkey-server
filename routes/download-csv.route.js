@@ -10,5 +10,7 @@ router.get('/getEmployeesCSV', downloadController.downloadCsvEmployees);
 router.get('/getEmployeesSheet/:id', downloadController.downloadSingleEmployeeSheet);
 router.get('/getAllEmployeesSheet', downloadController.downloadAllEmployeeData);
 router.get('/getAllEmployeesHit', downloadController.downloadAllEmployeeHit);
+router.get('/getClientPerformanceData', downloadController.downloadClientPerformanceData);
+router.get('/getSingleClientPerformanceData/:clientId', downloadController.downloadSingleClientPerformanceData);
 
 module.exports = router;
