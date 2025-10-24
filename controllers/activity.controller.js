@@ -1,5 +1,5 @@
 const { Task, Hits } = require("../models/activities"); // Adjust the path to where your models are defined
-const { getDateFormatted } = require("../utils/formattedDate");
+const { getDateFormatted, formatDateFromISO } = require("../utils/formattedDate");
 const Clients = require("../models/clients");
 const Employees = require("../models/employee");
 
@@ -7,6 +7,9 @@ exports.createTask = async (req, res) => {
   try {
     const { employeeId, activity, clientName, timeSlot, date, countId, type } =
       req.body;
+
+    // Format the date from ISO string to "20 Oct 2025" format
+    const formattedDate = formatDateFromISO(date);
 
     // Find client by name to get clientId
     const client = await Clients.findOne({ name: clientName });
@@ -16,7 +19,7 @@ exports.createTask = async (req, res) => {
     const clientId = client._id;
 
     // Find existing task for the employeeId with the same timeSlot and type
-    let task = await Task.findOne({ employeeId, timeSlot, date, type, isDeleted: false });
+    let task = await Task.findOne({ employeeId, timeSlot, date: formattedDate, type, isDeleted: false });
 
     let isNewTask = false;
 
@@ -28,7 +31,7 @@ exports.createTask = async (req, res) => {
         clientName,
         clientId,
         timeSlot,
-        date,
+        date: formattedDate,
         type,
         countId,
       });
@@ -41,7 +44,7 @@ exports.createTask = async (req, res) => {
       task.activity = activity;
       task.clientName = clientName;
       task.clientId = clientId;
-      task.date = date;
+      task.date = formattedDate;
       task.countId = countId;
 
       // Save the updated task
@@ -87,6 +90,9 @@ exports.createAdditionalTask = async (req, res) => {
       req.body;
     date = date?.trim();
 
+    // Format the date from ISO string to "20 Oct 2025" format
+    const formattedDate = formatDateFromISO(date);
+
     // Find client by name to get clientId
     const client = await Clients.findOne({ name: clientName });
     if (!client) {
@@ -98,7 +104,7 @@ exports.createAdditionalTask = async (req, res) => {
     const type = "extraActivity";
 
     // Find existing task for the employeeId with the same timeSlot and type
-    let task = await Task.findOne({ employeeId, date, timeSlot, type, isDeleted: false });
+    let task = await Task.findOne({ employeeId, date: formattedDate, timeSlot, type, isDeleted: false });
 
     let isNewTask = false;
 
@@ -110,7 +116,7 @@ exports.createAdditionalTask = async (req, res) => {
         clientName,
         clientId,
         timeSlot,
-        date,
+        date: formattedDate,
         type,
         countId,
       });
@@ -123,7 +129,7 @@ exports.createAdditionalTask = async (req, res) => {
       task.activity = activity;
       task.clientName = clientName;
       task.clientId = clientId;
-      task.date = date;
+      task.date = formattedDate;
       task.countId = countId;
 
       // Save the updated task
@@ -131,7 +137,7 @@ exports.createAdditionalTask = async (req, res) => {
     }
 
     if (isNewTask) {
-      // Extract month from date (assuming date format is YYYY-MM-DD or similar)
+      // Extract month from date (using original ISO date for month calculation)
       const dateObj = new Date(date);
       const month = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
       
@@ -197,7 +203,9 @@ exports.getActivityByEmployeeIdAndDate = async (req, res) => {
     // Filter tasks based on date
     let activities;
     if (date) {
-      activities = tasks.filter((task) => task.date === date);
+      // Convert ISO date string to formatted date for comparison
+      const formattedDate = formatDateFromISO(date);
+      activities = tasks.filter((task) => task.date === formattedDate);
     } else {
       activities = tasks.filter((task) => task.date === getDateFormatted());
     }
@@ -249,7 +257,9 @@ exports.getExtraActivityByEmployeeIdAndDate = async (req, res) => {
     // Filter tasks based on date
     let activities;
     if (date) {
-      activities = tasks.filter((task) => task.date === date);
+      // Convert ISO date string to formatted date for comparison
+      const formattedDate = formatDateFromISO(date);
+      activities = tasks.filter((task) => task.date === formattedDate);
     } else {
       activities = tasks.filter((task) => task.date === getDateFormatted());
     }

@@ -41,3 +41,26 @@ exports.formatDateTime = (dateStr) => {
 
   return `${time} ${date}`;
 };
+
+// Helper function to convert ISO date string to formatted date (e.g., "20 Oct 2025")
+exports.formatDateFromISO = (isoDateString) => {
+  const dateObject = new Date(isoDateString);
+  const dayOfMonth = dateObject.getDate();
+  const year = dateObject.getFullYear();
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const month = months[dateObject.getMonth()];
+  return `${dayOfMonth} ${month} ${year}`;
+};
