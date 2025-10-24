@@ -280,42 +280,6 @@ exports.getExtraActivityByEmployeeIdAndDate = async (req, res) => {
   }
 };
 
-exports.getExtraActivityByEmployeeIdAndDate = async (req, res) => {
-  try {
-    const { employeeId, date } = req.query;
-
-    // Find tasks based on employeeId and type "extraActivity"
-    const tasks = await Task.find({ employeeId, type: "extraActivity", isDeleted: false });
-
-    if (!tasks || tasks.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No extra activities found for the employee" });
-    }
-
-    // Filter tasks based on date
-    let activities;
-    if (date) {
-      activities = tasks.filter((task) => task.date === date);
-    } else {
-      activities = tasks.filter((task) => task.date === getDateFormatted());
-    }
-
-    if (activities.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No extra activities found for the specified date" });
-    }
-
-    // Sort activities by countId in ascending order (assuming countId is a date string)
-    activities.sort((a, b) => new Date(a.countId) - new Date(b.countId));
-
-    res.status(200).json(activities);
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ message: "Server Error" });
-  }
-};
 
 exports.getHitsByEmployees = async (req, res) => {
   try {
