@@ -105,13 +105,25 @@ exports.getFinanceByClient = async (req, res) => {
       query.month = new Date(month).toISOString().slice(0, 7);
     }
 
-    const financeRecords = await Finance.find(query).sort({ month: -1 });
+    const financeRecords = await Finance.findOne(query).sort({ month: -1 });
 
     if (!financeRecords || financeRecords.length === 0) {
       return res.status(404).json({ message: "No finance records found for this client" });
     }
+    const totalCosts = Object.values(financeRecords.finance).reduce((sum, cost) => sum + cost, 0);
+    const totalRevenue = financeRecords.clientRevenue;
+    const totalProfit = totalRevenue - totalCosts;
+    const averageProfitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(2) : 0;
 
-    res.status(200).json({ finance: financeRecords });
+    const finalData = {
+      finance : financeRecords.finance,
+      totalCosts,
+      totalRevenue,
+      totalProfit,
+      averageProfitMargin
+    }
+    // console.log("Final Data:", finalData);
+    res.status(200).json({ finance: finalData });
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Internal Server Error" });
