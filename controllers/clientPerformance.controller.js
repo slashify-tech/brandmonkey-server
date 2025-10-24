@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const ClientPerformance = require('../models/clientPerformance');
 const Clients = require('../models/clients');
+const { updatePerformanceTracking, getPerformanceTracking } = require('../utils/performanceTracking');
 
 // Validation functions
 const validateMonth = (month) => {
@@ -533,6 +534,15 @@ const updateSocialMediaMetrics = async (req, res) => {
     // Fetch updated document
     const updatedPerformance = await ClientPerformance.findById(clientPerformance._id);
 
+    // Update performance tracking for social metrics
+    if (req.user && req.user._id) {
+      await updatePerformanceTracking(
+        clientPerformance._id,
+        req.user._id,
+        'socialMetrics'
+      );
+    }
+
     res.status(200).json({
       message: 'Social Media metrics updated successfully',
       data: updatedPerformance.socialMediaMetrics
@@ -616,6 +626,15 @@ const updateMetaAdsMetrics = async (req, res) => {
     // Fetch updated document
     const updatedPerformance = await ClientPerformance.findById(clientPerformance._id);
 
+    // Update performance tracking for meta metrics
+    if (req.user && req.user._id) {
+      await updatePerformanceTracking(
+        clientPerformance._id,
+        req.user._id,
+        'metaMetrics'
+      );
+    }
+
     res.status(200).json({
       message: 'Meta Ads metrics updated successfully',
       data: updatedPerformance.metaAdsMetrics
@@ -698,6 +717,15 @@ const updateGoogleAdsMetrics = async (req, res) => {
 
     // Fetch updated document
     const updatedPerformance = await ClientPerformance.findById(clientPerformance._id);
+
+    // Update performance tracking for google metrics
+    if (req.user && req.user._id) {
+      await updatePerformanceTracking(
+        clientPerformance._id,
+        req.user._id,
+        'googleMetrics'
+      );
+    }
 
     res.status(200).json({
       message: 'Google Ads metrics updated successfully',
@@ -1568,6 +1596,34 @@ const getLatestAdsData = async (req, res) => {
   }
 };
 
+// Get performance tracking for a client performance record
+const getPerformanceTrackingData = async (req, res) => {
+  try {
+    const { clientPerformanceId } = req.params;
+
+    if (!clientPerformanceId) {
+      return res.status(400).json({ error: 'Client Performance ID is required' });
+    }
+
+    const trackingData = await getPerformanceTracking(clientPerformanceId);
+
+    if (!trackingData) {
+      return res.status(404).json({ 
+        message: 'No tracking data found for this client performance record',
+        data: null 
+      });
+    }
+
+    res.status(200).json({
+      message: 'Performance tracking data retrieved successfully',
+      data: trackingData
+    });
+  } catch (error) {
+    console.error('Error retrieving performance tracking:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 module.exports = {
   updateSocialMediaMetrics,
   updateMetaAdsMetrics,
@@ -1577,5 +1633,6 @@ module.exports = {
   getGoogleAdsMetrics,
   getClientOverviewDashboard,
   getFourWeekComparison,
-  getLatestAdsData
+  getLatestAdsData,
+  getPerformanceTrackingData
 };
