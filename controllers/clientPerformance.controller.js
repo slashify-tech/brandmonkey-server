@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const ClientPerformance = require('../models/clientPerformance');
 const Clients = require('../models/clients');
+const Employees = require('../models/employee');
 const { updatePerformanceTracking, getPerformanceTracking } = require('../utils/performanceTracking');
 
 // Validation functions
@@ -84,6 +85,57 @@ const getClientOverviewDashboard = async (req, res) => {
     // Filter by status
     if (status && status !== 'all') {
       matchStage.status = status;
+    }
+
+    // If user is employee, filter by their assigned clients
+    if (req.user && req.user.type === 'employee') {
+      const employee = await Employees.findById(req.user._id);
+      if (employee && employee.clients && employee.clients.length > 0) {
+        // Extract clientIds from employee's client distribution
+        const assignedClientIds = employee.clients
+          .filter(client => client.clientId) // Only include clients with valid clientId
+          .map(client => new mongoose.Types.ObjectId(client.clientId));
+        
+        if (assignedClientIds.length > 0) {
+          matchStage.clientId = { $in: assignedClientIds };
+        } else {
+          // If no valid clientIds found, return empty result
+          return res.status(200).json({
+            message: 'No assigned clients found for this employee',
+            data: {
+              summary: {
+                totalClients: 0,
+                activeClients: 0
+              },
+              clients: [],
+              pagination: {
+                currentPage: parseInt(page),
+                totalPages: 0,
+                totalItems: 0,
+                itemsPerPage: parseInt(limit)
+              }
+            }
+          });
+        }
+      } else {
+        // If employee has no assigned clients, return empty result
+        return res.status(200).json({
+          message: 'No assigned clients found for this employee',
+          data: {
+            summary: {
+              totalClients: 0,
+              activeClients: 0
+            },
+            clients: [],
+            pagination: {
+              currentPage: parseInt(page),
+              totalPages: 0,
+              totalItems: 0,
+              itemsPerPage: parseInt(limit)
+            }
+          }
+        });
+      }
     }
 
     // Build aggregation pipeline
@@ -185,7 +237,7 @@ const getClientOverviewDashboard = async (req, res) => {
 
     // Execute aggregation
     const aggregatedData = await ClientPerformance.aggregate(pipeline);
-    console.log('Aggregated Data:', aggregatedData);
+    // console.log('Aggregated Data:', aggregatedData);
 
     // Get total count for pagination (separate aggregation for count)
     const countPipeline = [
@@ -245,7 +297,7 @@ const getClientOverviewDashboard = async (req, res) => {
           // Then sort by week in descending order (4,3,2,1)
           return b.week - a.week;
         });
-        console.log('Sorted Weeks:', sortedWeeks);
+        // console.log('Sorted Weeks:', sortedWeeks);
         const currentWeek = sortedWeeks[0];
         const previousWeek = sortedWeeks[1];
 
@@ -266,36 +318,36 @@ const getClientOverviewDashboard = async (req, res) => {
         }
 
         // Debug logging
-        console.log('Current Week Data:', {
-          weekIdentifier: currentWeek.weekIdentifier,
-          month: currentWeek.month,
-          week: currentWeek.week,
-          metaSpend: currentWeek.metaSpend,
-          googleSpend: currentWeek.googleSpend,
-          totalSpend: currentTotalSpend
-        });
-        console.log('Previous Week Data:', {
-          weekIdentifier: previousWeek.weekIdentifier,
-          month: previousWeek.month,
-          week: previousWeek.week,
-          metaSpend: previousWeek.metaSpend,
-          googleSpend: previousWeek.googleSpend,
-          totalSpend: previousTotalSpend
-        });
+        // console.log('Current Week Data:', {
+        //   weekIdentifier: currentWeek.weekIdentifier,
+        //   month: currentWeek.month,
+        //   week: currentWeek.week,
+        //   metaSpend: currentWeek.metaSpend,
+        //   googleSpend: currentWeek.googleSpend,
+        //   totalSpend: currentTotalSpend
+        // });
+        // console.log('Previous Week Data:', {
+        //   weekIdentifier: previousWeek.weekIdentifier,
+        //   month: previousWeek.month,
+        //   week: previousWeek.week,
+        //   metaSpend: previousWeek.metaSpend,
+        //   googleSpend: previousWeek.googleSpend,
+        //   totalSpend: previousTotalSpend
+        // });
 
         // Calculate percentage change
         if (previousTotalSpend > 0) {
           trendPercentage = ((currentTotalSpend - previousTotalSpend) / previousTotalSpend) * 100;
-          console.log(trendPercentage, currentTotalSpend, previousTotalSpend)
+          // console.log(trendPercentage, currentTotalSpend, previousTotalSpend)
           
           trendDirection = trendPercentage > 0 ? 'up' : trendPercentage < 0 ? 'down' : 'stable';
           
-          console.log('Trend Calculation:', {
-            currentTotalSpend,
-            previousTotalSpend,
-            trendPercentage,
-            trendDirection
-          });
+          // console.log('Trend Calculation:', {
+          //   currentTotalSpend,
+          //   previousTotalSpend,
+          //   trendPercentage,
+          //   trendDirection
+          // });
         }
         let durationText = `${item.uniqueWeekCount}wk`;
         statusDuration = durationText;
