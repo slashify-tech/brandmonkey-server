@@ -262,8 +262,10 @@ exports.deleteFieldsFromClients = async (req, res) => {
 
 exports.storeClientDistributionData = async (req, res) => {
   try {
-    const { clients, service } = req.body; // Expecting an array of clients and a single service
+    const { clients, service } = req.body; // Expecting an array of client names and a single service
     const userId = req.params.id;
+    // console.log(clients, service);
+    // console.log(userId);
 
     const user = await Employees.findById(userId);
     if (!user) {
@@ -279,11 +281,27 @@ exports.storeClientDistributionData = async (req, res) => {
       });
     }
 
-    for (const client of clients) {
-      const clientType = await Clients.findOne({ name: client });
-      
+    // Find client IDs by matching names
+    const clientIds = [];
+    const clientDetails = [];
+    
+    for (const clientName of clients) {
+      const client = await Clients.findOne({ name: clientName.trim() });
+      if (client) {
+        clientIds.push(client._id);
+        clientDetails.push({
+          clientId: client._id,
+          clientName: client.name,
+          clientType: client.clientType || "Unknown"
+        });
+      } else {
+        console.warn(`Client not found: ${clientName}`);
+      }
+    }
+
+    for (const clientDetail of clientDetails) {
       const existingClientIndex = clientDistribution.clients.findIndex(
-        (clientObj) => clientObj.clientName.startsWith(client.trim())
+        (clientObj) => clientObj.clientName.startsWith(clientDetail.clientName.trim())
       );
 
       if (existingClientIndex !== -1) {
@@ -293,10 +311,11 @@ exports.storeClientDistributionData = async (req, res) => {
       } else {
         // Add new client with service
         clientDistribution.clients.push({
-          clientName: `${client.trim()} - ${service.trim()}`,
-          logo: `${client}.png`,
+          clientId: clientDetail.clientId, // Store the client ID
+          clientName: `${clientDetail.clientName.trim()} - ${service.trim()}`,
+          logo: `${clientDetail.clientName}.png`,
           progressValue: "0-10",
-          clientType: clientType?.clientType || "Unknown",
+          clientType: clientDetail.clientType,
         });
       }
     }

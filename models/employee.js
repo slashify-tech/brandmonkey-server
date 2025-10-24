@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const clientElementSchema = mongoose.Schema(
   {
+    clientId: { type: mongoose.Schema.Types.ObjectId, ref: "clients", required: false },
     clientName: {
       type: String,
       required: true,
@@ -47,7 +48,7 @@ const employeeSchema = mongoose.Schema({
     type: String,
     default: "",
   },
-  image : {
+  image: {
     type: String,
     default: "",
   },
@@ -116,7 +117,7 @@ const employeeSchema = mongoose.Schema({
   },
   monthlySalary: {
     type: Number,
-    default: 0
+    default: 0,
   },
   isDeleted: {
     type: Boolean,
