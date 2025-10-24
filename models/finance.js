@@ -28,47 +28,56 @@ const financeSchema = mongoose.Schema(
       type: Number,
       default: 0,
     },
-    costs: {
+    // costs: {
+    //   officeRent: { type: Number, default: 0 },
+    //   tools: { type: Number, default: 0 },
+    //   overheads: { type: Number, default: 0 },
+    //   total: { type: Number, default: 0 },
+    // },
+    // // Profitability metrics
+    // profitability: {
+    //   revenue: { type: Number, default: 0 },
+    //   cost: { type: Number, default: 0 },
+    //   profit: { type: Number, default: 0 },
+    //   margin: { type: String, default: "0%" },
+    //   isUp: { type: Boolean, default: true },
+    // },
+    finance : {
       officeRent: { type: Number, default: 0 },
-      tools: { type: Number, default: 0 },
-      overheads: { type: Number, default: 0 },
-      total: { type: Number, default: 0 },
-    },
-    // Profitability metrics
-    profitability: {
-      revenue: { type: Number, default: 0 },
-      cost: { type: Number, default: 0 },
-      profit: { type: Number, default: 0 },
-      margin: { type: String, default: "0%" },
-      isUp: { type: Boolean, default: true },
-    },
+      marketingTools: { type: Number, default: 0 },
+      emi: { type: Number, default: 0 },
+      reimbursements: { type: Number, default: 0 },
+      it_overheads: { type: Number, default: 0 },
+      salaries: { type: Number, default: 0 },
+      miscellaneous: { type: Number, default: 0},
+    }
   },
   { timestamps: true }
 );
 
 // Pre-save middleware to calculate totals and profit
-financeSchema.pre("save", function (next) {
-  // Calculate total costs
-  this.costs.total = this.costs.officeRent + this.costs.tools + this.costs.overheads;
+// financeSchema.pre("save", function (next) {
+//   // Calculate total costs
+//   this.costs.total = this.costs.officeRent + this.costs.tools + this.costs.overheads;
 
-  // Set profitability metrics
-  this.profitability.revenue = this.clientRevenue;
-  this.profitability.cost = this.costs.total;
-  this.profitability.profit = this.clientRevenue - this.costs.total;
+//   // Set profitability metrics
+//   this.profitability.revenue = this.clientRevenue;
+//   this.profitability.cost = this.costs.total;
+//   this.profitability.profit = this.clientRevenue - this.costs.total;
 
-  // Calculate profit margin percentage
-  if (this.clientRevenue > 0) {
-    const marginPercentage = ((this.profitability.profit / this.clientRevenue) * 100).toFixed(1);
-    this.profitability.margin = `${marginPercentage}%`;
-  } else {
-    this.profitability.margin = "0%";
-  }
+//   // Calculate profit margin percentage
+//   if (this.clientRevenue > 0) {
+//     const marginPercentage = ((this.profitability.profit / this.clientRevenue) * 100).toFixed(1);
+//     this.profitability.margin = `${marginPercentage}%`;
+//   } else {
+//     this.profitability.margin = "0%";
+//   }
 
-  // Determine if profit is positive (isUp)
-  this.profitability.isUp = this.profitability.profit > 0;
+//   // Determine if profit is positive (isUp)
+//   this.profitability.isUp = this.profitability.profit > 0;
 
-  next();
-});
+//   next();
+// });
 
 // Add compound index for unique client-month combination
 financeSchema.index({ clientId: 1, month: 1 }, { unique: true });

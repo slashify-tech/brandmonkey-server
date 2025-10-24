@@ -70,7 +70,7 @@ const isAdmin = async (req, res, next) => {
         return res.status(401).json({ message: "Employees not found." });
       }
       
-      if (user.type === "admin" || user.type === "superadmin") {
+      if (user.type === "admin" || user.type === "superadmin" || user.type === "hr") {
         req.user = user;
         next(); 
       } else {

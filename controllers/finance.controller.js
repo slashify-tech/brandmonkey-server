@@ -9,7 +9,13 @@ exports.createOrUpdateFinance = async (req, res) => {
       clientName, 
       month,
       clientRevenue,
-      costs
+      officeRent,
+      marketingTools,
+      emi,
+      reimbursements,
+      it_overheads,
+      salaries,
+      miscellaneous,
     } = req.body;
 
     // Validate required fields
@@ -51,7 +57,13 @@ exports.createOrUpdateFinance = async (req, res) => {
     if (financeRecord) {
       // Update existing record
       if (clientRevenue !== undefined) financeRecord.clientRevenue = clientRevenue;
-      if (costs) financeRecord.costs = { ...financeRecord.costs, ...costs };
+      if (officeRent !== undefined) financeRecord.finance.officeRent = officeRent;
+      if (marketingTools !== undefined) financeRecord.finance.marketingTools = marketingTools;
+      if (emi !== undefined) financeRecord.finance.emi = emi;
+      if (reimbursements !== undefined) financeRecord.finance.reimbursements = reimbursements;
+      if (it_overheads !== undefined) financeRecord.finance.it_overheads = it_overheads;
+      if (salaries !== undefined) financeRecord.finance.salaries = salaries;
+      if (miscellaneous !== undefined) financeRecord.finance.miscellaneous = miscellaneous;
       await financeRecord.save();
     } else {
       // Create new record
@@ -59,7 +71,15 @@ exports.createOrUpdateFinance = async (req, res) => {
         clientId: actualClientId,
         month: currentMonth,
         clientRevenue: clientRevenue || 0,
-        costs: costs || { officeRent: 0, tools: 0, overheads: 0 }
+        finance : {
+          officeRent: officeRent || 0,
+          marketingTools: marketingTools || 0,
+          emi: emi || 0,
+          reimbursements: reimbursements || 0,
+          it_overheads: it_overheads || 0,
+          salaries: salaries || 0,
+          miscellaneous: miscellaneous || 0,
+        }
       });
       await financeRecord.save();
     }
