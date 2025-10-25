@@ -309,7 +309,7 @@ exports.getHitsByEmployees = async (req, res) => {
     // Convert map to array of objects
     const hitsData = Array.from(hitsMap.entries()).map(([clientName, totalHits]) => ({
       clientName,
-      totalHits,
+      noOfHits : totalHits,
     }));
 
     res.status(200).json({ hits: hitsData });
