@@ -2,6 +2,7 @@ const Clients = require("../models/clients");
 const Employees = require("../models/employee");
 const TicketAssigned = require("../models/ticketRaise");
 const EmployeeReview = require("../models/reviewList");
+const ClientPerformance = require("../models/clientPerformance");
 const dotenv = require("dotenv");
 const {
   resizeImage,
@@ -87,6 +88,8 @@ exports.addEmployee = async (req, res, next) => {
 exports.addClient = async (req, res, next) => {
   try {
     const {name} = req.body;
+    let client;
+    
     if (req.file) {
       const { buffer, originalname, mimetype } = req.file;
 
@@ -95,11 +98,31 @@ exports.addClient = async (req, res, next) => {
 
       await uploadToS3(resizedImageBuffer, fileName, mimetype);
 
-      await Clients.create({ ...req.body, logo: fileName, name : name.trim() });
+      client = await Clients.create({ ...req.body, logo: fileName, name : name.trim() });
     } else {
-      await Clients.create({ ...req.body, name : name.trim() });
+      client = await Clients.create({ ...req.body, name : name.trim() });
     }
-    // await client.save();
+    
+    // Create blank client performance entries for all 4 weeks of current month
+    // Only if no documents exist for this client
+    const existingPerformance = await ClientPerformance.findOne({ clientId: client._id });
+    
+    if (!existingPerformance) {
+      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+      const performanceEntries = [];
+      
+      for (let week = 1; week <= 4; week++) {
+        performanceEntries.push({
+          clientId: client._id,
+          month: currentMonth,
+          week: week,
+          status: 'Active'
+        });
+      }
+      
+      await ClientPerformance.insertMany(performanceEntries);
+    }
+    
     res.status(201).json("adding succesful");
   } catch (error) {
     res.status(500).json({ message: error.message });
