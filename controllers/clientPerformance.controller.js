@@ -66,35 +66,112 @@ const validateMonthWeekCombination = (month, week) => {
 // Get client overview dashboard
 const getClientOverviewDashboard = async (req, res) => {
   try {
+    // console.log('=== CLIENT OVERVIEW DASHBOARD START ===');
+    
     const { 
       clientId, 
       search, 
       status, 
       page = 1, 
-      limit = 10 
+      limit = 10,
+      date // ISO date string (e.g., "2024-08-15")
     } = req.query;
 
-    // Build match stage for aggregation
-    let matchStage = {};
+    // console.log('📥 Input Parameters:', {
+    //   clientId,
+    //   search,
+    //   status,
+    //   page,
+    //   limit,
+    //   date
+    // });
+
+    // Extract current month and calculate previous month from date parameter
+    let currentMonth, previousMonth;
+    if (date) {
+      const dateObj = new Date(date);
+      currentMonth = dateObj.toISOString().slice(0, 7); // YYYY-MM format (e.g., "2024-08")
+      
+      // Calculate previous month (handle January -> December of previous year)
+      const year = dateObj.getFullYear();
+      const month = dateObj.getMonth(); // 0-indexed (Jan=0, Aug=7, Dec=11)
+      
+      // console.log('📅 Date Calculation:', {
+      //   inputDate: date,
+      //   parsedDate: dateObj.toISOString(),
+      //   year,
+      //   month,
+      //   monthName: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month]
+      // });
+      
+      if (month === 0) {
+        // January: go to December of previous year
+        previousMonth = `${year - 1}-12`;
+      } else {
+        // Convert to calendar month number (getMonth is 0-indexed, calendar is 1-indexed)
+        // Example: Aug getMonth=7, calendar month=08 -> need Jul calendar month=07
+        // So: calendar month = getMonth() + 1, previous calendar month = getMonth()
+        const previousMonthNum = month; // This equals the calendar month number
+        previousMonth = `${year}-${String(previousMonthNum).padStart(2, '0')}`;
+      }
+    } else {
+      // Use current date if not provided
+      const now = new Date();
+      currentMonth = now.toISOString().slice(0, 7);
+      const year = now.getFullYear();
+      const month = now.getMonth(); // 0-indexed
+      
+      // console.log('📅 Using Current Date:', {
+      //   currentMonth,
+      //   year,
+      //   month,
+      //   monthName: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month]
+      // });
+      
+      if (month === 0) {
+        previousMonth = `${year - 1}-12`;
+      } else {
+        const previousMonthNum = month; // This equals the calendar month number
+        previousMonth = `${year}-${String(previousMonthNum).padStart(2, '0')}`;
+      }
+    }
+
+    // console.log('🗓️  Month Comparison:', {
+    //   currentMonth,
+    //   previousMonth,
+    //   comparisonNote: `Comparing ${currentMonth} (current) vs ${previousMonth} (previous)`
+    // });
+
+    // Build initial match stage for aggregation - filter by months for comparison
+    let matchStage = {
+      month: { $in: [currentMonth, previousMonth] }
+    };
+    
+    // console.log('🔍 Initial Match Stage:', JSON.stringify(matchStage, null, 2));
     
     // Filter by specific client
     if (clientId) {
       matchStage.clientId = new mongoose.Types.ObjectId(clientId);
+      // console.log('👤 Filtering by Client ID:', clientId);
     }
     
     // Filter by status
     if (status && status !== 'all') {
       matchStage.status = status;
+      // console.log('📊 Filtering by Status:', status);
     }
 
     // If user is employee, filter by their assigned clients
     if (req.user && req.user.type === 'employee') {
+      // console.log('👷 User is Employee, filtering by assigned clients');
       const employee = await Employees.findById(req.user._id);
       if (employee && employee.clients && employee.clients.length > 0) {
         // Extract clientIds from employee's client distribution
         const assignedClientIds = employee.clients
           .filter(client => client.clientId) // Only include clients with valid clientId
           .map(client => new mongoose.Types.ObjectId(client.clientId));
+        
+        // console.log('📋 Assigned Client IDs:', assignedClientIds.length, 'clients');
         
         if (assignedClientIds.length > 0) {
           matchStage.clientId = { $in: assignedClientIds };
@@ -138,21 +215,25 @@ const getClientOverviewDashboard = async (req, res) => {
       }
     }
 
-    // Build aggregation pipeline
+    // Stage 1: Filter documents matching the criteria (client, status, month range)
     const pipeline = [
-      { $match: matchStage },
-      {
-        $lookup: {
-          from: 'clients',
-          localField: 'clientId',
-          foreignField: '_id',
-          as: 'client'
-        }
-      },
-      { $unwind: '$client' }
+      { $match: matchStage }
     ];
 
-    // Add search filter if provided
+    // Stage 2: Join with clients collection to get client details
+    pipeline.push({
+      $lookup: {
+        from: 'clients',
+        localField: 'clientId',
+        foreignField: '_id',
+        as: 'client'
+      }
+    });
+
+    // Stage 3: Unwind the client array (we expect only one client per document)
+    pipeline.push({ $unwind: '$client' });
+
+    // Stage 4: Filter by client name search if provided
     if (search) {
       pipeline.push({
         $match: {
@@ -161,12 +242,12 @@ const getClientOverviewDashboard = async (req, res) => {
       });
     }
 
-    // Group by clientId and merge all documents
+    // Stage 5: Group by clientId and aggregate all weeks from both months
     pipeline.push({
       $group: {
         _id: '$clientId',
         client: { $first: '$client' },
-        // Get all weeks data for comparison
+        // Collect all weeks data for both current and previous month
         weeksData: {
           $push: {
             month: '$month',
@@ -184,27 +265,32 @@ const getClientOverviewDashboard = async (req, res) => {
             lastUpdated: '$lastUpdated'
           }
         },
-        // Sum spend breakdown
+        // Sum Meta Ads spend across all weeks
         metaSpend: { $sum: { $ifNull: ['$metaAdsMetrics.spentAmount', 0] } },
+        // Sum Google Ads spend across all weeks
         googleSpend: { $sum: { $ifNull: ['$googleAdsMetrics.spentAmount', 0] } },
-        // Sum all results
+        // Sum all conversions across all weeks
         totalConversions: { $sum: { $ifNull: ['$googleAdsMetrics.conversions', 0] } },
+        // Sum all clicks across all weeks
         totalClicks: { $sum: { $ifNull: ['$googleAdsMetrics.clicks', 0] } },
+        // Sum all leads across all weeks
         totalLeads: { $sum: { $ifNull: ['$metaAdsMetrics.leads', 0] } },
+        // Sum all calls across all weeks
         totalCalls: { $sum: { $ifNull: ['$googleAdsMetrics.calls', 0] } },
+        // Sum all messages across all weeks
         totalMessages: { $sum: { $ifNull: ['$metaAdsMetrics.messages', 0] } },
-        // Latest update time
+        // Get the latest update time
         lastUpdated: { $max: '$lastUpdated' },
-        // Count of unique weeks
+        // Count unique week identifiers (e.g., "2024-08-W1", "2024-08-W2")
         uniqueWeekCount: { $addToSet: { $concat: ['$month', '-W', { $toString: '$week' }] } },
-        // Count of unique months
+        // Count unique months (current and previous)
         uniqueMonthCount: { $addToSet: '$month' },
-        // Count of records merged
+        // Count total records merged for this client
         recordCount: { $sum: 1 }
       }
     });
 
-    // Add projection to get unique week and month counts
+    // Stage 6: Convert set sizes to actual numbers
     pipeline.push({
       $addFields: {
         uniqueWeekCount: { $size: '$uniqueWeekCount' },
@@ -212,7 +298,7 @@ const getClientOverviewDashboard = async (req, res) => {
       }
     });
 
-    // Add lookup for latest client feedback
+    // Stage 7: Lookup latest client feedback from clientfeedbacks collection
     pipeline.push({
       $lookup: {
         from: 'clientfeedbacks',
@@ -227,7 +313,7 @@ const getClientOverviewDashboard = async (req, res) => {
       }
     });
 
-    // Add pagination
+    // Stage 8: Pagination - sort, skip, and limit results
     const skip = (parseInt(page) - 1) * parseInt(limit);
     pipeline.push(
       { $sort: { lastUpdated: -1 } },
@@ -235,11 +321,13 @@ const getClientOverviewDashboard = async (req, res) => {
       { $limit: parseInt(limit) }
     );
 
-    // Execute aggregation
+    // Execute the main aggregation pipeline
+    // console.log('🔄 Executing Main Aggregation Pipeline...');
+    // console.log('📊 Pipeline Stages:', pipeline.length);
     const aggregatedData = await ClientPerformance.aggregate(pipeline);
-    // console.log('Aggregated Data:', aggregatedData);
+    // console.log('✅ Aggregation Complete. Records Found:', aggregatedData.length);
 
-    // Get total count for pagination (separate aggregation for count)
+    // Build count pipeline for pagination (same filters, just counting)
     const countPipeline = [
       { $match: matchStage },
       {
@@ -270,8 +358,12 @@ const getClientOverviewDashboard = async (req, res) => {
       { $count: 'total' }
     ]);
 
+    // console.log('📊 Total Count Result:', totalCount);
+    // console.log('🔍 Aggregated Data Sample (first item weeksData):', aggregatedData[0]?.weeksData || 'No data');
+
     // Check if user is admin
     const isAdmin = req.user && (req.user.type === 'admin' || req.user.type === 'superadmin');
+    // console.log('👤 User Type:', req.user?.type, '- Is Admin:', isAdmin);
 
     // Format data to match dashboard card structure
     const formattedData = aggregatedData.map(item => {
@@ -288,97 +380,70 @@ const getClientOverviewDashboard = async (req, res) => {
       let status = 'Active';
       let statusDuration = '';
 
-      if (item.weeksData && item.weeksData.length >= 2) {
-        // Sort weeks data by month (newest first), then by week (4,3,2,1)
-        const sortedWeeks = item.weeksData.sort((a, b) => {
-          // Sort by month first (newest first)
-          const monthCompare = b.month.localeCompare(a.month);
-          if (monthCompare !== 0) return monthCompare;
-          // Then sort by week in descending order (4,3,2,1)
-          return b.week - a.week;
-        });
-        // console.log('Sorted Weeks:', sortedWeeks);
-        const currentWeek = sortedWeeks[0];
-        const previousWeek = sortedWeeks[1];
+      // Compare current month data vs previous month data
+      if (item.weeksData && item.weeksData.length > 0) {
+        // Group weeks data by month
+        const currentMonthData = item.weeksData.filter(w => w.month === currentMonth);
+        const previousMonthData = item.weeksData.filter(w => w.month === previousMonth);
 
-        // Calculate total spend for comparison
-        const currentTotalSpend = currentWeek.metaSpend + currentWeek.googleSpend;
-        const previousTotalSpend = previousWeek.metaSpend + previousWeek.googleSpend;
-
-        // Data validation - check for potential data entry errors
-        const spendRatio = currentTotalSpend / previousTotalSpend;
-        if (spendRatio > 100 || spendRatio < 0.01) {
-          console.warn('Potential data error detected:', {
-            currentTotalSpend,
-            previousTotalSpend,
-            ratio: spendRatio,
-            currentWeek: currentWeek.month,
-            previousWeek: previousWeek.month
-          });
-        }
-
-        // Debug logging
-        // console.log('Current Week Data:', {
-        //   weekIdentifier: currentWeek.weekIdentifier,
-        //   month: currentWeek.month,
-        //   week: currentWeek.week,
-        //   metaSpend: currentWeek.metaSpend,
-        //   googleSpend: currentWeek.googleSpend,
-        //   totalSpend: currentTotalSpend
-        // });
-        // console.log('Previous Week Data:', {
-        //   weekIdentifier: previousWeek.weekIdentifier,
-        //   month: previousWeek.month,
-        //   week: previousWeek.week,
-        //   metaSpend: previousWeek.metaSpend,
-        //   googleSpend: previousWeek.googleSpend,
-        //   totalSpend: previousTotalSpend
+        // console.log(`📈 Client ${client.name} Trend Analysis:`, {
+        //   totalWeeksData: item.weeksData.length,
+        //   currentMonthDataCount: currentMonthData.length,
+        //   previousMonthDataCount: previousMonthData.length,
+        //   currentMonth,
+        //   previousMonth
         // });
 
-        // Calculate percentage change
-        if (previousTotalSpend > 0) {
-          trendPercentage = ((currentTotalSpend - previousTotalSpend) / previousTotalSpend) * 100;
-          // console.log(trendPercentage, currentTotalSpend, previousTotalSpend)
-          
-          trendDirection = trendPercentage > 0 ? 'up' : trendPercentage < 0 ? 'down' : 'stable';
-          
-          // console.log('Trend Calculation:', {
-          //   currentTotalSpend,
-          //   previousTotalSpend,
-          //   trendPercentage,
-          //   trendDirection
+        // Calculate totals for each month
+        const currentMonthTotal = currentMonthData.reduce((sum, week) => {
+          return sum + week.metaSpend + week.googleSpend;
+        }, 0);
+
+        const previousMonthTotal = previousMonthData.reduce((sum, week) => {
+          return sum + week.metaSpend + week.googleSpend;
+        }, 0);
+
+        // console.log(`💰 Spend Comparison for ${client.name}:`, {
+        //   currentMonth: currentMonth,
+        //   currentMonthTotal: currentMonthTotal,
+        //   previousMonth: previousMonth,
+        //   previousMonthTotal: previousMonthTotal
+        // });
+
+        // If we have data for both months, calculate trend
+        if (currentMonthData.length > 0 && previousMonthData.length > 0) {
+          if (previousMonthTotal > 0) {
+            trendPercentage = ((currentMonthTotal - previousMonthTotal) / previousMonthTotal) * 100;
+            trendDirection = trendPercentage > 0 ? 'up' : trendPercentage < 0 ? 'down' : 'stable';
+          }
+
+          // console.log(`📊 Trend Calculation for ${client.name}:`, {
+          //   trendPercentage: trendPercentage.toFixed(2) + '%',
+          //   trendDirection,
+          //   change: `${Math.abs(trendPercentage).toFixed(2)}% ${trendDirection}`
           // });
-        }
-        let durationText = `${item.uniqueWeekCount}wk`;
-        statusDuration = durationText;
 
-        // Determine status based on trend
-        if (trendPercentage > 0) {
-          status = 'Growth';
-        } else if (trendPercentage < 0) {
-          status = 'Decline';
+          // Determine status based on trend
+          if (trendPercentage > 0) {
+            status = 'Growth';
+          } else if (trendPercentage < 0) {
+            status = 'Decline';
+          } else {
+            status = 'Neutal';
+          }
+
+          statusDuration = `${item.uniqueWeekCount}wk`;
+        } else if (currentMonthData.length > 0 && previousMonthData.length === 0) {
+          // Only current month data - mark as new
+          // console.log(`🆕 New Client: ${client.name} (only has ${currentMonth} data)`);
+          status = 'New';
+          statusDuration = `${currentMonthData.length}wk`;
         } else {
-          status = 'Neutal';
+          // No current month data
+          // console.log(`⚠️ No current month data for ${client.name}`);
+          status = 'Active';
+          statusDuration = `${item.uniqueWeekCount}wk`;
         }
-
-        // Use the latest status and duration if available
-        if (currentWeek.status) {
-          status = currentWeek.status;
-        }
-        if (currentWeek.statusDuration) {
-          statusDuration = currentWeek.statusDuration;
-        }
-      } else if (item.weeksData && item.weeksData.length === 1) {
-        // Only one month of data - mark as new
-        status = 'New';
-        statusDuration = '1wk';
-      } else if (item.weeksData && item.weeksData.length > 0) {
-        // Calculate duration based on available documents for cases with data but no trend comparison
-        const documentCount = item.weeksData.length;
-        let durationText = `${item.uniqueWeekCount}wk`;
-        
-        status = 'Active';
-        statusDuration = durationText;
       }
 
       // Determine status color
@@ -441,7 +506,7 @@ const getClientOverviewDashboard = async (req, res) => {
       return baseData;
     });
 
-    // Calculate summary statistics
+    // Build summary pipeline to calculate overall statistics
     const summaryPipeline = [
       { $match: matchStage },
       {
@@ -501,9 +566,19 @@ const getClientOverviewDashboard = async (req, res) => {
       responseData.data.summary.totalSpend = summary.totalSpend;
     }
 
+    // console.log('📤 Response Summary:', {
+    //   totalClients: responseData.data.summary.totalClients,
+    //   activeClients: responseData.data.summary.activeClients,
+    //   clientsReturned: responseData.data.clients.length,
+    //   pagination: responseData.data.pagination,
+    //   isAdmin: isAdmin
+    // });
+
+    // console.log('=== CLIENT OVERVIEW DASHBOARD END ===\n');
+
     res.status(200).json(responseData);
   } catch (error) {
-    console.error('Error retrieving client overview dashboard:', error);
+    console.error('❌ Error retrieving client overview dashboard:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
