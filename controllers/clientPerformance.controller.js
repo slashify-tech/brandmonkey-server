@@ -302,9 +302,18 @@ const getClientOverviewDashboard = async (req, res) => {
     pipeline.push({
       $lookup: {
         from: 'clientfeedbacks',
-        let: { clientId: '$_id' },
+        let: { clientId: '$_id', currentMonth: currentMonth },
         pipeline: [
-          { $match: { $expr: { $eq: ['$clientId', '$$clientId'] } } },
+          { 
+            $match: { 
+              $expr: { 
+                $and: [
+                  { $eq: ['$clientId', '$$clientId'] },
+                  { $eq: ['$month', '$$currentMonth'] }
+                ]
+              } 
+            } 
+          },
           { $sort: { feedbackDate: -1 } },
           { $limit: 1 },
           { $project: { feedbackType: 1, rating: 1, feedbackDate: 1 } }
@@ -368,22 +377,28 @@ const getClientOverviewDashboard = async (req, res) => {
     // Format data to match dashboard card structure
     const formattedData = aggregatedData.map(item => {
       const client = item.client;
-      const totalSpend = Number(item.metaSpend) + Number(item.googleSpend);
       
-      // Calculate cost per result
-      const totalResults = item.totalLeads + item.totalCalls + item.totalMessages;
-      const costPerResult = totalResults > 0 ? (totalSpend / totalResults).toFixed(2) : 0;
-
       // Calculate trend and status based on month-to-month comparison
       let trendDirection = 'stable';
       let trendPercentage = 0;
       let status = 'Active';
       let statusDuration = '';
+      
+      // Initialize current month only metrics
+      let currentMonthConversions = 0;
+      let currentMonthClicks = 0;
+      let currentMonthLeads = 0;
+      let currentMonthCalls = 0;
+      let currentMonthMessages = 0;
+      let currentMonthSpend = 0;
+      let currentMonthData = [];
+      let currentMonthMetaSpend = 0;
+      let currentMonthGoogleSpend = 0;
 
       // Compare current month data vs previous month data
       if (item.weeksData && item.weeksData.length > 0) {
         // Group weeks data by month
-        const currentMonthData = item.weeksData.filter(w => w.month === currentMonth);
+        currentMonthData = item.weeksData.filter(w => w.month === currentMonth);
         const previousMonthData = item.weeksData.filter(w => w.month === previousMonth);
 
         // console.log(`📈 Client ${client.name} Trend Analysis:`, {
@@ -394,7 +409,17 @@ const getClientOverviewDashboard = async (req, res) => {
         //   previousMonth
         // });
 
-        // Calculate totals for each month
+        // Calculate current month only metrics (for results and cost per result)
+        currentMonthConversions = currentMonthData.reduce((sum, week) => sum + week.conversions, 0);
+        currentMonthClicks = currentMonthData.reduce((sum, week) => sum + week.clicks, 0);
+        currentMonthLeads = currentMonthData.reduce((sum, week) => sum + week.leads, 0);
+        currentMonthCalls = currentMonthData.reduce((sum, week) => sum + week.calls, 0);
+        currentMonthMessages = currentMonthData.reduce((sum, week) => sum + week.messages, 0);
+        currentMonthMetaSpend = currentMonthData.reduce((sum, week) => sum + week.metaSpend, 0);
+        currentMonthGoogleSpend = currentMonthData.reduce((sum, week) => sum + week.googleSpend, 0);
+        currentMonthSpend = currentMonthMetaSpend + currentMonthGoogleSpend;
+
+        // Calculate totals for each month (for trend comparison)
         const currentMonthTotal = currentMonthData.reduce((sum, week) => {
           return sum + week.metaSpend + week.googleSpend;
         }, 0);
@@ -446,6 +471,10 @@ const getClientOverviewDashboard = async (req, res) => {
         }
       }
 
+      // Calculate cost per result using only current month data
+      const totalResults = currentMonthLeads + currentMonthCalls + currentMonthMessages;
+      const costPerResult = totalResults > 0 ? (currentMonthSpend / totalResults).toFixed(2) : 0;
+
       // Determine status color
       let statusColor = 'green';
       if (status === 'Decline') {
@@ -471,11 +500,11 @@ const getClientOverviewDashboard = async (req, res) => {
         statusDuration: statusDuration,
         statusColor,
         results: {
-          conversions: item.totalConversions,
-          clicks: item.totalClicks,
-          leads: item.totalLeads,
-          calls: item.totalCalls,
-          messages: item.totalMessages
+          conversions: currentMonthConversions,
+          clicks: currentMonthClicks,
+          leads: currentMonthLeads,
+          calls: currentMonthCalls,
+          messages: currentMonthMessages
         },
         costPerResult: parseFloat(costPerResult),
         trend: {
@@ -494,12 +523,12 @@ const getClientOverviewDashboard = async (req, res) => {
         } : null
       };
 
-      // Only include financial data for admin users
+      // Only include financial data for admin users (totalSpend is now current month only)
       if (isAdmin) {
-        baseData.totalSpend = totalSpend;
+        baseData.totalSpend = currentMonthSpend;
         baseData.spendBreakdown = {
-          meta: item.metaSpend,
-          google: item.googleSpend
+          meta: currentMonthMetaSpend,
+          google: currentMonthGoogleSpend
         };
       }
 
