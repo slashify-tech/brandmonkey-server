@@ -11,6 +11,9 @@ const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const fs = require("fs");
 const TicketCount = require("../models/ticketCount");
+const { Task } = require("../models/activities");
+const { formatDateFromISO } = require("../utils/formattedDate");
+const { timeSlots } = require("../utils/set_times");
 
 exports.uploadClientBulk = async (req, res) => {
   let ClientData = [];
@@ -597,6 +600,130 @@ exports.deleteReviewData = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+// HR-specific function to get missing time slots for the past 7 days
+exports.getMissingTimeSlots = async (req, res) => {
+  try {
+    if(req.user.type !== "superadmin" && req.user.type !== "hr"){
+      return res.status(403).json({ error: "Unauthorized access. Only HR and Superadmin can access this route." });
+    }
+    // Calculate the date range for the past 7 days
+    const today = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 7);
+
+    // Get all activities from the past 7 days
+    const activities = await Task.find({
+      date: {
+        $gte: formatDateFromISO(sevenDaysAgo.toISOString()),
+        $lte: formatDateFromISO(today.toISOString())
+      },
+      isDeleted: false,
+      type: "activity" // Only regular activities, not extra activities
+    }).populate('employeeId', 'name employeeId designation team');
+
+    // Group activities by date and employee
+    const activitiesByDateAndEmployee = {};
+    
+    activities.forEach(activity => {
+      const date = activity.date;
+      const employeeId = activity.employeeId._id.toString();
+      
+      if (!activitiesByDateAndEmployee[date]) {
+        activitiesByDateAndEmployee[date] = {};
+      }
+      
+      if (!activitiesByDateAndEmployee[date][employeeId]) {
+        activitiesByDateAndEmployee[date][employeeId] = {
+          employee: activity.employeeId,
+          timeSlots: []
+        };
+      }
+      
+      activitiesByDateAndEmployee[date][employeeId].timeSlots.push(activity.timeSlot);
+    });
+
+    // Generate the past 7 days array
+    const pastSevenDays = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      pastSevenDays.push(formatDateFromISO(date.toISOString()));
+    }
+
+    // Get all employees once to avoid multiple database calls
+    const allEmployees = await Employees.find({ 
+      type: { $ne: "superadmin" },
+      isDeleted: false 
+    }).select('name employeeId designation team');
+
+    // Analyze missing time slots for each day and employee
+    const missingSlotsReport = [];
+
+    for (const date of pastSevenDays) {
+      const dayReport = {
+        date: date,
+        employees: []
+      };
+
+      // Get all employees who have activities on this date
+      const employeesOnDate = activitiesByDateAndEmployee[date] || {};
+      
+      // Check each employee for missing slots
+      allEmployees.forEach(employee => {
+        const employeeId = employee._id.toString();
+        const employeeActivities = employeesOnDate[employeeId];
+        
+        if (employeeActivities) {
+          // Employee has some activities, find missing slots
+          const usedSlots = employeeActivities.timeSlots;
+          const missingSlots = timeSlots.filter(slot => !usedSlots.includes(slot));
+          
+          dayReport.employees.push({
+            employee: employee,
+            missingSlots: missingSlots,
+            totalMissing: missingSlots.length,
+            hasActivities: true,
+            usedSlots: usedSlots
+          });
+        } else {
+          // Employee has no activities on this date
+          dayReport.employees.push({
+            employee: employee,
+            missingSlots: [...timeSlots],
+            totalMissing: timeSlots.length,
+            hasActivities: false
+          });
+        }
+      });
+
+      missingSlotsReport.push(dayReport);
+    }
+
+    // Calculate summary statistics
+    const summary = {
+      totalDays: pastSevenDays.length,
+      totalTimeSlotsPerDay: timeSlots.length,
+      totalPossibleSlots: pastSevenDays.length * timeSlots.length,
+      reportGeneratedAt: new Date().toISOString()
+    };
+
+    res.status(200).json({
+      success: true,
+      summary: summary,
+      missingSlotsReport: missingSlotsReport,
+      // timeSlots: timeSlots
+    });
+
+  } catch (error) {
+    console.error("Error in getMissingTimeSlots:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Internal Server Error",
+      message: "Failed to fetch missing time slots data"
+    });
   }
 };
 
