@@ -14,8 +14,8 @@ router.get('/cost-breakdown/:clientId', isAdmin, financeController.getCostBreakd
 // router.delete('/delete-finance/:id', financeController.deleteFinance);
 
 // Client Feedback routes
-router.post('/create-feedback', isAdmin, clientFeedbackController.createFeedback);
-router.get('/get-feedback/:clientId', isAdmin, clientFeedbackController.getFeedbackByClient);
+router.post('/create-feedback', isAuth, clientFeedbackController.createFeedback);
+router.get('/get-feedback/:clientId', isAuth, clientFeedbackController.getFeedbackByClient);
 // router.get('/get-all-feedback', clientFeedbackController.getAllFeedback);
 // router.put('/update-feedback/:id', clientFeedbackController.updateFeedback);
 // router.delete('/delete-feedback/:id', clientFeedbackController.deleteFeedback);
