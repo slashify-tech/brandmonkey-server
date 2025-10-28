@@ -33,6 +33,7 @@ router.get('/employeeReviews/:id', adminController.getEmployeeReviews);
 router.get('/employeeReviewsShow/:id', adminController.getEmployeeReviewsArray);
 router.get('/getOneClientOrEmployeeTickets', adminController.getTicketsForClient);
 router.get('/getDashboardAdmin', adminController.getDashBoardAdmin);
+router.get('/getSlotWiseMissingTimeSlots', isAuth, adminController.getSlotWiseMissingTimeSlots); // HR-specific route for missing time slots
 router.get('/getMissingTimeSlots', isAuth, adminController.getMissingTimeSlots); // HR-specific route for missing time slots
 
 router.delete('/deleteEmployee/:id', isSuperAdmin, superAdminController.deleteEmployeeData); //completed
