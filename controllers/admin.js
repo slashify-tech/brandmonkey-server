@@ -733,6 +733,7 @@ exports.getMissingTimeSlots = async (req, res) => {
     if(req.user.type !== "superadmin" && req.user.type !== "hr"){
       return res.status(403).json({ error: "Unauthorized access. Only HR and Superadmin can access this route." });
     }
+    const { minimize = false } = req.query;
     // Calculate the date range for the past 7 days
     const today = new Date();
     const sevenDaysAgo = new Date();
@@ -782,6 +783,37 @@ exports.getMissingTimeSlots = async (req, res) => {
       type: { $ne: "superadmin" },
       isDeleted: false 
     }).select('name employeeId designation team');
+
+    // If minimize is true, return just the count of missing slots
+    if (minimize === 'true' || minimize === true) {
+      let totalMissingSlots = 0;
+      
+      for (const date of pastSevenDays) {
+        const employeesOnDate = activitiesByDateAndEmployee[date] || {};
+        
+        allEmployees.forEach(employee => {
+          const employeeId = employee._id.toString();
+          const employeeActivities = employeesOnDate[employeeId];
+          
+          if (employeeActivities) {
+            // Employee has some activities, count missing slots
+            const usedSlots = employeeActivities.timeSlots;
+            const missingSlots = timeSlots.filter(slot => !usedSlots.includes(slot));
+            totalMissingSlots += missingSlots.length;
+          } else {
+            // Employee has no activities on this date, all slots are missing
+            totalMissingSlots += timeSlots.length;
+          }
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        totalMissingSlots: totalMissingSlots,
+        totalPossibleSlots: pastSevenDays.length * timeSlots.length * allEmployees.length,
+        reportGeneratedAt: new Date().toISOString()
+      });
+    }
 
     // Analyze missing time slots for each day and employee
     const missingSlotsReport = [];
