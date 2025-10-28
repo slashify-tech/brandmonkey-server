@@ -659,62 +659,61 @@ exports.getMissingTimeSlots = async (req, res) => {
       isDeleted: false 
     }).select('name employeeId designation team');
 
-    // Analyze missing time slots for each day and employee
-    const missingSlotsReport = [];
+    // Build slot-centric report: for each timeslot, list employees who missed and on which days
+    const slotWise = timeSlots.map(slot => ({
+      slot,
+      totalEmployeesMissed: 0,
+      employees: [] // { name, employeeId, designation, team, daysMissed: [] }
+    }));
+
+    // Index timeslot -> structure for faster push
+    const slotIndexByName = new Map();
+    slotWise.forEach((s, idx) => slotIndexByName.set(s.slot, idx));
 
     for (const date of pastSevenDays) {
-      const dayReport = {
-        date: date,
-        employees: []
-      };
-
-      // Get all employees who have activities on this date
       const employeesOnDate = activitiesByDateAndEmployee[date] || {};
-      
-      // Check each employee for missing slots
-      allEmployees.forEach(employee => {
-        const employeeId = employee._id.toString();
-        const employeeActivities = employeesOnDate[employeeId];
-        
-        if (employeeActivities) {
-          // Employee has some activities, find missing slots
-          const usedSlots = employeeActivities.timeSlots;
-          const missingSlots = timeSlots.filter(slot => !usedSlots.includes(slot));
-          
-          dayReport.employees.push({
-            employee: employee,
-            missingSlots: missingSlots,
-            totalMissing: missingSlots.length,
-            hasActivities: true,
-            usedSlots: usedSlots
-          });
-        } else {
-          // Employee has no activities on this date
-          dayReport.employees.push({
-            employee: employee,
-            missingSlots: [...timeSlots],
-            totalMissing: timeSlots.length,
-            hasActivities: false
-          });
-        }
-      });
 
-      missingSlotsReport.push(dayReport);
+      allEmployees.forEach(employee => {
+        const empId = employee._id.toString();
+        const usedSlots = employeesOnDate[empId]?.timeSlots || [];
+
+        // For each slot, if not used, mark missed for this employee on this date
+        timeSlots.forEach(slot => {
+          if (!usedSlots.includes(slot)) {
+            const idx = slotIndexByName.get(slot);
+            const entry = slotWise[idx];
+
+            // find or create employee entry under this slot
+            let empEntry = entry.employees.find(e => e._id === empId);
+            if (!empEntry) {
+              empEntry = {
+                _id: empId,
+                name: employee.name,
+                employeeCode: employee.employeeId,
+                designation: employee.designation,
+                team: employee.team,
+                daysMissed: []
+              };
+              entry.employees.push(empEntry);
+            }
+            empEntry.daysMissed.push(date);
+          }
+        });
+      });
     }
 
-    // Calculate summary statistics
-    const summary = {
-      totalDays: pastSevenDays.length,
-      totalTimeSlotsPerDay: timeSlots.length,
-      totalPossibleSlots: pastSevenDays.length * timeSlots.length,
-      reportGeneratedAt: new Date().toISOString()
-    };
+    // finalize totalEmployeesMissed per slot (unique employees)
+    slotWise.forEach(s => {
+      s.totalEmployeesMissed = s.employees.length;
+    });
 
     res.status(200).json({
       success: true,
-      summary: summary,
-      missingSlotsReport: missingSlotsReport,
-      // timeSlots: timeSlots
+      range: {
+        from: pastSevenDays[0],
+        to: pastSevenDays[pastSevenDays.length - 1]
+      },
+      slots: slotWise
     });
 
   } catch (error) {
