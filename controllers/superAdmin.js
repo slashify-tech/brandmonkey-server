@@ -103,7 +103,7 @@ exports.addClient = async (req, res, next) => {
       client = await Clients.create({ ...req.body, name : name.trim() });
     }
     
-    // Create blank client performance entries for all 4 weeks of current month
+    // Create blank client performance entries for all 5 weeks of current month
     // Only if no documents exist for this client
     const existingPerformance = await ClientPerformance.findOne({ clientId: client._id });
     
@@ -111,7 +111,7 @@ exports.addClient = async (req, res, next) => {
       const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
       const performanceEntries = [];
       
-      for (let week = 1; week <= 4; week++) {
+      for (let week = 1; week <= 1; week++) {
         performanceEntries.push({
           clientId: client._id,
           month: currentMonth,

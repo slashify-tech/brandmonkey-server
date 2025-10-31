@@ -22,7 +22,7 @@ router.get('/meta-ads-metrics', isAuth, clientPerformanceController.getMetaAdsMe
 router.get('/google-ads-metrics', isAuth, clientPerformanceController.getGoogleAdsMetrics); //complete
 
 // 4-Week Comparison API
-router.get('/four-week-comparison', isAuth, clientPerformanceController.getFourWeekComparison); //complete
+router.get('/four-week-comparison', isAuth, clientPerformanceController.getWeeksComparison); //complete
 
 // Get Latest Meta and Google Ads Data
 router.get('/latest-ads-data', isAuth, clientPerformanceController.getLatestAdsData); //complete

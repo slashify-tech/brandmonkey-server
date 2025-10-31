@@ -34,12 +34,12 @@ const clientPerformanceSchema = mongoose.Schema(
     week: {
       type: Number,
       required: true,
-      enum: [1, 2, 3, 4],
+      enum: [1, 2, 3, 4, 5],
       validate: {
         validator: function(v) {
-          return v >= 1 && v <= 4;
+          return v >= 1 && v <= 5;
         },
-        message: 'Week must be between 1 and 4'
+        message: 'Week must be between 1 and 5'
       }
     },
     lastUpdated: {

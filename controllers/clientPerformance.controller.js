@@ -32,8 +32,8 @@ const validateWeek = (week) => {
   if (!week) return { isValid: false, message: 'Week is required' };
   
   const weekNum = parseInt(week);
-  if (isNaN(weekNum) || weekNum < 1 || weekNum > 4) {
-    return { isValid: false, message: 'Week must be a number between 1 and 4' };
+  if (isNaN(weekNum) || weekNum < 1 || weekNum > 5) {
+    return { isValid: false, message: 'Week must be a number between 1 and 5' };
   }
   
   return { isValid: true };
@@ -1263,8 +1263,8 @@ const updateGoogleAdsMetrics = async (req, res) => {
 //   }
 // };
 
-// Get 4-week comparison data for social media, Meta ads, and Google ads
-const getFourWeekComparison = async (req, res) => {
+// Get 5-week comparison data for social media, Meta ads, and Google ads
+const getWeeksComparison = async (req, res) => {
   try {
     const { clientId } = req.query;
 
@@ -1275,16 +1275,16 @@ const getFourWeekComparison = async (req, res) => {
       });
     }
 
-    // Calculate date range for last 4 weeks from today
+    // Calculate date range for last 5 weeks from today
     const endDate = new Date();
     const startDate = new Date();
-    startDate.setDate(endDate.getDate() - 28); // 4 weeks = 28 days
+    startDate.setDate(endDate.getDate() - 35); // 5 weeks = 35 days
 
-    console.log('=== 4-WEEK COMPARISON DEBUG ===');
-    console.log('Client ID:', clientId);
-    console.log('Date Range:', { startDate, endDate });
+    // console.log('=== 5-WEEK COMPARISON DEBUG ===');
+    // console.log('Client ID:', clientId);
+    // console.log('Date Range:', { startDate, endDate });
 
-    // Build aggregation pipeline for 4-week data
+    // Build aggregation pipeline for 5-week data
     const pipeline = [
       {
         $match: {
@@ -1321,7 +1321,7 @@ const getFourWeekComparison = async (req, res) => {
         $sort: { 'month': -1, 'week': -1 }
       },
       {
-        $limit: 4 // Get only the last 4 weeks
+        $limit: 5 // Get only the last 5 weeks
       }
     ];
 
@@ -1329,12 +1329,12 @@ const getFourWeekComparison = async (req, res) => {
 
     console.log('Weekly Data Retrieved:', weeklyData.length, 'weeks');
 
-    // Reverse the data to show oldest to newest (W1 = oldest, W4 = newest)
+    // Reverse the data to show oldest to newest (W1 = oldest, W5 = newest)
     const reversedWeeklyData = weeklyData.reverse();
 
     // Format data for comparison in the specified format
     const socialMediaData = reversedWeeklyData.map((week, index) => {
-      const weekNumber = index + 1; // Week 1, 2, 3, 4 (oldest to newest)
+      const weekNumber = index + 1; // Week 1, 2, 3, 4, 5 (oldest to newest)
       const weekLabel = `W${weekNumber}`;
       
       return {
@@ -1350,7 +1350,7 @@ const getFourWeekComparison = async (req, res) => {
     });
 
     const metaAdsData = reversedWeeklyData.map((week, index) => {
-      const weekNumber = index + 1; // Week 1, 2, 3, 4 (oldest to newest)
+      const weekNumber = index + 1; // Week 1, 2, 3, 4, 5 (oldest to newest)
       const weekLabel = `W${weekNumber}`;
       
       return {
@@ -1366,7 +1366,7 @@ const getFourWeekComparison = async (req, res) => {
     });
 
     const googleAdsData = reversedWeeklyData.map((week, index) => {
-      const weekNumber = index + 1; // Week 1, 2, 3, 4 (oldest to newest)
+      const weekNumber = index + 1; // Week 1, 2, 3, 4, 5 (oldest to newest)
       const weekLabel = `W${weekNumber}`;
       
       return {
@@ -1383,7 +1383,7 @@ const getFourWeekComparison = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: '4-week comparison data retrieved successfully',
+      message: '5-week comparison data retrieved successfully',
       data: {
         socialMediaData,
         metaAdsData,
@@ -1400,10 +1400,10 @@ const getFourWeekComparison = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching 4-week comparison:', error);
+    console.error('Error fetching 5-week comparison:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching 4-week comparison data',
+      message: 'Error fetching 5-week comparison data',
       error: error.message
     });
   }
@@ -1788,7 +1788,7 @@ module.exports = {
   getMetaAdsMetrics,
   getGoogleAdsMetrics,
   getClientOverviewDashboard,
-  getFourWeekComparison,
+  getWeeksComparison,
   getLatestAdsData,
   getPerformanceTrackingData
 };
