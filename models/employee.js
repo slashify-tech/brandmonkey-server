@@ -123,7 +123,7 @@ const employeeSchema = mongoose.Schema({
     type: Boolean,
     default: false,
   },
-});
+}, { timestamps: true });
 
 const Employees = mongoose.model("employees", employeeSchema);
 module.exports = Employees;

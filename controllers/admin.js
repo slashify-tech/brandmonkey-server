@@ -18,7 +18,11 @@ const { timeSlots } = require("../utils/set_times");
 exports.uploadClientBulk = async (req, res) => {
   let ClientData = [];
   try {
-    const response = await csv().fromFile(req.file.path);
+    const file = req.file || (req.files && req.files[0]);
+    if (!file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    const response = await csv().fromFile(file.path);
 
     for (var i = 0; i < response.length; i++) {
       ClientData.push({
@@ -57,7 +61,7 @@ function simpleEncrypt(data, key) {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";
   const encrypted = [];
 
-  for (let i = 0; i < data.length; i++) {
+  for (let i = 0; i < data?.length; i++) {
     const char = data[i].toLowerCase();
     const isUpperCase = data[i] === data[i].toUpperCase();
 
@@ -82,48 +86,105 @@ function simpleDecrypt(encryptedData, key) {
 exports.uploadEmployeeBulk = async (req, res) => {
   let employeesToInsert = [];
   try {
-    const response = await csv().fromFile(req.file.path);
+    const file = req.file || (req.files && req.files[0]);
+    if (!file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    const response = await csv().fromFile(file.path);
 
     for (let i = 0; i < response.length; i++) {
-      const clientDetails = await Promise.all(
-        response[i]?.["Client-Service"].split(",").map(async (client) => {
-          const clientName = client.trim();
-          const existingClient = await Clients.findOne({
-            name: { $regex: new RegExp(clientName.split("-")[0].trim(), "i") },
-          });
+      // const clientDetails = await Promise.all(
+      //   response[i]?.["Client-Service"]?.split(",").map(async (client) => {
+      //     const clientName = client.trim();
+      //     const existingClient = await Clients.findOne({
+      //       name: { $regex: new RegExp(clientName.split("-")[0].trim(), "i") },
+      //     });
 
-          // If client not found or clientName is empty, skip adding client detail
-          if (!existingClient || !clientName) return null;
+      //     // If client not found or clientName is empty, skip adding client detail
+      //     if (!existingClient || !clientName) return null;
 
-          return {
-            clientName: clientName,
-            logo: clientName.split("-")[0].trim() + ".png",
-            progressValue: "0-10",
-            clientType: existingClient.clientType,
-          };
-        })
-      );
+      //     return {
+      //       clientName: clientName,
+      //       logo: clientName.split("-")[0].trim() + ".png",
+      //       progressValue: "0-10",
+      //       clientType: existingClient.clientType,
+      //     };
+      //   })
+      // );
 
-      // Filter out null client details
-      const filteredClientDetails = clientDetails.filter(
-        (client) => client !== null
-      );
+      // // Filter out null client details
+      // const filteredClientDetails = clientDetails.filter(
+      //   (client) => client !== null
+      // );
+
+       console.log(response[i]);
+
+        // Helper function to parse date string (handles both M/D/YYYY and DD/MM/YYYY)
+        const parseDate = (dateString) => {
+          if (!dateString) return new Date();
+          const trimmed = dateString.trim();
+          if (!trimmed || trimmed === "NA") return new Date();
+          
+          try {
+            // Try to parse the date - handle formats like "1/1/2021" or "25/08/1999"
+            const parts = trimmed.split("/");
+            if (parts.length === 3) {
+              // If month > 12, it's likely DD/MM/YYYY, otherwise M/D/YYYY
+              const first = parseInt(parts[0], 10);
+              const second = parseInt(parts[1], 10);
+              const year = parseInt(parts[2], 10);
+              
+              let date;
+              if (first > 12) {
+                // DD/MM/YYYY format
+                date = new Date(year, second - 1, first); // month is 0-indexed
+              } else {
+                // M/D/YYYY format
+                date = new Date(year, first - 1, second); // month is 0-indexed
+              }
+              
+              // Validate the date
+              if (!isNaN(date.getTime())) {
+                return date;
+              }
+            }
+            
+            // Fallback: try to parse directly
+            const parsed = new Date(trimmed);
+            if (!isNaN(parsed.getTime())) {
+              return parsed;
+            }
+          } catch (error) {
+            console.error(`Error parsing date: ${trimmed}`, error);
+          }
+          
+          // Return current date as fallback
+          return new Date();
+        };
+
+        const joiningDate = parseDate(response[i]?.Joining || response[i]?.['DateOfJoining']);
+        const birthDate = parseDate(response[i]?.Birth || response[i]?.['DateOfBirth']);
+        console.log(joiningDate, birthDate);
 
         const employee = {
-          employeeId: response[i]?.EmployeeID || "NA",
-          name: response[i]?.EmployeeName,
-          team: response[i]?.Team,
-          type: response[i]?.Type,
-          designation: response[i]?.Designation,
-          phoneNumber: parseInt(response[i]?.PhoneNumber),
-          email: response[i]?.EmailID,
-          password: simpleEncrypt(response[i]?.Password, 5),
-          services: response[i]?.Services,
-          clients: filteredClientDetails || [],
-          Gender: response[i]?.Gender || "NA",
-          DateOfJoining: response[i]?.Joining || "NA",
-          DateOfBirth: response[i]?.Birth || "NA",
-          image: response[i]?.Images + ".jpg",
+          employeeId: response[i]?.employeeId?.trim() || "NA",
+          name: response[i]?.name?.trim(),
+          team: response[i]?.team?.trim().toLowerCase(),
+          type: response[i]?.type?.trim().toLowerCase(),
+          designation: response[i]?.designation?.trim().toLowerCase(),
+          phoneNumber: parseInt(response[i]?.phoneNumber?.trim()?.split(" ")[1]?.trim()) || parseInt(response[i]?.phoneNumber?.trim()),
+          email: response[i]?.email?.trim().toLowerCase(),
+          password: simpleEncrypt(response[i]?.Password?.trim() || response[i]?.password?.trim() || "password", 5),
+          services: response[i]?.services?.trim().toLowerCase(),
+          clients: [],
+          Gender: response[i]?.Gender?.trim() || "NA",
+          DateOfJoining: response[i]?.Joining?.trim()?.replaceAll("/", "-") || "NA",
+          DateOfBirth: response[i]?.Birth?.trim()?.replaceAll("/", "-") || "NA",
+          image: "",
+          monthlySalary: parseInt(response[i]?.Salary?.trim()) || 0,
+          createdAt: joiningDate && !isNaN(joiningDate.getTime()) ? joiningDate.toISOString() : new Date().toISOString(),
+          updatedAt: joiningDate && !isNaN(joiningDate.getTime()) ? joiningDate.toISOString() : new Date().toISOString(),
+          isDeleted: false,
         };
         employeesToInsert.push(employee);
       
