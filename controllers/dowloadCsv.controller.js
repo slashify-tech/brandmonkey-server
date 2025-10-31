@@ -3,6 +3,7 @@ const { formatDateTime } = require("../utils/formattedDate");
 const { generateAndDownloadCSV } = require("../utils/generate-download-csv");
 const Clients = require("../models/clients");
 const Employees = require("../models/employee");
+const ClientPerformance = require("../models/clientPerformance");
 const json2csv = require("json2csv").parse;
 const dotenv = require("dotenv");
 dotenv.config();
@@ -103,10 +104,32 @@ exports.downloadAllEmployeeHit = async (req, res) => {
       return res.status(404).send("No hits found for any employee");
     }
 
-    let allHits = hits.map((hit) => ({
-      "Employee Name": hit.employeeId?.name,
+    // Aggregate hits by employee and client to get total hits per combination
+    const hitsMap = new Map();
+    
+    hits.forEach((hit) => {
+      const key = `${hit.employeeId?.name}_${hit.clientName}`;
+      if (hitsMap.has(key)) {
+        const existing = hitsMap.get(key);
+        hitsMap.set(key, {
+          employeeName: existing.employeeName,
+          clientName: existing.clientName,
+          totalHits: existing.totalHits + hit.noOfHits,
+        });
+      } else {
+        hitsMap.set(key, {
+          employeeName: hit.employeeId?.name,
+          clientName: hit.clientName,
+          totalHits: hit.noOfHits,
+        });
+      }
+    });
+    
+    // Convert map to array and calculate total hours
+    let allHits = Array.from(hitsMap.values()).map((hit) => ({
+      "Employee Name": hit.employeeName,
       "Client Name": hit.clientName,
-      "Total Hours": (hit.noOfHits * 30) / 60 + " hrs",
+      "Total Hours": (hit.totalHits * 30) / 60 + " hrs",
     }));
 
     await generateAndDownloadCSV(
@@ -202,6 +225,166 @@ exports.downloadCsvClients = async (req, res) => {
 
       fs.unlinkSync(fileName);
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+exports.downloadClientPerformanceData = async (req, res) => {
+  try {
+    const { month, week } = req.query;
+    
+    // Build query filters
+    const query = {};
+    if (month) query.month = new Date(month).toISOString().slice(0, 7) || new Date().toISOString().slice(0, 7);
+    if (week) query.week = parseInt(week);
+
+    const performanceData = await ClientPerformance.find(query)
+      .populate("clientId", "name email phoneNumber")
+      .sort({ month: -1, week: -1, lastUpdated: -1 });
+
+    if (!performanceData || performanceData.length === 0) {
+      return res.status(404).send("No client performance data found");
+    }
+
+    const allPerformanceData = [];
+
+    performanceData.forEach((performance) => {
+      allPerformanceData.push({
+        ClientName: performance.clientId?.name || "N/A",
+        ClientEmail: performance.clientId?.email || "N/A",
+        ClientPhone: performance.clientId?.phoneNumber || "N/A",
+        Status: performance.status,
+        Month: performance.month,
+        Week: performance.week,
+        LastUpdated: formatDateTime(performance.lastUpdated),
+        
+        // Social Media Metrics
+        SocialMediaReach: performance.socialMediaMetrics?.reach || 0,
+        SocialMediaFollowers: performance.socialMediaMetrics?.followers || 0,
+        AvgEngagement: performance.socialMediaMetrics?.avgEngagement || 0,
+        GraphicsPost: performance.socialMediaMetrics?.graphicsPost || 0,
+        UGC: performance.socialMediaMetrics?.ugc || 0,
+        Reels: performance.socialMediaMetrics?.reels || 0,
+        MaxReels: performance.socialMediaMetrics?.maxReels || 0,
+        MaxGraphicsPost: performance.socialMediaMetrics?.maxGraphicsPost || 0,
+        MaxUGC: performance.socialMediaMetrics?.maxUgc || 0,
+        
+        // Meta Ads Metrics
+        MetaSpentAmount: performance.metaAdsMetrics?.spentAmount || 0,
+        MetaROAS: performance.metaAdsMetrics?.roas || 0,
+        MetaLeads: performance.metaAdsMetrics?.leads || 0,
+        MetaMessages: performance.metaAdsMetrics?.messages || 0,
+        MetaCostPerLead: performance.metaAdsMetrics?.costPerLead || 0,
+        MetaCostPerMessage: performance.metaAdsMetrics?.costPerMessage || 0,
+        
+        // Google Ads Metrics
+        GoogleSpentAmount: performance.googleAdsMetrics?.spentAmount || 0,
+        GoogleClicks: performance.googleAdsMetrics?.clicks || 0,
+        GoogleConversions: performance.googleAdsMetrics?.conversions || 0,
+        GoogleCalls: performance.googleAdsMetrics?.calls || 0,
+        GoogleCostPerClick: performance.googleAdsMetrics?.costPerClick || 0,
+        GoogleCostPerConversion: performance.googleAdsMetrics?.costPerConversion || 0,
+        GoogleCostPerCall: performance.googleAdsMetrics?.costPerCall || 0,
+      });
+    });
+
+    await generateAndDownloadCSV(
+      allPerformanceData,
+      "client_performance_data.csv",
+      [
+        "ClientName", "ClientEmail", "ClientPhone", "Status", "Month", "Week", "LastUpdated",
+        "SocialMediaReach", "SocialMediaFollowers", "AvgEngagement", "GraphicsPost", "UGC", "Reels", 
+        "MaxReels", "MaxGraphicsPost", "MaxUGC",
+        "MetaSpentAmount", "MetaROAS", "MetaLeads", "MetaMessages", "MetaCostPerLead", "MetaCostPerMessage",
+        "GoogleSpentAmount", "GoogleClicks", "GoogleConversions", "GoogleCalls", "GoogleCostPerClick", 
+        "GoogleCostPerConversion", "GoogleCostPerCall"
+      ],
+      res
+    );
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+exports.downloadSingleClientPerformanceData = async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const { month, week } = req.query;
+    
+    // Build query filters
+    const query = { clientId };
+    if (month) query.month = new Date(month).toISOString().slice(0, 7) || new Date().toISOString().slice(0, 7);
+    if (week) query.week = parseInt(week);
+
+    const performanceData = await ClientPerformance.find(query)
+      .populate("clientId", "name email phoneNumber")
+      .sort({ month: -1, week: -1, lastUpdated: -1 });
+
+    if (!performanceData || performanceData.length === 0) {
+      return res.status(404).send("No performance data found for this client");
+    }
+
+    const clientPerformanceData = [];
+
+    performanceData.forEach((performance) => {
+      clientPerformanceData.push({
+        ClientName: performance.clientId?.name || "N/A",
+        ClientEmail: performance.clientId?.email || "N/A",
+        ClientPhone: performance.clientId?.phoneNumber || "N/A",
+        Status: performance.status,
+        Month: performance.month,
+        Week: performance.week,
+        LastUpdated: formatDateTime(performance.lastUpdated),
+        
+        // Social Media Metrics
+        SocialMediaReach: performance.socialMediaMetrics?.reach || 0,
+        SocialMediaFollowers: performance.socialMediaMetrics?.followers || 0,
+        AvgEngagement: performance.socialMediaMetrics?.avgEngagement || 0,
+        GraphicsPost: performance.socialMediaMetrics?.graphicsPost || 0,
+        UGC: performance.socialMediaMetrics?.ugc || 0,
+        Reels: performance.socialMediaMetrics?.reels || 0,
+        MaxReels: performance.socialMediaMetrics?.maxReels || 0,
+        MaxGraphicsPost: performance.socialMediaMetrics?.maxGraphicsPost || 0,
+        MaxUGC: performance.socialMediaMetrics?.maxUgc || 0,
+        
+        // Meta Ads Metrics
+        MetaSpentAmount: performance.metaAdsMetrics?.spentAmount || 0,
+        MetaROAS: performance.metaAdsMetrics?.roas || 0,
+        MetaLeads: performance.metaAdsMetrics?.leads || 0,
+        MetaMessages: performance.metaAdsMetrics?.messages || 0,
+        MetaCostPerLead: performance.metaAdsMetrics?.costPerLead || 0,
+        MetaCostPerMessage: performance.metaAdsMetrics?.costPerMessage || 0,
+        
+        // Google Ads Metrics
+        GoogleSpentAmount: performance.googleAdsMetrics?.spentAmount || 0,
+        GoogleClicks: performance.googleAdsMetrics?.clicks || 0,
+        GoogleConversions: performance.googleAdsMetrics?.conversions || 0,
+        GoogleCalls: performance.googleAdsMetrics?.calls || 0,
+        GoogleCostPerClick: performance.googleAdsMetrics?.costPerClick || 0,
+        GoogleCostPerConversion: performance.googleAdsMetrics?.costPerConversion || 0,
+        GoogleCostPerCall: performance.googleAdsMetrics?.costPerCall || 0,
+      });
+    });
+
+    const clientName = performanceData[0]?.clientId?.name || "Client";
+    const fileName = `${clientName.replace(/\s+/g, '_')}_performance_data.csv`;
+
+    await generateAndDownloadCSV(
+      clientPerformanceData,
+      fileName,
+      [
+        "ClientName", "ClientEmail", "ClientPhone", "Status", "Month", "Week", "LastUpdated",
+        "SocialMediaReach", "SocialMediaFollowers", "AvgEngagement", "GraphicsPost", "UGC", "Reels", 
+        "MaxReels", "MaxGraphicsPost", "MaxUGC",
+        "MetaSpentAmount", "MetaROAS", "MetaLeads", "MetaMessages", "MetaCostPerLead", "MetaCostPerMessage",
+        "GoogleSpentAmount", "GoogleClicks", "GoogleConversions", "GoogleCalls", "GoogleCostPerClick", 
+        "GoogleCostPerConversion", "GoogleCostPerCall"
+      ],
+      res
+    );
   } catch (err) {
     console.error(err);
     res.status(500).send("Internal Server Error");

@@ -11,11 +11,18 @@ const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const fs = require("fs");
 const TicketCount = require("../models/ticketCount");
+const { Task } = require("../models/activities");
+const { formatDateFromISO } = require("../utils/formattedDate");
+const { timeSlots } = require("../utils/set_times");
 
 exports.uploadClientBulk = async (req, res) => {
   let ClientData = [];
   try {
-    const response = await csv().fromFile(req.file.path);
+    const file = req.file || (req.files && req.files[0]);
+    if (!file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    const response = await csv().fromFile(file.path);
 
     for (var i = 0; i < response.length; i++) {
       ClientData.push({
@@ -54,7 +61,7 @@ function simpleEncrypt(data, key) {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";
   const encrypted = [];
 
-  for (let i = 0; i < data.length; i++) {
+  for (let i = 0; i < data?.length; i++) {
     const char = data[i].toLowerCase();
     const isUpperCase = data[i] === data[i].toUpperCase();
 
@@ -79,48 +86,105 @@ function simpleDecrypt(encryptedData, key) {
 exports.uploadEmployeeBulk = async (req, res) => {
   let employeesToInsert = [];
   try {
-    const response = await csv().fromFile(req.file.path);
+    const file = req.file || (req.files && req.files[0]);
+    if (!file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    const response = await csv().fromFile(file.path);
 
     for (let i = 0; i < response.length; i++) {
-      const clientDetails = await Promise.all(
-        response[i]?.["Client-Service"].split(",").map(async (client) => {
-          const clientName = client.trim();
-          const existingClient = await Clients.findOne({
-            name: { $regex: new RegExp(clientName.split("-")[0].trim(), "i") },
-          });
+      // const clientDetails = await Promise.all(
+      //   response[i]?.["Client-Service"]?.split(",").map(async (client) => {
+      //     const clientName = client.trim();
+      //     const existingClient = await Clients.findOne({
+      //       name: { $regex: new RegExp(clientName.split("-")[0].trim(), "i") },
+      //     });
 
-          // If client not found or clientName is empty, skip adding client detail
-          if (!existingClient || !clientName) return null;
+      //     // If client not found or clientName is empty, skip adding client detail
+      //     if (!existingClient || !clientName) return null;
 
-          return {
-            clientName: clientName,
-            logo: clientName.split("-")[0].trim() + ".png",
-            progressValue: "0-10",
-            clientType: existingClient.clientType,
-          };
-        })
-      );
+      //     return {
+      //       clientName: clientName,
+      //       logo: clientName.split("-")[0].trim() + ".png",
+      //       progressValue: "0-10",
+      //       clientType: existingClient.clientType,
+      //     };
+      //   })
+      // );
 
-      // Filter out null client details
-      const filteredClientDetails = clientDetails.filter(
-        (client) => client !== null
-      );
+      // // Filter out null client details
+      // const filteredClientDetails = clientDetails.filter(
+      //   (client) => client !== null
+      // );
+
+       console.log(response[i]);
+
+        // Helper function to parse date string (handles both M/D/YYYY and DD/MM/YYYY)
+        const parseDate = (dateString) => {
+          if (!dateString) return new Date();
+          const trimmed = dateString.trim();
+          if (!trimmed || trimmed === "NA") return new Date();
+          
+          try {
+            // Try to parse the date - handle formats like "1/1/2021" or "25/08/1999"
+            const parts = trimmed.split("/");
+            if (parts.length === 3) {
+              // If month > 12, it's likely DD/MM/YYYY, otherwise M/D/YYYY
+              const first = parseInt(parts[0], 10);
+              const second = parseInt(parts[1], 10);
+              const year = parseInt(parts[2], 10);
+              
+              let date;
+              if (first > 12) {
+                // DD/MM/YYYY format
+                date = new Date(year, second - 1, first); // month is 0-indexed
+              } else {
+                // M/D/YYYY format
+                date = new Date(year, first - 1, second); // month is 0-indexed
+              }
+              
+              // Validate the date
+              if (!isNaN(date.getTime())) {
+                return date;
+              }
+            }
+            
+            // Fallback: try to parse directly
+            const parsed = new Date(trimmed);
+            if (!isNaN(parsed.getTime())) {
+              return parsed;
+            }
+          } catch (error) {
+            console.error(`Error parsing date: ${trimmed}`, error);
+          }
+          
+          // Return current date as fallback
+          return new Date();
+        };
+
+        const joiningDate = parseDate(response[i]?.Joining || response[i]?.['DateOfJoining']);
+        const birthDate = parseDate(response[i]?.Birth || response[i]?.['DateOfBirth']);
+        console.log(joiningDate, birthDate);
 
         const employee = {
-          employeeId: response[i]?.EmployeeID || "NA",
-          name: response[i]?.EmployeeName,
-          team: response[i]?.Team,
-          type: response[i]?.Type,
-          designation: response[i]?.Designation,
-          phoneNumber: parseInt(response[i]?.PhoneNumber),
-          email: response[i]?.EmailID,
-          password: simpleEncrypt(response[i]?.Password, 5),
-          services: response[i]?.Services,
-          clients: filteredClientDetails || [],
-          Gender: response[i]?.Gender || "NA",
-          DateOfJoining: response[i]?.Joining || "NA",
-          DateOfBirth: response[i]?.Birth || "NA",
-          image: response[i]?.Images + ".jpg",
+          employeeId: response[i]?.employeeId?.trim() || "NA",
+          name: response[i]?.name?.trim(),
+          team: response[i]?.team?.trim().toLowerCase(),
+          type: response[i]?.type?.trim().toLowerCase(),
+          designation: response[i]?.designation?.trim().toLowerCase(),
+          phoneNumber: parseInt(response[i]?.phoneNumber?.trim()?.split(" ")[1]?.trim()) || parseInt(response[i]?.phoneNumber?.trim()),
+          email: response[i]?.email?.trim().toLowerCase(),
+          password: simpleEncrypt(response[i]?.Password?.trim() || response[i]?.password?.trim() || "password", 5),
+          services: response[i]?.services?.trim().toLowerCase(),
+          clients: [],
+          Gender: response[i]?.Gender?.trim() || "NA",
+          DateOfJoining: response[i]?.Joining?.trim()?.replaceAll("/", "-") || "NA",
+          DateOfBirth: response[i]?.Birth?.trim()?.replaceAll("/", "-") || "NA",
+          image: "",
+          monthlySalary: parseInt(response[i]?.Salary?.trim()) || 0,
+          createdAt: joiningDate && !isNaN(joiningDate.getTime()) ? joiningDate.toISOString() : new Date().toISOString(),
+          updatedAt: joiningDate && !isNaN(joiningDate.getTime()) ? joiningDate.toISOString() : new Date().toISOString(),
+          isDeleted: false,
         };
         employeesToInsert.push(employee);
       
@@ -600,3 +664,282 @@ exports.deleteReviewData = async (req, res) => {
   }
 };
 
+// HR-specific function to get missing time slots for the past 7 days
+exports.getSlotWiseMissingTimeSlots = async (req, res) => {
+  try {
+    if(req.user.type !== "superadmin" && req.user.type !== "hr"){
+      return res.status(403).json({ error: "Unauthorized access. Only HR and Superadmin can access this route." });
+    }
+    // Calculate the date range for the past 7 days
+    const today = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 7);
+
+    // Get all activities from the past 7 days
+    const activities = await Task.find({
+      date: {
+        $gte: formatDateFromISO(sevenDaysAgo.toISOString()),
+        $lte: formatDateFromISO(today.toISOString())
+      },
+      isDeleted: false,
+      type: "activity" // Only regular activities, not extra activities
+    }).populate('employeeId', 'name employeeId designation team');
+
+    // Group activities by date and employee
+    const activitiesByDateAndEmployee = {};
+    
+    activities.forEach(activity => {
+      const date = activity.date;
+      const employeeId = activity.employeeId._id.toString();
+      
+      if (!activitiesByDateAndEmployee[date]) {
+        activitiesByDateAndEmployee[date] = {};
+      }
+      
+      if (!activitiesByDateAndEmployee[date][employeeId]) {
+        activitiesByDateAndEmployee[date][employeeId] = {
+          employee: activity.employeeId,
+          timeSlots: []
+        };
+      }
+      
+      activitiesByDateAndEmployee[date][employeeId].timeSlots.push(activity.timeSlot);
+    });
+
+    // Generate the past 7 days array
+    const pastSevenDays = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      pastSevenDays.push(formatDateFromISO(date.toISOString()));
+    }
+
+    // Get all employees once to avoid multiple database calls
+    const allEmployees = await Employees.find({ 
+      type: { $ne: "superadmin" },
+      isDeleted: false 
+    }).select('name employeeId designation team');
+
+    // Build slot-centric report: for each timeslot, list employees who missed and on which days
+    const slotWise = timeSlots.map(slot => ({
+      slot,
+      totalEmployeesMissed: 0,
+      employees: [] // { name, employeeId, designation, team, daysMissed: [] }
+    }));
+
+    // Index timeslot -> structure for faster push
+    const slotIndexByName = new Map();
+    slotWise.forEach((s, idx) => slotIndexByName.set(s.slot, idx));
+
+    for (const date of pastSevenDays) {
+      const employeesOnDate = activitiesByDateAndEmployee[date] || {};
+
+      allEmployees.forEach(employee => {
+        const empId = employee._id.toString();
+        const usedSlots = employeesOnDate[empId]?.timeSlots || [];
+
+        // For each slot, if not used, mark missed for this employee on this date
+        timeSlots.forEach(slot => {
+          if (!usedSlots.includes(slot)) {
+            const idx = slotIndexByName.get(slot);
+            const entry = slotWise[idx];
+
+            // find or create employee entry under this slot
+            let empEntry = entry.employees.find(e => e._id === empId);
+            if (!empEntry) {
+              empEntry = {
+                _id: empId,
+                name: employee.name,
+                employeeCode: employee.employeeId,
+                designation: employee.designation,
+                team: employee.team,
+                daysMissed: []
+              };
+              entry.employees.push(empEntry);
+            }
+            empEntry.daysMissed.push(date);
+          }
+        });
+      });
+    }
+
+    // finalize totalEmployeesMissed per slot (unique employees)
+    slotWise.forEach(s => {
+      s.totalEmployeesMissed = s.employees.length;
+    });
+
+    res.status(200).json({
+      success: true,
+      range: {
+        from: pastSevenDays[0],
+        to: pastSevenDays[pastSevenDays.length - 1]
+      },
+      slots: slotWise
+    });
+
+  } catch (error) {
+    console.error("Error in getMissingTimeSlots:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Internal Server Error",
+      message: "Failed to fetch missing time slots data"
+    });
+  }
+};
+
+
+// HR-specific function to get missing time slots for the past 7 days
+exports.getMissingTimeSlots = async (req, res) => {
+  try {
+    if(req.user.type !== "superadmin" && req.user.type !== "hr"){
+      return res.status(403).json({ error: "Unauthorized access. Only HR and Superadmin can access this route." });
+    }
+    const { minimize = false } = req.query;
+    // Calculate the date range for the past 7 days
+    const today = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 7);
+
+    // Get all activities from the past 7 days
+    const activities = await Task.find({
+      date: {
+        $gte: formatDateFromISO(sevenDaysAgo.toISOString()),
+        $lte: formatDateFromISO(today.toISOString())
+      },
+      isDeleted: false,
+      type: "activity" // Only regular activities, not extra activities
+    }).populate('employeeId', 'name employeeId designation team');
+
+    // Group activities by date and employee
+    const activitiesByDateAndEmployee = {};
+    
+    activities.forEach(activity => {
+      const date = activity.date;
+      const employeeId = activity.employeeId._id.toString();
+      
+      if (!activitiesByDateAndEmployee[date]) {
+        activitiesByDateAndEmployee[date] = {};
+      }
+      
+      if (!activitiesByDateAndEmployee[date][employeeId]) {
+        activitiesByDateAndEmployee[date][employeeId] = {
+          employee: activity.employeeId,
+          timeSlots: []
+        };
+      }
+      
+      activitiesByDateAndEmployee[date][employeeId].timeSlots.push(activity.timeSlot);
+    });
+
+    // Generate the past 7 days array
+    const pastSevenDays = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      pastSevenDays.push(formatDateFromISO(date.toISOString()));
+    }
+
+    // Get all employees once to avoid multiple database calls
+    const allEmployees = await Employees.find({ 
+      type: { $ne: "superadmin" },
+      isDeleted: false 
+    }).select('name employeeId designation team');
+
+    // If minimize is true, return just the count of missing slots
+    if (minimize === 'true' || minimize === true) {
+      let totalMissingSlots = 0;
+      
+      for (const date of pastSevenDays) {
+        const employeesOnDate = activitiesByDateAndEmployee[date] || {};
+        
+        allEmployees.forEach(employee => {
+          const employeeId = employee._id.toString();
+          const employeeActivities = employeesOnDate[employeeId];
+          
+          if (employeeActivities) {
+            // Employee has some activities, count missing slots
+            const usedSlots = employeeActivities.timeSlots;
+            const missingSlots = timeSlots.filter(slot => !usedSlots.includes(slot));
+            totalMissingSlots += missingSlots.length;
+          } else {
+            // Employee has no activities on this date, all slots are missing
+            totalMissingSlots += timeSlots.length;
+          }
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        totalMissingSlots: totalMissingSlots,
+        totalPossibleSlots: pastSevenDays.length * timeSlots.length * allEmployees.length,
+        reportGeneratedAt: new Date().toISOString()
+      });
+    }
+
+    // Analyze missing time slots for each day and employee
+    const missingSlotsReport = [];
+
+    for (const date of pastSevenDays) {
+      const dayReport = {
+        date: date,
+        employees: []
+      };
+
+      // Get all employees who have activities on this date
+      const employeesOnDate = activitiesByDateAndEmployee[date] || {};
+      
+      // Check each employee for missing slots
+      allEmployees.forEach(employee => {
+        const employeeId = employee._id.toString();
+        const employeeActivities = employeesOnDate[employeeId];
+        
+        if (employeeActivities) {
+          // Employee has some activities, find missing slots
+          const usedSlots = employeeActivities.timeSlots;
+          const missingSlots = timeSlots.filter(slot => !usedSlots.includes(slot));
+          
+          dayReport.employees.push({
+            employee: employee,
+            missingSlots: missingSlots,
+            totalMissing: missingSlots.length,
+            hasActivities: true,
+            usedSlots: usedSlots
+          });
+        } else {
+          // Employee has no activities on this date
+          dayReport.employees.push({
+            employee: employee,
+            missingSlots: [...timeSlots],
+            totalMissing: timeSlots.length,
+            hasActivities: false
+          });
+        }
+      });
+
+      missingSlotsReport.push(dayReport);
+    }
+
+    // Calculate summary statistics
+    const summary = {
+      totalDays: pastSevenDays.length,
+      totalTimeSlotsPerDay: timeSlots.length,
+      totalPossibleSlots: pastSevenDays.length * timeSlots.length,
+      reportGeneratedAt: new Date().toISOString()
+    };
+
+    res.status(200).json({
+      success: true,
+      summary: summary,
+      missingSlotsReport: missingSlotsReport,
+      // timeSlots: timeSlots
+    });
+
+  } catch (error) {
+    console.error("Error in getMissingTimeSlots:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Internal Server Error",
+      message: "Failed to fetch missing time slots data"
+    });
+  }
+};

@@ -2,6 +2,7 @@ const Clients = require("../models/clients");
 const Employees = require("../models/employee");
 const TicketAssigned = require("../models/ticketRaise");
 const EmployeeReview = require("../models/reviewList");
+const ClientPerformance = require("../models/clientPerformance");
 const dotenv = require("dotenv");
 const {
   resizeImage,
@@ -64,6 +65,7 @@ exports.addEmployee = async (req, res, next) => {
         phoneNumber: req.body.phoneNumber,
         type: "employee",
         image: fileName,
+        monthlySalary: req.body.monthlySalary,
       });
     } else {
       await Employees.create({
@@ -73,6 +75,7 @@ exports.addEmployee = async (req, res, next) => {
         password: hashedPass,
         phoneNumber: req.body.phoneNumber,
         type: "employee",
+        monthlySalary: req.body.monthlySalary,
       });
     }
     // await employee.save();
@@ -85,6 +88,8 @@ exports.addEmployee = async (req, res, next) => {
 exports.addClient = async (req, res, next) => {
   try {
     const {name} = req.body;
+    let client;
+    
     if (req.file) {
       const { buffer, originalname, mimetype } = req.file;
 
@@ -93,11 +98,31 @@ exports.addClient = async (req, res, next) => {
 
       await uploadToS3(resizedImageBuffer, fileName, mimetype);
 
-      await Clients.create({ ...req.body, logo: fileName, name : name.trim() });
+      client = await Clients.create({ ...req.body, logo: fileName, name : name.trim() });
     } else {
-      await Clients.create({ ...req.body, name : name.trim() });
+      client = await Clients.create({ ...req.body, name : name.trim() });
     }
-    // await client.save();
+    
+    // Create blank client performance entries for all 5 weeks of current month
+    // Only if no documents exist for this client
+    const existingPerformance = await ClientPerformance.findOne({ clientId: client._id });
+    
+    if (!existingPerformance) {
+      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+      const performanceEntries = [];
+      
+      for (let week = 1; week <= 1; week++) {
+        performanceEntries.push({
+          clientId: client._id,
+          month: currentMonth,
+          week: week,
+          status: 'Active'
+        });
+      }
+      
+      await ClientPerformance.insertMany(performanceEntries);
+    }
+    
     res.status(201).json("adding succesful");
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -260,8 +285,10 @@ exports.deleteFieldsFromClients = async (req, res) => {
 
 exports.storeClientDistributionData = async (req, res) => {
   try {
-    const { clients, service } = req.body; // Expecting an array of clients and a single service
+    const { clients, service } = req.body; // Expecting an array of client names and a single service
     const userId = req.params.id;
+    // console.log(clients, service);
+    // console.log(userId);
 
     const user = await Employees.findById(userId);
     if (!user) {
@@ -277,11 +304,27 @@ exports.storeClientDistributionData = async (req, res) => {
       });
     }
 
-    for (const client of clients) {
-      const clientType = await Clients.findOne({ name: client });
-      
+    // Find client IDs by matching names
+    const clientIds = [];
+    const clientDetails = [];
+    
+    for (const clientName of clients) {
+      const client = await Clients.findOne({ name: clientName.trim() });
+      if (client) {
+        clientIds.push(client._id);
+        clientDetails.push({
+          clientId: client._id,
+          clientName: client.name,
+          clientType: client.clientType || "Unknown"
+        });
+      } else {
+        console.warn(`Client not found: ${clientName}`);
+      }
+    }
+
+    for (const clientDetail of clientDetails) {
       const existingClientIndex = clientDistribution.clients.findIndex(
-        (clientObj) => clientObj.clientName.startsWith(client.trim())
+        (clientObj) => clientObj.clientName.startsWith(clientDetail.clientName.trim())
       );
 
       if (existingClientIndex !== -1) {
@@ -291,10 +334,11 @@ exports.storeClientDistributionData = async (req, res) => {
       } else {
         // Add new client with service
         clientDistribution.clients.push({
-          clientName: `${client.trim()} - ${service.trim()}`,
-          logo: `${client}.png`,
+          clientId: clientDetail.clientId, // Store the client ID
+          clientName: `${clientDetail.clientName.trim()} - ${service.trim()}`,
+          logo: `${clientDetail.clientName}.png`,
           progressValue: "0-10",
-          clientType: clientType?.clientType || "Unknown",
+          clientType: clientDetail.clientType,
         });
       }
     }
@@ -365,7 +409,7 @@ exports.deleteEmployeeData = async (req, res) => {
     if (employee.image !== "") {
       await deleteFromS3(employee.image);
     }
-    await Employees.findByIdAndDelete(id);
+    await Employees.findByIdAndUpdate(id, { isDeleted: true });
 
     // Delete related ticket list
     await TicketAssigned.deleteMany({ toEmployee: id });

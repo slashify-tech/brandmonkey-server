@@ -7,7 +7,7 @@ const superAdminController = require('../controllers/superAdmin');
 
 const { fileMulter } = require('../multer/multerFile');
 const { imageMulter } = require('../multer/multerImg');
-const { isSuperAdmin, isAdmin } = require("../middleware/is_auth");
+const { isSuperAdmin, isAdmin, isAuth } = require("../middleware/is_auth");
 
 router.post('/csvClients',fileMulter, adminController.uploadClientBulk);
 router.post('/addClient',isSuperAdmin,imageMulter, superAdminController.addClient); //completed
@@ -33,6 +33,8 @@ router.get('/employeeReviews/:id', adminController.getEmployeeReviews);
 router.get('/employeeReviewsShow/:id', adminController.getEmployeeReviewsArray);
 router.get('/getOneClientOrEmployeeTickets', adminController.getTicketsForClient);
 router.get('/getDashboardAdmin', adminController.getDashBoardAdmin);
+router.get('/getSlotWiseMissingTimeSlots', isAuth, adminController.getSlotWiseMissingTimeSlots); // HR-specific route for missing time slots
+router.get('/getMissingTimeSlots', isAuth, adminController.getMissingTimeSlots); // HR-specific route for missing time slots
 
 router.delete('/deleteEmployee/:id', isSuperAdmin, superAdminController.deleteEmployeeData); //completed
 router.delete('/deleteClient/:id', isSuperAdmin, superAdminController.deleteClientData); //completed

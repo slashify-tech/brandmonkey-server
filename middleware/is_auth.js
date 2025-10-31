@@ -38,7 +38,7 @@ const isAuth = async (req, res, next) => {
     });
   } catch (error) {
     console.error("Authentication error:", error);
-    res.status(500).json({ message: "Internal server error." });
+    res.status(401).json({ message: "Invalid token/Unauthorized.",  error: error });
   }
 };
 
@@ -63,13 +63,15 @@ const isAdmin = async (req, res, next) => {
       if (err) {
         return res.status(401).json({ message: "Invalid token." });
       }
+      console.log(decoded);
       
       const user = await Employees.findById(decoded.id);
       if (!user) {
         return res.status(401).json({ message: "Employees not found." });
       }
       
-      if (user.type === "admin" || user.type === "superadmin") {
+      if (user.type === "admin" || user.type === "superadmin" || user.type === "hr") {
+        req.user = user;
         next(); 
       } else {
         res.status(403).json({ message: "Not admin." });
@@ -77,7 +79,7 @@ const isAdmin = async (req, res, next) => {
     });
   } catch (error) {
     console.error("Admin check error:", error);
-    res.status(500).json({ message: "Internal server error." });
+    res.status(401).json({ message: "Invalid token/Unauthorized.",  error: error });
   }
 };
 
@@ -110,7 +112,8 @@ const isSuperAdmin = async (req, res, next) => {
         return res.status(401).json({ message: "Employee not found." });
       }
       
-      if (user.type === "superadmin") {
+      if (user.type === "superadmin" || user.type === "hr") {
+        req.user = user;
         next(); 
       } else {
         res.status(403).json({ message: "Not superadmin." });
@@ -118,7 +121,7 @@ const isSuperAdmin = async (req, res, next) => {
     });
   } catch (error) {
     console.error("SuperAdmin check error:", error);
-    res.status(500).json({ message: "Internal server error." });
+    res.status(401).json({ message: "Invalid token/Unauthorized.",  error: error });
   }
 };
 

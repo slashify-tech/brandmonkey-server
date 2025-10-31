@@ -10,8 +10,13 @@ const fileStorage1 = multer.diskStorage({
   });
   
 
-//for storing file
-
-const fileMulter =  multer({ storage: fileStorage1 }).single("file");
+//for storing file - accepts "file", "csv", or "csvFile" as field names
+const fileMulter = multer({ 
+  storage: fileStorage1,
+  fileFilter: (req, file, cb) => {
+    // Accept any file
+    cb(null, true);
+  }
+}).any();
 
 module.exports = { fileMulter };

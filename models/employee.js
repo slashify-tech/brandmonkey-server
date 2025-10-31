@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const clientElementSchema = mongoose.Schema(
   {
+    clientId: { type: mongoose.Schema.Types.ObjectId, ref: "clients", required: false },
     clientName: {
       type: String,
       required: true,
@@ -47,7 +48,7 @@ const employeeSchema = mongoose.Schema({
     type: String,
     default: "",
   },
-  image : {
+  image: {
     type: String,
     default: "",
   },
@@ -108,7 +109,21 @@ const employeeSchema = mongoose.Schema({
     type: Number,
     default: 0,
   },
-});
+  // Allocation tracking fields
+  yearlyCTC: {
+    type: Number,
+    default: 0,
+    required: false,
+  },
+  monthlySalary: {
+    type: Number,
+    default: 0,
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
+}, { timestamps: true });
 
 const Employees = mongoose.model("employees", employeeSchema);
 module.exports = Employees;

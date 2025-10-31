@@ -90,7 +90,7 @@ const clientSchema = mongoose.Schema(
     colorZone: { type: String },
     logo: { type: String },
   },
-  { strict: false }
+  { strict: false , timestamps: true}
 );
 
 const Clients = mongoose.model("clients", clientSchema);

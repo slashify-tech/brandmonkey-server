@@ -4,13 +4,20 @@ const HitsSchema = mongoose.Schema({
   employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "employees" },
   clientName: { type: String },
   noOfHits: { type: Number },
-});
+  month: { type: String, required: false },
+  clientId: { type: mongoose.Schema.Types.ObjectId, ref: "clients" , required: false },
+  isDeleted : {
+    type: Boolean,
+    default: false,
+  },
+}, {timestamps: true});
 
 const TaskSchema = mongoose.Schema({
   employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "employees" },
   clientName: {
     type: String,
   },
+  clientId: { type: mongoose.Schema.Types.ObjectId, ref: "clients" , required: false },
   activity: {
     type: String,
   },
@@ -32,6 +39,10 @@ const TaskSchema = mongoose.Schema({
   countId : {
     type: String,
     default: "",
+  },
+  isDeleted : {
+    type: Boolean,
+    default: false,
   },
 }, {timestamps: true});
 
