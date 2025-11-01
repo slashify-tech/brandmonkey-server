@@ -26,27 +26,36 @@ exports.uploadClientBulk = async (req, res) => {
 
     for (var i = 0; i < response.length; i++) {
       ClientData.push({
-        name: response[i]?.Clients.trim(),
-        Reels: response[i]?.Reels,
-        Flyers: response[i]?.Flyer,
-        "Facebook Ads": response[i]?.FacebookAds,
-        "Google Ads": response[i]?.GoogleAds,
-        SEO: response[i]?.SEO,
-        GMB: response[i]?.GMB,
-        "Youtube Management": response[i]?.YoutubeManagement,
-        Ecommerce: response[i]?.Ecommerce,
-        "Social Media Management": response[i]?.SocialMediaManagement,
+        name: (() => {
+          const clientName = response[i]?.["Client Name"]?.trim();
+          if (!clientName) return "";
+          const parts = clientName.split(" ").filter(Boolean);
+          return parts.length > 0 ? parts[0] + (parts[1] ? "" + parts[1] : "") : clientName;
+        })(),
+        Reels: response[i]?.Reels?.trim() || "NA",
+        Flyers: response[i]?.Flyer || "NA",
+        "Facebook Ads": response[i]?.FacebookAds?.trim() || "NA",
+        "Google Ads": response[i]?.GoogleAds?.trim() || "NA",
+        SEO: response[i]?.SEO?.trim() || "NA",
+        GMB: response[i]?.GMB || "NA",
+        UGC: response[i]?.UGC || "NA",
+        "Logo Design": response[i]?.LogoDesign || "NA",
+        "Youtube Management": response[i]?.YoutubeManagement || "NA",
+        "Social Media Management": response[i]?.SocialMediaManagement || "NA",
         clientType: response[i]?.ClientType || "Regular",
-        Videography: response[i]?.Videography,
-        Photography: response[i]?.Photography,
-        Website: response[i]?.Website,
-        Management: response[i]?.Management,
-        "Content Creator": response[i]?.ContentCreator,
+        Videography: response[i]?.Videography || "NA",
+        Website: response[i]?.Website || "NA",
+        Management: response[i]?.Management || "NA",
+        "Content Creator": response[i]?.ContentCreator || "NA",
+        "Creative Design": response[i]?.CreativeDesign || "NA",
         GST: response[i]?.GST || "NA",
         Address: response[i]?.Address || "NA",
         State: response[i]?.State || "NA",
         Country: response[i]?.Country || "NA",
         logo: response[i]?.clientlogo + ".png",
+        "HR_CMS": response[i]?.["HR/CMS"] || "NA",
+        "Product Shoot": response[i]?.ProductShoot || "NA",
+        Copywriting: response[i]?.Copywriting || "NA",
       });
     }
     await Clients.insertMany(ClientData);
