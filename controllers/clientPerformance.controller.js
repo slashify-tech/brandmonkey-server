@@ -142,39 +142,37 @@ const getClientOverviewDashboard = async (req, res) => {
     //   comparisonNote: `Comparing ${currentMonth} (current) vs ${previousMonth} (previous)`
     // });
 
-    // Build initial match stage for aggregation - filter by months for comparison
-    let matchStage = {
-      month: { $in: [currentMonth, previousMonth] }
-    };
-    
-    // console.log('🔍 Initial Match Stage:', JSON.stringify(matchStage, null, 2));
+    // Build client match stage - start from Clients collection to show all clients
+    let clientMatchStage = {};
     
     // Filter by specific client
     if (clientId) {
-      matchStage.clientId = new mongoose.Types.ObjectId(clientId);
+      clientMatchStage._id = new mongoose.Types.ObjectId(clientId);
       // console.log('👤 Filtering by Client ID:', clientId);
-    }
-    
-    // Filter by status
-    if (status && status !== 'all') {
-      matchStage.status = status;
-      // console.log('📊 Filtering by Status:', status);
     }
 
     // If user is employee, filter by their assigned clients
+    let assignedClientIds = null;
     if (req.user && req.user.type === 'employee') {
       // console.log('👷 User is Employee, filtering by assigned clients');
       const employee = await Employees.findById(req.user._id);
       if (employee && employee.clients && employee.clients.length > 0) {
         // Extract clientIds from employee's client distribution
-        const assignedClientIds = employee.clients
+        assignedClientIds = employee.clients
           .filter(client => client.clientId) // Only include clients with valid clientId
           .map(client => new mongoose.Types.ObjectId(client.clientId));
         
         // console.log('📋 Assigned Client IDs:', assignedClientIds.length, 'clients');
         
         if (assignedClientIds.length > 0) {
-          matchStage.clientId = { $in: assignedClientIds };
+          if (clientId) {
+            // If both clientId and assigned clients exist, ensure clientId is in assigned list
+            if (!assignedClientIds.some(id => id.toString() === clientId)) {
+              clientMatchStage._id = null; // This will return no results
+            }
+          } else {
+            clientMatchStage._id = { $in: assignedClientIds };
+          }
         } else {
           // If no valid clientIds found, return empty result
           return res.status(200).json({
@@ -215,90 +213,189 @@ const getClientOverviewDashboard = async (req, res) => {
       }
     }
 
-    // Stage 1: Filter documents matching the criteria (client, status, month range)
-    const pipeline = [
-      { $match: matchStage }
-    ];
-
-    // Stage 2: Join with clients collection to get client details
-    pipeline.push({
-      $lookup: {
-        from: 'clients',
-        localField: 'clientId',
-        foreignField: '_id',
-        as: 'client'
-      }
-    });
-
-    // Stage 3: Unwind the client array (we expect only one client per document)
-    pipeline.push({ $unwind: '$client' });
-
-    // Stage 4: Filter by client name search if provided
+    // Stage 1: Start from Clients collection to ensure all clients are included
+    const pipeline = [];
+    
+    // Filter clients by search if provided
     if (search) {
-      pipeline.push({
-        $match: {
-          'client.name': { $regex: search, $options: 'i' }
-        }
-      });
+      clientMatchStage.name = { $regex: search, $options: 'i' };
+    }
+    
+    if (Object.keys(clientMatchStage).length > 0) {
+      pipeline.push({ $match: clientMatchStage });
     }
 
-    // Stage 5: Group by clientId and aggregate all weeks from both months
+    // Stage 2: Lookup performance data for current and previous months (left join - allows clients with no data)
     pipeline.push({
-      $group: {
-        _id: '$clientId',
-        client: { $first: '$client' },
-        // Collect all weeks data for both current and previous month
-        weeksData: {
-          $push: {
-            month: '$month',
-            week: '$week',
-            weekIdentifier: { $concat: ['$month', '-W', { $toString: '$week' }] },
-            metaSpend: { $ifNull: ['$metaAdsMetrics.spentAmount', 0] },
-            googleSpend: { $ifNull: ['$googleAdsMetrics.spentAmount', 0] },
-            conversions: { $ifNull: ['$googleAdsMetrics.conversions', 0] },
-            clicks: { $ifNull: ['$googleAdsMetrics.clicks', 0] },
-            leads: { $ifNull: ['$metaAdsMetrics.leads', 0] },
-            calls: { $ifNull: ['$googleAdsMetrics.calls', 0] },
-            messages: { $ifNull: ['$metaAdsMetrics.messages', 0] },
-            status: '$status',
-            statusDuration: '$statusDuration',
-            lastUpdated: '$lastUpdated'
-          }
-        },
-        // Sum Meta Ads spend across all weeks
-        metaSpend: { $sum: { $ifNull: ['$metaAdsMetrics.spentAmount', 0] } },
-        // Sum Google Ads spend across all weeks
-        googleSpend: { $sum: { $ifNull: ['$googleAdsMetrics.spentAmount', 0] } },
-        // Sum all conversions across all weeks
-        totalConversions: { $sum: { $ifNull: ['$googleAdsMetrics.conversions', 0] } },
-        // Sum all clicks across all weeks
-        totalClicks: { $sum: { $ifNull: ['$googleAdsMetrics.clicks', 0] } },
-        // Sum all leads across all weeks
-        totalLeads: { $sum: { $ifNull: ['$metaAdsMetrics.leads', 0] } },
-        // Sum all calls across all weeks
-        totalCalls: { $sum: { $ifNull: ['$googleAdsMetrics.calls', 0] } },
-        // Sum all messages across all weeks
-        totalMessages: { $sum: { $ifNull: ['$metaAdsMetrics.messages', 0] } },
-        // Get the latest update time
-        lastUpdated: { $max: '$lastUpdated' },
-        // Count unique week identifiers (e.g., "2024-08-W1", "2024-08-W2")
-        uniqueWeekCount: { $addToSet: { $concat: ['$month', '-W', { $toString: '$week' }] } },
-        // Count unique months (current and previous)
-        uniqueMonthCount: { $addToSet: '$month' },
-        // Count total records merged for this client
-        recordCount: { $sum: 1 }
+      $lookup: {
+        from: 'clientperformances',
+        let: { clientId: '$_id' },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ['$clientId', '$$clientId'] },
+                  { $in: ['$month', [currentMonth, previousMonth]] }
+                ]
+              }
+            }
+          },
+          ...(status && status !== 'all' ? [{ $match: { status: status } }] : [])
+        ],
+        as: 'performanceData'
       }
     });
 
-    // Stage 6: Convert set sizes to actual numbers
+    // Stage 3: Process performance data - transform array of performance records into aggregated data
     pipeline.push({
       $addFields: {
-        uniqueWeekCount: { $size: '$uniqueWeekCount' },
-        uniqueMonthCount: { $size: '$uniqueMonthCount' }
+        weeksData: {
+          $map: {
+            input: '$performanceData',
+            as: 'perf',
+            in: {
+              month: '$$perf.month',
+              week: '$$perf.week',
+              weekIdentifier: { $concat: ['$$perf.month', '-W', { $toString: '$$perf.week' }] },
+              metaSpend: { $ifNull: ['$$perf.metaAdsMetrics.spentAmount', 0] },
+              googleSpend: { $ifNull: ['$$perf.googleAdsMetrics.spentAmount', 0] },
+              conversions: { $ifNull: ['$$perf.googleAdsMetrics.conversions', 0] },
+              clicks: { $ifNull: ['$$perf.googleAdsMetrics.clicks', 0] },
+              leads: { $ifNull: ['$$perf.metaAdsMetrics.leads', 0] },
+              calls: { $ifNull: ['$$perf.googleAdsMetrics.calls', 0] },
+              messages: { $ifNull: ['$$perf.metaAdsMetrics.messages', 0] },
+              status: '$$perf.status',
+              statusDuration: '$$perf.statusDuration',
+              lastUpdated: '$$perf.lastUpdated'
+            }
+          }
+        },
+        // Calculate aggregated metrics (default to 0 if no performance data)
+        metaSpend: {
+          $sum: {
+            $map: {
+              input: '$performanceData',
+              as: 'perf',
+              in: { $ifNull: ['$$perf.metaAdsMetrics.spentAmount', 0] }
+            }
+          }
+        },
+        googleSpend: {
+          $sum: {
+            $map: {
+              input: '$performanceData',
+              as: 'perf',
+              in: { $ifNull: ['$$perf.googleAdsMetrics.spentAmount', 0] }
+            }
+          }
+        },
+        totalConversions: {
+          $sum: {
+            $map: {
+              input: '$performanceData',
+              as: 'perf',
+              in: { $ifNull: ['$$perf.googleAdsMetrics.conversions', 0] }
+            }
+          }
+        },
+        totalClicks: {
+          $sum: {
+            $map: {
+              input: '$performanceData',
+              as: 'perf',
+              in: { $ifNull: ['$$perf.googleAdsMetrics.clicks', 0] }
+            }
+          }
+        },
+        totalLeads: {
+          $sum: {
+            $map: {
+              input: '$performanceData',
+              as: 'perf',
+              in: { $ifNull: ['$$perf.metaAdsMetrics.leads', 0] }
+            }
+          }
+        },
+        totalCalls: {
+          $sum: {
+            $map: {
+              input: '$performanceData',
+              as: 'perf',
+              in: { $ifNull: ['$$perf.googleAdsMetrics.calls', 0] }
+            }
+          }
+        },
+        totalMessages: {
+          $sum: {
+            $map: {
+              input: '$performanceData',
+              as: 'perf',
+              in: { $ifNull: ['$$perf.metaAdsMetrics.messages', 0] }
+            }
+          }
+        },
+        lastUpdated: {
+          $max: {
+            $map: {
+              input: '$performanceData',
+              as: 'perf',
+              in: '$$perf.lastUpdated'
+            }
+          }
+        },
+        uniqueWeekCount: {
+          $size: {
+            $setUnion: {
+              $map: {
+                input: '$performanceData',
+                as: 'perf',
+                in: { $concat: ['$$perf.month', '-W', { $toString: '$$perf.week' }] }
+              }
+            }
+          }
+        },
+        uniqueMonthCount: {
+          $size: {
+            $setUnion: {
+              $map: {
+                input: '$performanceData',
+                as: 'perf',
+                in: '$$perf.month'
+              }
+            }
+          }
+        },
+        recordCount: { $size: '$performanceData' }
       }
     });
 
-    // Stage 7: Lookup latest client feedback from clientfeedbacks collection
+    // Stage 4: Add default values for clients with no performance data
+    pipeline.push({
+      $addFields: {
+        weeksData: { $ifNull: ['$weeksData', []] },
+        metaSpend: { $ifNull: ['$metaSpend', 0] },
+        googleSpend: { $ifNull: ['$googleSpend', 0] },
+        totalConversions: { $ifNull: ['$totalConversions', 0] },
+        totalClicks: { $ifNull: ['$totalClicks', 0] },
+        totalLeads: { $ifNull: ['$totalLeads', 0] },
+        totalCalls: { $ifNull: ['$totalCalls', 0] },
+        totalMessages: { $ifNull: ['$totalMessages', 0] },
+        lastUpdated: { $ifNull: ['$lastUpdated', new Date()] },
+        uniqueWeekCount: { $ifNull: ['$uniqueWeekCount', 0] },
+        uniqueMonthCount: { $ifNull: ['$uniqueMonthCount', 0] },
+        recordCount: { $ifNull: ['$recordCount', 0] }
+      }
+    });
+
+    // Stage 5: Rename client document to match expected structure
+    pipeline.push({
+      $addFields: {
+        client: '$$ROOT'
+      }
+    });
+
+    // Stage 6: Lookup latest client feedback from clientfeedbacks collection
     pipeline.push({
       $lookup: {
         from: 'clientfeedbacks',
@@ -322,7 +419,7 @@ const getClientOverviewDashboard = async (req, res) => {
       }
     });
 
-    // Stage 8: Pagination - sort, skip, and limit results
+    // Stage 7: Pagination - sort, skip, and limit results
     const skip = (parseInt(page) - 1) * parseInt(limit);
     pipeline.push(
       { $sort: { lastUpdated: -1 } },
@@ -330,42 +427,24 @@ const getClientOverviewDashboard = async (req, res) => {
       { $limit: parseInt(limit) }
     );
 
-    // Execute the main aggregation pipeline
+    // Execute the main aggregation pipeline starting from Clients collection
     // console.log('🔄 Executing Main Aggregation Pipeline...');
     // console.log('📊 Pipeline Stages:', pipeline.length);
-    const aggregatedData = await ClientPerformance.aggregate(pipeline);
+    const aggregatedData = await Clients.aggregate(pipeline);
     // console.log('✅ Aggregation Complete. Records Found:', aggregatedData.length);
 
-    // Build count pipeline for pagination (same filters, just counting)
-    const countPipeline = [
-      { $match: matchStage },
-      {
-        $lookup: {
-          from: 'clients',
-          localField: 'clientId',
-          foreignField: '_id',
-          as: 'client'
-        }
-      },
-      { $unwind: '$client' }
-    ];
-
-    if (search) {
-      countPipeline.push({
-        $match: {
-          'client.name': { $regex: search, $options: 'i' }
-        }
-      });
+    // Build count pipeline for pagination (same filters, just counting from Clients)
+    const countPipeline = [];
+    
+    if (Object.keys(clientMatchStage).length > 0) {
+      countPipeline.push({ $match: clientMatchStage });
     }
-
+    
     countPipeline.push({
-      $group: { _id: '$clientId' }
+      $count: 'total'
     });
 
-    const totalCount = await ClientPerformance.aggregate([
-      ...countPipeline,
-      { $count: 'total' }
-    ]);
+    const totalCount = await Clients.aggregate(countPipeline);
 
     // console.log('📊 Total Count Result:', totalCount);
     // console.log('🔍 Aggregated Data Sample (first item weeksData):', aggregatedData[0]?.weeksData || 'No data');
@@ -376,7 +455,13 @@ const getClientOverviewDashboard = async (req, res) => {
 
     // Format data to match dashboard card structure
     const formattedData = aggregatedData.map(item => {
-      const client = item.client;
+      // Use client data from the root since we're starting from Clients collection
+      const client = {
+        _id: item._id,
+        name: item.name,
+        clientLogo: item.clientLogo,
+        clientType: item.clientType
+      };
       
       // Calculate trend and status based on month-to-month comparison
       let trendDirection = 'stable';
@@ -396,7 +481,12 @@ const getClientOverviewDashboard = async (req, res) => {
       let currentMonthGoogleSpend = 0;
 
       // Compare current month data vs previous month data
-      if (item.weeksData && item.weeksData.length > 0) {
+      // Initialize defaults in case of no data
+      if (!item.weeksData || item.weeksData.length === 0) {
+        status = 'Active';
+        statusDuration = '0wk';
+        // All metrics already default to 0
+      } else {
         // Group weeks data by month
         currentMonthData = item.weeksData.filter(w => w.month === currentMonth);
         const previousMonthData = item.weeksData.filter(w => w.month === previousMonth);
@@ -467,7 +557,7 @@ const getClientOverviewDashboard = async (req, res) => {
           // No current month data
           // console.log(`⚠️ No current month data for ${client.name}`);
           status = 'Active';
-          statusDuration = `${item.uniqueWeekCount}wk`;
+          statusDuration = item.uniqueWeekCount > 0 ? `${item.uniqueWeekCount}wk` : '0wk';
         }
       }
 
@@ -535,42 +625,82 @@ const getClientOverviewDashboard = async (req, res) => {
       return baseData;
     });
 
-    // Build summary pipeline to calculate overall statistics
-    const summaryPipeline = [
-      { $match: matchStage },
-      {
-        $lookup: {
-          from: 'clients',
-          localField: 'clientId',
-          foreignField: '_id',
-          as: 'client'
-        }
-      },
-      { $unwind: '$client' }
-    ];
-
-    if (search) {
-      summaryPipeline.push({
-        $match: {
-          'client.name': { $regex: search, $options: 'i' }
-        }
-      });
+    // Build summary pipeline to calculate overall statistics (starting from Clients)
+    const summaryPipeline = [];
+    
+    if (Object.keys(clientMatchStage).length > 0) {
+      summaryPipeline.push({ $match: clientMatchStage });
     }
+
+    // Lookup performance data for summary
+    summaryPipeline.push({
+      $lookup: {
+        from: 'clientperformances',
+        let: { clientId: '$_id' },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ['$clientId', '$$clientId'] },
+                  { $in: ['$month', [currentMonth, previousMonth]] }
+                ]
+              }
+            }
+          },
+          {
+            $project: {
+              metaSpend: { $ifNull: ['$metaAdsMetrics.spentAmount', 0] },
+              googleSpend: { $ifNull: ['$googleAdsMetrics.spentAmount', 0] },
+              status: 1
+            }
+          }
+        ],
+        as: 'performanceData'
+      }
+    });
 
     summaryPipeline.push({
       $group: {
         _id: null,
-        totalClients: { $addToSet: '$clientId' },
-        totalSpend: { $sum: { $ifNull: ['$totalSpend', 0] } },
+        totalClients: { $addToSet: '$_id' },
+        totalSpend: {
+          $sum: {
+            $sum: {
+              $map: {
+                input: '$performanceData',
+                as: 'perf',
+                in: { $add: ['$$perf.metaSpend', '$$perf.googleSpend'] }
+              }
+            }
+          }
+        },
         activeClients: {
           $addToSet: {
-            $cond: [{ $eq: ['$status', 'Active'] }, '$clientId', null]
+            $cond: [
+              {
+                $gt: [
+                  {
+                    $size: {
+                      $filter: {
+                        input: '$performanceData',
+                        as: 'perf',
+                        cond: { $eq: ['$$perf.status', 'Active'] }
+                      }
+                    }
+                  },
+                  0
+                ]
+              },
+              '$_id',
+              null
+            ]
           }
         }
       }
     });
 
-    const summaryData = await ClientPerformance.aggregate(summaryPipeline);
+    const summaryData = await Clients.aggregate(summaryPipeline);
     const summary = summaryData[0] || { totalClients: [], totalSpend: 0, activeClients: [] };
 
     const responseData = {
