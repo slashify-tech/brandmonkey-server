@@ -806,15 +806,18 @@ exports.getMissingTimeSlots = async (req, res) => {
     const { minimize = false } = req.query;
     // Calculate the date range for the past 7 days
     const today = new Date();
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(today.getDate() - 7);
+    
+    // Generate the past 7 days array (latest date first) - we need this first for the query
+    const pastSevenDays = [];
+    for (let i = 0; i <= 6; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      pastSevenDays.push(formatDateFromISO(date.toISOString()));
+    }
 
-    // Get all activities from the past 7 days
+    // Get all activities from the past 7 days using $in operator with exact date strings
     const activities = await Task.find({
-      date: {
-        $gte: formatDateFromISO(sevenDaysAgo.toISOString()),
-        $lte: formatDateFromISO(today.toISOString())
-      },
+      date: { $in: pastSevenDays },
       isDeleted: false,
       type: "activity" // Only regular activities, not extra activities
     }).populate('employeeId', 'name employeeId designation team');
@@ -839,14 +842,6 @@ exports.getMissingTimeSlots = async (req, res) => {
       
       activitiesByDateAndEmployee[date][employeeId].timeSlots.push(activity.timeSlot);
     });
-
-    // Generate the past 7 days array
-    const pastSevenDays = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      pastSevenDays.push(formatDateFromISO(date.toISOString()));
-    }
 
     // Get all employees once to avoid multiple database calls
     const allEmployees = await Employees.find({ 

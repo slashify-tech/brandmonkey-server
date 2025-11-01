@@ -11,12 +11,9 @@ exports.createTask = async (req, res) => {
     // Format the date from ISO string to "20 Oct 2025" format
     const formattedDate = formatDateFromISO(date);
 
-    // Find client by name to get clientId
+    // Find client by name to get clientId, set to null if not found
     const client = await Clients.findOne({ name: clientName });
-    if (!client) {
-      return res.status(404).json({ error: "Client not found" });
-    }
-    const clientId = client._id;
+    const clientId = client ? client._id : null;
 
     // Find existing task for the employeeId with the same timeSlot and type
     let task = await Task.findOne({ employeeId, timeSlot, date: formattedDate, type, isDeleted: false });
@@ -93,12 +90,9 @@ exports.createAdditionalTask = async (req, res) => {
     // Format the date from ISO string to "20 Oct 2025" format
     const formattedDate = formatDateFromISO(date);
 
-    // Find client by name to get clientId
+    // Find client by name to get clientId, set to null if not found
     const client = await Clients.findOne({ name: clientName });
-    if (!client) {
-      return res.status(404).json({ error: "Client not found" });
-    }
-    const clientId = client._id;
+    const clientId = client ? client._id : null;
 
     // The type for additional tasks should be "extraActivity"
     const type = "extraActivity";
