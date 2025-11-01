@@ -12,19 +12,19 @@ const clientSchema = mongoose.Schema(
     },
     GST: {
       type: String,
-      required: true,
+      required: false,
     },
     State: {
       type: String,
-      required: true,
+      required: false,
     },
     Country: {
       type: String,
-      required: true,
+      required: false,
     },
     Address: {
       type: String,
-      required: true,
+      required: false,
     },
     // Reels: {
     //   type: String,

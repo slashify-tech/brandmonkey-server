@@ -101,6 +101,7 @@ exports.getClient = async (req, res) => {
       totalClientsCount = await Clients.countDocuments(query);
 
       const clientsData = await Clients.find(query)
+        .select('-updatedAt -createdAt')
         .limit(pageSize)
         .skip(startIndex);
 
@@ -109,8 +110,9 @@ exports.getClient = async (req, res) => {
           const ticketsCount = await TicketAssigned.countDocuments({
             forClients: client._id,
           });
+          const { updatedAt, createdAt, ...clientObj } = client.toObject();
           return {
-            ...client.toObject(),
+            ...clientObj,
             ticketsCount,
           };
         })
@@ -121,15 +123,16 @@ exports.getClient = async (req, res) => {
         data: clientsWithTicketsCount,
       };
     } else {
-      const clientsData = await Clients.find(query);
+      const clientsData = await Clients.find(query).select('-updatedAt -createdAt');
 
       const clientsWithTicketsCount = await Promise.all(
         clientsData.map(async (client) => {
           const ticketsCount = await TicketAssigned.countDocuments({
             forClients: client._id,
           });
+          const { updatedAt, createdAt, ...clientObj } = client.toObject();
           return {
-            ...client.toObject(),
+            ...clientObj,
             ticketsCount,
           };
         })
@@ -172,10 +175,11 @@ exports.getClient = async (req, res) => {
 exports.getOneClient = async (req, res) => {
   try {
     const { id } = req.params;
-    const clients = await Clients.findById(id);
+    const clients = await Clients.findById(id).select('-updatedAt -createdAt');
     if (clients) {
       clients.clientLogo = await getSignedUrlFromS3(`${clients.logo}`);
-      res.status(200).json(clients);
+      const { updatedAt, createdAt, ...clientObj } = clients.toObject();
+      res.status(200).json(clientObj);
     } else {
       res.status(404).jsons("no clients found");
     }
