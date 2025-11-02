@@ -374,29 +374,24 @@ exports.getClientEmployeeRel = async (req, res) => {
     const clientAssigned = await Employees.findOne({ _id: id });
 
     if (clientAssigned) {
-      const clientNames = clientAssigned.clients.map((item) =>
-        item.clientName.split("-")[0].trim()
-      );
+      const clientIds = clientAssigned.clients.map((item) => item.clientId);
 
-      const clientData = await getClient(clientNames);
-
+      const clientData = await getClient(clientIds);
 
       const clientsWithData = await Promise.all(clientAssigned.clients.map(async (client) => {
         const clientInfo = clientData.find(
           (data) =>
-            data.name.trim().toLowerCase() ===
-            client.clientName.split("-")[0].trim().toLowerCase()
+            data._id?.toString() === client.clientId?.toString()
         );
-        client.clientType = clientInfo;
-  
         return {
-          clientType: client.clientType,
-          clientName: client.clientName,
+          clientType: clientInfo.clientType,
+          clientName: clientInfo.name,
           progressValue: client.progressValue,
-          clientLogo : await getSignedUrlFromS3(`${client.logo}`),
-          logo : client.logo,
-          _id: client._id,
-          createdAt: client.createdAt,
+          clientLogo : await getSignedUrlFromS3(`${clientInfo.logo}`),
+          logo : clientInfo.logo,
+          _id: clientInfo._id,
+          createdAt: clientInfo.createdAt,
+          updatedAt: clientInfo.updatedAt,
         };
       }));
 
@@ -412,15 +407,20 @@ exports.getClientEmployeeRel = async (req, res) => {
   }
 };
 
-const getClient = async (clientNames) => {
+const getClient = async (clientIds) => {
   try {
     const clientData = await Clients.find({
-      name: { $in: clientNames.map((name) => name.trim()) },
+      _id: { $in: clientIds },
     });
 
     return clientData.map((client) => ({
+      _id: client._id,
       name: client.name.trim(),
       clientType: client.clientType,
+      logo: client.logo,
+      progressValue: client.progressValue,
+      createdAt: client.createdAt,
+      updatedAt: client.updatedAt,
     }));
   } catch (error) {
     console.error(error);
