@@ -383,9 +383,11 @@ exports.getClientEmployeeRel = async (req, res) => {
           (data) =>
             data._id?.toString() === client.clientId?.toString()
         );
+        const clientWork = client.clientName.split("-")[1].trim().toLowerCase();
+
         return {
           clientType: clientInfo.clientType,
-          clientName: clientInfo.name,
+          clientName: clientInfo.name + " - " + clientWork,
           progressValue: client.progressValue,
           clientLogo : await getSignedUrlFromS3(`${clientInfo.logo}`),
           logo : clientInfo.logo,
