@@ -920,6 +920,9 @@ exports.getMissingTimeSlots = async (req, res) => {
         }
       });
 
+      // Sort employees by totalMissing in descending order (highest first)
+      dayReport.employees.sort((a, b) => b.totalMissing - a.totalMissing);
+
       missingSlotsReport.push(dayReport);
     }
 
