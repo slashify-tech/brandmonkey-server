@@ -20,15 +20,23 @@ exports.downloadSingleEmployeeSheet = async (req, res) => {
 
     if (date) {
       const dateObj = new Date(date);
+
+      // Validate date
+      if (isNaN(dateObj.getTime())) {
+        return res
+          .status(400)
+          .send("Invalid date format. Please provide a valid date.");
+      }
+
       const year = dateObj.getFullYear();
       const month = dateObj.getMonth(); // 0-indexed (Nov = 10)
 
       // Get total days in this month
       const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-      // Generate formatted date array
+      // Generate formatted date array in decreasing order (last day to first day)
       formattedDates = Array.from({ length: daysInMonth }, (_, i) => {
-        const date = new Date(year, month, i + 1);
+        const date = new Date(year, month, daysInMonth - i);
         return formatDateFromISO(date.toISOString());
       });
     } else {
@@ -80,15 +88,23 @@ exports.downloadAllEmployeeData = async (req, res) => {
 
     if (date) {
       const dateObj = new Date(date);
+
+      // Validate date
+      if (isNaN(dateObj.getTime())) {
+        return res
+          .status(400)
+          .send("Invalid date format. Please provide a valid date.");
+      }
+
       const year = dateObj.getFullYear();
       const month = dateObj.getMonth(); // 0-indexed (Nov = 10)
 
       // Get total days in this month
       const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-      // Generate formatted date array
+      // Generate formatted date array in decreasing order (last day to first day)
       formattedDates = Array.from({ length: daysInMonth }, (_, i) => {
-        const date = new Date(year, month, i + 1);
+        const date = new Date(year, month, daysInMonth - i);
         return formatDateFromISO(date.toISOString());
       });
     } else {
@@ -98,6 +114,8 @@ exports.downloadAllEmployeeData = async (req, res) => {
         return formatDateFromISO(date.toISOString());
       });
     }
+
+    // console.log(formattedDates);
 
     // Fetch tasks matching the formatted dates
     const tasks = await Task.find({
@@ -142,6 +160,14 @@ exports.downloadAllEmployeeHit = async (req, res) => {
 
     if (date) {
       const dateObj = new Date(date);
+
+      // Validate date
+      if (isNaN(dateObj.getTime())) {
+        return res
+          .status(400)
+          .send("Invalid date format. Please provide a valid date.");
+      }
+
       const targetYear = dateObj.getFullYear();
       const targetMonth = dateObj.getMonth() + 1; // getMonth() returns 0-11, so add 1
       const targetMonthStr = `${targetYear}-${targetMonth
