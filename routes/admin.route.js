@@ -36,7 +36,7 @@ router.get('/getDashboardAdmin', adminController.getDashBoardAdmin);
 router.get('/getSlotWiseMissingTimeSlots', isAuth, adminController.getSlotWiseMissingTimeSlots); // HR-specific route for missing time slots
 router.get('/getMissingTimeSlots', isAuth, adminController.getMissingTimeSlots); // HR-specific route for missing time slots
 
-// router.post('/setLeave', isAuth, adminController.setLeave); // API to set/add leaves for employees
+router.post('/setLeave', isAuth, adminController.setLeave); // API to set/add leaves for employees
 
 router.delete('/deleteEmployee/:id', isSuperAdmin, superAdminController.deleteEmployeeData); //completed
 router.delete('/deleteClient/:id', isSuperAdmin, superAdminController.deleteClientData); //completed

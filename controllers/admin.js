@@ -14,6 +14,7 @@ const TicketCount = require("../models/ticketCount");
 const { Task } = require("../models/activities");
 const { formatDateFromISO } = require("../utils/formattedDate");
 const { timeSlots } = require("../utils/set_times");
+const Leave = require("../models/leave");
 
 exports.uploadClientBulk = async (req, res) => {
   let ClientData = [];
@@ -808,11 +809,17 @@ exports.getMissingTimeSlots = async (req, res) => {
     const today = new Date();
     
     // Generate the past 7 days array (latest date first) - we need this first for the query
+    // Exclude Sundays (getDay() === 0) from the calculation
     const pastSevenDays = [];
-    for (let i = 0; i <= 6; i++) {
+    let daysToGoBack = 0;
+    while (pastSevenDays.length < 7) {
       const date = new Date();
-      date.setDate(date.getDate() - i);
-      pastSevenDays.push(formatDateFromISO(date.toISOString()));
+      date.setDate(date.getDate() - daysToGoBack);
+      // Skip Sundays (getDay() === 0)
+      if (date.getDay() !== 0) {
+        pastSevenDays.push(formatDateFromISO(date.toISOString()));
+      }
+      daysToGoBack++;
     }
 
     // Get all activities from the past 7 days using $in operator with exact date strings
@@ -845,9 +852,30 @@ exports.getMissingTimeSlots = async (req, res) => {
 
     // Get all employees once to avoid multiple database calls
     const allEmployees = await Employees.find({ 
-      type: { $ne: "superadmin" },
-      isDeleted: false 
+      type: { $nin: ["admin", "superadmin", "hr"] },
+      isDeleted: {$ne: true }
     }).select('name employeeId designation team');
+
+    // Get all leaves for the past 7 days
+    const leaves = await Leave.find({
+      leaveDate: { $in: pastSevenDays },
+      isDeleted: false
+    }).select('employeeId leaveDate');
+    console.log(leaves, "leaves");
+
+    // Create a map for quick lookup: employeeId_date -> true
+    const leaveMap = new Map();
+    leaves.forEach(leave => {
+      const key = `${leave.employeeId.toString()}_${leave.leaveDate}`;
+      leaveMap.set(key, true);
+    });
+    console.log(leaveMap, "leaveMap");
+
+    // Helper function to check if employee is on leave for a date
+    const isEmployeeOnLeave = (employeeId, date) => {
+      const key = `${employeeId}_${date}`;
+      return leaveMap.has(key);
+    };
 
     // If minimize is true, return just the count of missing slots
     if (minimize === 'true' || minimize === true) {
@@ -858,6 +886,12 @@ exports.getMissingTimeSlots = async (req, res) => {
         
         allEmployees.forEach(employee => {
           const employeeId = employee._id.toString();
+          
+          // Skip employees who are on leave for this date
+          if (isEmployeeOnLeave(employeeId, date)) {
+            console.log("Employee is on leave for this date");
+            return;
+          }
           const employeeActivities = employeesOnDate[employeeId];
           
           if (employeeActivities) {
@@ -895,6 +929,12 @@ exports.getMissingTimeSlots = async (req, res) => {
       // Check each employee for missing slots
       allEmployees.forEach(employee => {
         const employeeId = employee._id.toString();
+        
+        // Skip employees who are on leave for this date
+        if (isEmployeeOnLeave(employeeId, date)) {
+          return;
+        }
+        
         const employeeActivities = employeesOnDate[employeeId];
         
         if (employeeActivities) {
@@ -930,7 +970,7 @@ exports.getMissingTimeSlots = async (req, res) => {
     const summary = {
       totalDays: pastSevenDays.length,
       totalTimeSlotsPerDay: timeSlots.length,
-      totalPossibleSlots: pastSevenDays.length * timeSlots.length,
+      totalPossibleSlots: pastSevenDays.length * timeSlots.length * allEmployees.length,
       reportGeneratedAt: new Date().toISOString()
     };
 
@@ -947,6 +987,111 @@ exports.getMissingTimeSlots = async (req, res) => {
       success: false,
       error: "Internal Server Error",
       message: "Failed to fetch missing time slots data"
+    });
+  }
+};
+
+// API to set/add leaves for employees
+exports.setLeave = async (req, res) => {
+  try {
+    if(req.user.type !== "superadmin" && req.user.type !== "hr" && req.user.type !== "admin"){
+      return res.status(403).json({ error: "Unauthorized access. Only HR, Admin and Superadmin can access this route." });
+    }
+
+    const { employeeId, leaveDate, leaveDates } = req.body;
+
+    // Support both single leaveDate and array of leaveDates
+    let datesToProcess = [];
+    
+    if (leaveDates && Array.isArray(leaveDates)) {
+      // Bulk leave dates
+      datesToProcess = leaveDates;
+    } else if (leaveDate) {
+      // Single leave date
+      datesToProcess = [leaveDate];
+    } else {
+      return res.status(400).json({ 
+        error: "Invalid request. Please provide either 'leaveDate' or 'leaveDates' array." 
+      });
+    }
+
+    if (!employeeId) {
+      return res.status(400).json({ error: "Employee ID is required." });
+    }
+
+    // Validate employee exists
+    const employee = await Employees.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({ error: "Employee not found." });
+    }
+
+    // Process each date
+    const createdLeaves = [];
+    const duplicateLeaves = [];
+    const errors = [];
+
+    for (const date of datesToProcess) {
+      try {
+        // Format the date from ISO string to "20 Oct 2025" format
+        const formattedDate = formatDateFromISO(date);
+
+        // Check if leave already exists for this employee and date
+        const existingLeave = await Leave.findOne({
+          employeeId: employeeId,
+          leaveDate: formattedDate,
+          isDeleted: false
+        });
+
+        if (existingLeave) {
+          duplicateLeaves.push({
+            date: formattedDate,
+            message: "Leave already exists for this date"
+          });
+          continue;
+        }
+
+        // Create new leave entry
+        const leave = await Leave.create({
+          employeeId: employeeId,
+          leaveDate: formattedDate,
+          isDeleted: false
+        });
+
+        createdLeaves.push({
+          id: leave._id,
+          employeeId: leave.employeeId,
+          leaveDate: leave.leaveDate
+        });
+      } catch (error) {
+        errors.push({
+          date: date,
+          error: error.message
+        });
+      }
+    }
+
+    // Return response
+    const response = {
+      success: true,
+      message: "Leave(s) processed successfully",
+      created: createdLeaves,
+    };
+
+    if (duplicateLeaves.length > 0) {
+      response.duplicates = duplicateLeaves;
+    }
+
+    if (errors.length > 0) {
+      response.errors = errors;
+    }
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error in setLeave:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Internal Server Error",
+      message: "Failed to set leave(s)"
     });
   }
 };
