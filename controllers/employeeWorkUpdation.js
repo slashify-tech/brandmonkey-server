@@ -88,14 +88,14 @@ exports.updateProgress = async (req, res) => {
 
 exports.updateWork = async (req, res) => {
   const { id } = req.params;
-  const { workId } = req.query;
+  const { workId : clientId } = req.query;
   const { progressValue } = req.body;
 
   try {
     const updatedEmployee = await Employees.findOneAndUpdate(
       {
         _id: id,
-        "clients._id": workId,
+        "clients.clientId": clientId,
       },
       {
         $set: {
