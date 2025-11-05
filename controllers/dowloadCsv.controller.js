@@ -1,5 +1,5 @@
 const { Task, Hits } = require("../models/activities");
-const { formatDateTime } = require("../utils/formattedDate");
+const { formatDateTime, formatDateFromISO } = require("../utils/formattedDate");
 const { generateAndDownloadCSV } = require("../utils/generate-download-csv");
 const Clients = require("../models/clients");
 const Employees = require("../models/employee");
@@ -14,26 +14,42 @@ const fs = require("fs");
 exports.downloadSingleEmployeeSheet = async (req, res) => {
   try {
     const { id } = req.params;
-    const { date } = req.query; // Default type to "activity"
+    const { date } = req.query;
 
-    // Fetch tasks for the employee by type
-    const tasks = await Task.find({ employeeId: id }).populate(
-      "employeeId",
-      "name"
-    );
+    let formattedDates = [];
+
+    if (date) {
+      const dateObj = new Date(date);
+      const year = dateObj.getFullYear();
+      const month = dateObj.getMonth(); // 0-indexed (Nov = 10)
+
+      // Get total days in this month
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      // Generate formatted date array
+      formattedDates = Array.from({ length: daysInMonth }, (_, i) => {
+        const date = new Date(year, month, i + 1);
+        return formatDateFromISO(date.toISOString());
+      });
+    } else {
+      formattedDates = Array.from({ length: 30 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        return formatDateFromISO(date.toISOString());
+      });
+    }
+
+    // Fetch tasks for the employee
+    const tasks = await Task.find({
+      employeeId: id,
+      date: { $in: formattedDates },
+    }).populate("employeeId", "name");
 
     if (!tasks || tasks.length === 0) {
       return res.status(404).send("No data found for the employee");
     }
 
     let filteredTasks = tasks;
-
-    if (date) {
-      filteredTasks = tasks.filter((task) => {
-        let itemMonthYear = task.date.split(" ").slice(1).join(" ");
-        return itemMonthYear === date.split(" ").slice(1).join(" ");
-      });
-    }
 
     const activities = filteredTasks.map((task) => ({
       employeeName: task.employeeId.name,
@@ -59,7 +75,34 @@ exports.downloadSingleEmployeeSheet = async (req, res) => {
 exports.downloadAllEmployeeData = async (req, res) => {
   try {
     const { date } = req.query;
-    const tasks = await Task.find({}).populate("employeeId", "name");
+
+    let formattedDates = [];
+
+    if (date) {
+      const dateObj = new Date(date);
+      const year = dateObj.getFullYear();
+      const month = dateObj.getMonth(); // 0-indexed (Nov = 10)
+
+      // Get total days in this month
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      // Generate formatted date array
+      formattedDates = Array.from({ length: daysInMonth }, (_, i) => {
+        const date = new Date(year, month, i + 1);
+        return formatDateFromISO(date.toISOString());
+      });
+    } else {
+      formattedDates = Array.from({ length: 30 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        return formatDateFromISO(date.toISOString());
+      });
+    }
+
+    // Fetch tasks matching the formatted dates
+    const tasks = await Task.find({
+      date: { $in: formattedDates },
+    }).populate("employeeId", "name");
 
     if (!tasks || tasks.length === 0) {
       return res.status(404).send("No data found for any employees");
@@ -68,12 +111,6 @@ exports.downloadAllEmployeeData = async (req, res) => {
     const allEmployeeData = [];
 
     tasks.forEach((task) => {
-      if (date) {
-        let itemMonthYear = task.date.split(" ").slice(1).join(" ");
-        if (itemMonthYear !== date.split(" ").slice(1).join(" ")) {
-          return;
-        }
-      }
       allEmployeeData.push({
         EmployeeName: task.employeeId?.name,
         ClientName: task.clientName,
@@ -98,7 +135,24 @@ exports.downloadAllEmployeeData = async (req, res) => {
 
 exports.downloadAllEmployeeHit = async (req, res) => {
   try {
-    const hits = await Hits.find({}).populate("employeeId", "name");
+    const { date } = req.query;
+
+    // Build query for hits
+    const query = {};
+
+    if (date) {
+      const dateObj = new Date(date);
+      const targetYear = dateObj.getFullYear();
+      const targetMonth = dateObj.getMonth() + 1; // getMonth() returns 0-11, so add 1
+      const targetMonthStr = `${targetYear}-${targetMonth
+        .toString()
+        .padStart(2, "0")}`;
+
+      // Filter by month field (hits are aggregated by month in "YYYY-MM" format)
+      query.month = targetMonthStr;
+    }
+
+    let hits = await Hits.find(query).populate("employeeId", "name");
 
     if (!hits || hits.length === 0) {
       return res.status(404).send("No hits found for any employee");
@@ -106,7 +160,7 @@ exports.downloadAllEmployeeHit = async (req, res) => {
 
     // Aggregate hits by employee and client to get total hits per combination
     const hitsMap = new Map();
-    
+
     hits.forEach((hit) => {
       const key = `${hit.employeeId?.name}_${hit.clientName}`;
       if (hitsMap.has(key)) {
@@ -124,7 +178,7 @@ exports.downloadAllEmployeeHit = async (req, res) => {
         });
       }
     });
-    
+
     // Convert map to array and calculate total hours
     let allHits = Array.from(hitsMap.values()).map((hit) => ({
       "Employee Name": hit.employeeName,
@@ -234,10 +288,13 @@ exports.downloadCsvClients = async (req, res) => {
 exports.downloadClientPerformanceData = async (req, res) => {
   try {
     const { month, week } = req.query;
-    
+
     // Build query filters
     const query = {};
-    if (month) query.month = new Date(month).toISOString().slice(0, 7) || new Date().toISOString().slice(0, 7);
+    if (month)
+      query.month =
+        new Date(month).toISOString().slice(0, 7) ||
+        new Date().toISOString().slice(0, 7);
     if (week) query.week = parseInt(week);
 
     const performanceData = await ClientPerformance.find(query)
@@ -259,7 +316,7 @@ exports.downloadClientPerformanceData = async (req, res) => {
         Month: performance.month,
         Week: performance.week,
         LastUpdated: formatDateTime(performance.lastUpdated),
-        
+
         // Social Media Metrics
         SocialMediaReach: performance.socialMediaMetrics?.reach || 0,
         SocialMediaFollowers: performance.socialMediaMetrics?.followers || 0,
@@ -270,7 +327,7 @@ exports.downloadClientPerformanceData = async (req, res) => {
         MaxReels: performance.socialMediaMetrics?.maxReels || 0,
         MaxGraphicsPost: performance.socialMediaMetrics?.maxGraphicsPost || 0,
         MaxUGC: performance.socialMediaMetrics?.maxUgc || 0,
-        
+
         // Meta Ads Metrics
         MetaSpentAmount: performance.metaAdsMetrics?.spentAmount || 0,
         MetaROAS: performance.metaAdsMetrics?.roas || 0,
@@ -278,14 +335,15 @@ exports.downloadClientPerformanceData = async (req, res) => {
         MetaMessages: performance.metaAdsMetrics?.messages || 0,
         MetaCostPerLead: performance.metaAdsMetrics?.costPerLead || 0,
         MetaCostPerMessage: performance.metaAdsMetrics?.costPerMessage || 0,
-        
+
         // Google Ads Metrics
         GoogleSpentAmount: performance.googleAdsMetrics?.spentAmount || 0,
         GoogleClicks: performance.googleAdsMetrics?.clicks || 0,
         GoogleConversions: performance.googleAdsMetrics?.conversions || 0,
         GoogleCalls: performance.googleAdsMetrics?.calls || 0,
         GoogleCostPerClick: performance.googleAdsMetrics?.costPerClick || 0,
-        GoogleCostPerConversion: performance.googleAdsMetrics?.costPerConversion || 0,
+        GoogleCostPerConversion:
+          performance.googleAdsMetrics?.costPerConversion || 0,
         GoogleCostPerCall: performance.googleAdsMetrics?.costPerCall || 0,
       });
     });
@@ -294,12 +352,35 @@ exports.downloadClientPerformanceData = async (req, res) => {
       allPerformanceData,
       "client_performance_data.csv",
       [
-        "ClientName", "ClientEmail", "ClientPhone", "Status", "Month", "Week", "LastUpdated",
-        "SocialMediaReach", "SocialMediaFollowers", "AvgEngagement", "GraphicsPost", "UGC", "Reels", 
-        "MaxReels", "MaxGraphicsPost", "MaxUGC",
-        "MetaSpentAmount", "MetaROAS", "MetaLeads", "MetaMessages", "MetaCostPerLead", "MetaCostPerMessage",
-        "GoogleSpentAmount", "GoogleClicks", "GoogleConversions", "GoogleCalls", "GoogleCostPerClick", 
-        "GoogleCostPerConversion", "GoogleCostPerCall"
+        "ClientName",
+        "ClientEmail",
+        "ClientPhone",
+        "Status",
+        "Month",
+        "Week",
+        "LastUpdated",
+        "SocialMediaReach",
+        "SocialMediaFollowers",
+        "AvgEngagement",
+        "GraphicsPost",
+        "UGC",
+        "Reels",
+        "MaxReels",
+        "MaxGraphicsPost",
+        "MaxUGC",
+        "MetaSpentAmount",
+        "MetaROAS",
+        "MetaLeads",
+        "MetaMessages",
+        "MetaCostPerLead",
+        "MetaCostPerMessage",
+        "GoogleSpentAmount",
+        "GoogleClicks",
+        "GoogleConversions",
+        "GoogleCalls",
+        "GoogleCostPerClick",
+        "GoogleCostPerConversion",
+        "GoogleCostPerCall",
       ],
       res
     );
@@ -313,10 +394,13 @@ exports.downloadSingleClientPerformanceData = async (req, res) => {
   try {
     const { clientId } = req.params;
     const { month, week } = req.query;
-    
+
     // Build query filters
     const query = { clientId };
-    if (month) query.month = new Date(month).toISOString().slice(0, 7) || new Date().toISOString().slice(0, 7);
+    if (month)
+      query.month =
+        new Date(month).toISOString().slice(0, 7) ||
+        new Date().toISOString().slice(0, 7);
     if (week) query.week = parseInt(week);
 
     const performanceData = await ClientPerformance.find(query)
@@ -338,7 +422,7 @@ exports.downloadSingleClientPerformanceData = async (req, res) => {
         Month: performance.month,
         Week: performance.week,
         LastUpdated: formatDateTime(performance.lastUpdated),
-        
+
         // Social Media Metrics
         SocialMediaReach: performance.socialMediaMetrics?.reach || 0,
         SocialMediaFollowers: performance.socialMediaMetrics?.followers || 0,
@@ -349,7 +433,7 @@ exports.downloadSingleClientPerformanceData = async (req, res) => {
         MaxReels: performance.socialMediaMetrics?.maxReels || 0,
         MaxGraphicsPost: performance.socialMediaMetrics?.maxGraphicsPost || 0,
         MaxUGC: performance.socialMediaMetrics?.maxUgc || 0,
-        
+
         // Meta Ads Metrics
         MetaSpentAmount: performance.metaAdsMetrics?.spentAmount || 0,
         MetaROAS: performance.metaAdsMetrics?.roas || 0,
@@ -357,31 +441,55 @@ exports.downloadSingleClientPerformanceData = async (req, res) => {
         MetaMessages: performance.metaAdsMetrics?.messages || 0,
         MetaCostPerLead: performance.metaAdsMetrics?.costPerLead || 0,
         MetaCostPerMessage: performance.metaAdsMetrics?.costPerMessage || 0,
-        
+
         // Google Ads Metrics
         GoogleSpentAmount: performance.googleAdsMetrics?.spentAmount || 0,
         GoogleClicks: performance.googleAdsMetrics?.clicks || 0,
         GoogleConversions: performance.googleAdsMetrics?.conversions || 0,
         GoogleCalls: performance.googleAdsMetrics?.calls || 0,
         GoogleCostPerClick: performance.googleAdsMetrics?.costPerClick || 0,
-        GoogleCostPerConversion: performance.googleAdsMetrics?.costPerConversion || 0,
+        GoogleCostPerConversion:
+          performance.googleAdsMetrics?.costPerConversion || 0,
         GoogleCostPerCall: performance.googleAdsMetrics?.costPerCall || 0,
       });
     });
 
     const clientName = performanceData[0]?.clientId?.name || "Client";
-    const fileName = `${clientName.replace(/\s+/g, '_')}_performance_data.csv`;
+    const fileName = `${clientName.replace(/\s+/g, "_")}_performance_data.csv`;
 
     await generateAndDownloadCSV(
       clientPerformanceData,
       fileName,
       [
-        "ClientName", "ClientEmail", "ClientPhone", "Status", "Month", "Week", "LastUpdated",
-        "SocialMediaReach", "SocialMediaFollowers", "AvgEngagement", "GraphicsPost", "UGC", "Reels", 
-        "MaxReels", "MaxGraphicsPost", "MaxUGC",
-        "MetaSpentAmount", "MetaROAS", "MetaLeads", "MetaMessages", "MetaCostPerLead", "MetaCostPerMessage",
-        "GoogleSpentAmount", "GoogleClicks", "GoogleConversions", "GoogleCalls", "GoogleCostPerClick", 
-        "GoogleCostPerConversion", "GoogleCostPerCall"
+        "ClientName",
+        "ClientEmail",
+        "ClientPhone",
+        "Status",
+        "Month",
+        "Week",
+        "LastUpdated",
+        "SocialMediaReach",
+        "SocialMediaFollowers",
+        "AvgEngagement",
+        "GraphicsPost",
+        "UGC",
+        "Reels",
+        "MaxReels",
+        "MaxGraphicsPost",
+        "MaxUGC",
+        "MetaSpentAmount",
+        "MetaROAS",
+        "MetaLeads",
+        "MetaMessages",
+        "MetaCostPerLead",
+        "MetaCostPerMessage",
+        "GoogleSpentAmount",
+        "GoogleClicks",
+        "GoogleConversions",
+        "GoogleCalls",
+        "GoogleCostPerClick",
+        "GoogleCostPerConversion",
+        "GoogleCostPerCall",
       ],
       res
     );
