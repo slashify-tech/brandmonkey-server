@@ -331,14 +331,14 @@ exports.storeClientDistributionData = async (req, res) => {
         // Update existing client with new service
         clientDistribution.clients[existingClientIndex].progressValue = "0-10";
         clientDistribution.clients[existingClientIndex].clientName += `, ${service.trim()}`;
+        clientDistribution.clients[existingClientIndex].services.push(service.trim());
       } else {
         // Add new client with service
         clientDistribution.clients.push({
           clientId: clientDetail.clientId, // Store the client ID
           clientName: `${clientDetail.clientName.trim()} - ${service.trim()}`,
-          logo: `${clientDetail.clientName}.png`,
-          progressValue: "0-10",
-          clientType: clientDetail.clientType,
+          services: [service.trim()],
+          progressValue: "0-10"
         });
       }
     }
@@ -476,7 +476,7 @@ exports.deleteClientAllot = async (req, res) => {
 
     // Find the index of the client in the clients array
     const clientIndex = employee.clients.findIndex(
-      (client) => client._id.toString() === clientId
+      (client) => client.clientId?.toString() === clientId
     );
 
     if (clientIndex === -1) {

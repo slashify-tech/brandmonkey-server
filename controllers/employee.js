@@ -1,6 +1,7 @@
 const Clients = require("../models/clients");
 const Employees = require("../models/employee");
 const TicketAssigned = require("../models/ticketRaise");
+const { Hits } = require("../models/activities");
 const dotenv = require("dotenv");
 const { getSignedUrlFromS3 } = require("../utils/s3Utils");
 
@@ -101,7 +102,7 @@ exports.getClient = async (req, res) => {
       totalClientsCount = await Clients.countDocuments(query);
 
       const clientsData = await Clients.find(query)
-        .select('-updatedAt -createdAt')
+        .select("-updatedAt -createdAt")
         .limit(pageSize)
         .skip(startIndex);
 
@@ -123,7 +124,9 @@ exports.getClient = async (req, res) => {
         data: clientsWithTicketsCount,
       };
     } else {
-      const clientsData = await Clients.find(query).select('-updatedAt -createdAt');
+      const clientsData = await Clients.find(query).select(
+        "-updatedAt -createdAt"
+      );
 
       const clientsWithTicketsCount = await Promise.all(
         clientsData.map(async (client) => {
@@ -175,7 +178,7 @@ exports.getClient = async (req, res) => {
 exports.getOneClient = async (req, res) => {
   try {
     const { id } = req.params;
-    const clients = await Clients.findById(id).select('-updatedAt -createdAt');
+    const clients = await Clients.findById(id).select("-updatedAt -createdAt");
     if (clients) {
       clients.clientLogo = await getSignedUrlFromS3(`${clients.logo}`);
       const { updatedAt, createdAt, ...clientObj } = clients.toObject();
@@ -286,12 +289,12 @@ exports.getOneEmployee = async (req, res, next) => {
       // Fetch and update client logos
       await Promise.all(
         employee.clients.map(async (client) => {
-          client.clientLogo = await getSignedUrlFromS3(
-            `${client.clientName.split("-")[0].trim()}.png`
-          );
+          client.clientLogo = client?.clientName?.length > 0 ? await getSignedUrlFromS3(
+            `${client?.clientName?.split("-")[0]?.trim()}.png` || ""
+          ) : "";
         })
       );
-      employee.imageUrl = await getSignedUrlFromS3(`${employee.image}`);
+      employee.imageUrl = employee?.image?.length > 0 ? await getSignedUrlFromS3(`${employee?.image}`) : "";
 
       res.status(200).json({ employee });
     } else {
@@ -371,6 +374,7 @@ exports.getOneTicket = async (req, res, next) => {
 exports.getClientEmployeeRel = async (req, res) => {
   try {
     const { id } = req.params;
+    const { date } = req.query;
     const clientAssigned = await Employees.findOne({ _id: id });
 
     if (clientAssigned) {
@@ -378,24 +382,106 @@ exports.getClientEmployeeRel = async (req, res) => {
 
       const clientData = await getClient(clientIds);
 
-      const clientsWithData = await Promise.all(clientAssigned.clients.map(async (client) => {
-        const clientInfo = clientData.find(
-          (data) =>
-            data._id?.toString() === client.clientId?.toString()
-        );
-        const clientWork = client.clientName.split("-")[1].trim().toLowerCase();
+      // Build query for hits
+      const hitsQuery = {
+        employeeId: id,
+      };
 
-        return {
-          clientType: clientInfo.clientType,
-          clientName: clientInfo.name + " - " + clientWork,
-          progressValue: client.progressValue,
-          clientLogo : await getSignedUrlFromS3(`${clientInfo.logo}`),
-          logo : clientInfo.logo,
-          _id: clientInfo._id,
-          createdAt: clientInfo.createdAt,
-          updatedAt: clientInfo.updatedAt,
-        };
-      }));
+      // Filter by month if date is provided
+      if (date) {
+        const dateObj = new Date(date);
+
+        // Validate date
+        if (isNaN(dateObj.getTime())) {
+          return res
+            .status(400)
+            .json({
+              error: "Invalid date format. Please provide a valid date.",
+            });
+        }
+
+        const targetYear = dateObj.getFullYear();
+        const targetMonth = dateObj.getMonth() + 1; // getMonth() returns 0-11, so add 1
+        const targetMonthStr = `${targetYear}-${targetMonth
+          .toString()
+          .padStart(2, "0")}`;
+
+        // Filter by month field (hits are aggregated by month in "YYYY-MM" format)
+        hitsQuery.month = targetMonthStr;
+      }
+
+      // Fetch hits for this employee (optionally filtered by month)
+      const employeeHits = await Hits.find(hitsQuery);
+      // Create a map to aggregate hits by clientId
+      const hitsMap = new Map();
+      employeeHits.forEach((hit) => {
+        const clientId = hit.clientId?.toString();
+        if (clientId) {
+          if (hitsMap.has(clientId)) {
+            const existing = hitsMap.get(clientId);
+            hitsMap.set(clientId, {
+              totalHits: existing.totalHits + hit.noOfHits,
+            });
+          } else {
+            hitsMap.set(clientId, {
+              totalHits: hit.noOfHits,
+            });
+          }
+        }
+      });
+
+      const clientsWithData = await Promise.all(
+        clientAssigned.clients
+          .map(async (client) => {
+            const clientInfo = clientData.find(
+              (data) => data._id?.toString() === client.clientId?.toString()
+            );
+
+            // Skip if clientInfo is not found
+            if (!clientInfo) {
+              return null;
+            }
+
+            const clientWork =
+              client.clientName?.split("-")[1]?.trim().toLowerCase() || "";
+
+            // Get hits data for this client
+            const clientHitsData = hitsMap.get(client.clientId?.toString()) || {
+              totalHits: 0,
+            };
+            const totalHits = clientHitsData.totalHits;
+            const totalHours = (totalHits * 30) / 60; // Convert hits to hours (30 min per hit)
+
+            // Build object and filter out undefined values
+            const clientObj = {
+              clientType: clientInfo?.clientType || null,
+              clientName: clientInfo?.name
+                ? `${clientInfo.name} - ${clientWork}`
+                : null,
+              progressValue: client?.progressValue || null,
+              clientLogo: clientInfo?.logo
+                ? await getSignedUrlFromS3(`${clientInfo.logo}`)
+                : null,
+              logo: clientInfo?.logo || null,
+              _id: clientInfo?._id || null,
+              createdAt: clientInfo?.createdAt || null,
+              updatedAt: clientInfo?.updatedAt || null,
+              totalHits: totalHits || 0,
+              totalHours: totalHours || 0,
+              services: client?.services?.length > 0 ? client?.services.join(", ") : `${clientWork}`,
+            };
+
+            // Remove undefined values
+            Object.keys(clientObj).forEach((key) => {
+              if (clientObj[key] === undefined) {
+                delete clientObj[key];
+              }
+            });
+
+            return clientObj;
+          })
+          .filter((client) => client !== null) // Remove null entries
+      );
 
       const updatedClientsArray = [...clientsWithData];
 

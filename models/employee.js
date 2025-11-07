@@ -5,7 +5,7 @@ const clientElementSchema = mongoose.Schema(
     clientId: { type: mongoose.Schema.Types.ObjectId, ref: "clients", required: false },
     clientName: {
       type: String,
-      required: true,
+      required: false,
     },
     progressValue: {
       type: String,
@@ -13,15 +13,19 @@ const clientElementSchema = mongoose.Schema(
     },
     logo: {
       type: String,
-      default: "",
+      required: false,
     },
     clientLogo: {
       type: String,
-      default: "",
+      required: false,
     },
     clientType: {
       type: String,
-      default: "Regular",
+      required: false,
+    },
+    services: {
+      type: [String],
+      required: false,
     },
     createdAt: {
       type: Date,
@@ -36,7 +40,7 @@ const clientElementSchema = mongoose.Schema(
       default: false,
     },
   },
-  { strict: false }
+  { strict: false, _id: false }
 );
 
 const employeeSchema = mongoose.Schema({
