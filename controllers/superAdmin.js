@@ -476,7 +476,7 @@ exports.deleteClientAllot = async (req, res) => {
 
     // Find the index of the client in the clients array
     const clientIndex = employee.clients.findIndex(
-      (client) => client._id.toString() === clientId
+      (client) => client.clientId?.toString() === clientId
     );
 
     if (clientIndex === -1) {
