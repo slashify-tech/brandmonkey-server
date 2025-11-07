@@ -51,7 +51,7 @@ exports.login = async (req, res) => {
         const picture = response.data.picture;
         console.log(name, email);
 
-        const employee = await Employees.findOne({email: { $regex: new RegExp(email, 'i') }});
+        const employee = await Employees.findOne({email: { $regex: new RegExp(email, 'i') } , isDeleted: false });
         console.log(employee);
 
         if (!employee)
@@ -76,7 +76,7 @@ exports.login = async (req, res) => {
 
     try {
       // Fetch user from the database based on the provided email
-      const employee = await Employees.findOne({email: { $regex: new RegExp(email, 'i') }});
+      const employee = await Employees.findOne({email: { $regex: new RegExp(email, 'i') }, isDeleted: false });
 
       // Check if the employee exists
       if (!employee) {
