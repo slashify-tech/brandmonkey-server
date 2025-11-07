@@ -196,7 +196,7 @@ exports.getEmployee = async (req, res, next) => {
   try {
     const start = Date.now(); // Record the start time
     const { page, limit, search } = req.query;
-    let query = { type: { $ne: "superadmin" } };
+    let query = { type: { $ne: "superadmin" }, isDeleted: false };
     let result;
     let totalEmployeesCount;
     let endIndex;
