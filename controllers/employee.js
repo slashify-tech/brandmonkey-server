@@ -4,6 +4,10 @@ const TicketAssigned = require("../models/ticketRaise");
 const { Hits } = require("../models/activities");
 const dotenv = require("dotenv");
 const { getSignedUrlFromS3 } = require("../utils/s3Utils");
+const {
+	DEFAULT_CLIENT_IMAGE,
+	DEFAULT_EMPLOYEE_IMAGE,
+} = require("../utils/constants");
 
 dotenv.config();
 
@@ -150,11 +154,11 @@ exports.getClient = async (req, res) => {
         if (Array.isArray(client.logo)) {
           client.clientLogo = await Promise.all(
             client.logo.map(async (image) => {
-              return await getSignedUrlFromS3(`${image}`);
+              return await getSignedUrlFromS3(DEFAULT_CLIENT_IMAGE);
             })
           );
-        } else if (client.logo) {
-          client.clientLogo = await getSignedUrlFromS3(`${client.logo}`);
+        } else {
+          client.clientLogo = await getSignedUrlFromS3(DEFAULT_CLIENT_IMAGE);
         }
       }
     }
@@ -180,7 +184,7 @@ exports.getOneClient = async (req, res) => {
     const { id } = req.params;
     const clients = await Clients.findById(id).select("-updatedAt -createdAt");
     if (clients) {
-      clients.clientLogo = await getSignedUrlFromS3(`${clients.logo}`);
+      clients.clientLogo = await getSignedUrlFromS3(DEFAULT_CLIENT_IMAGE);
       const { updatedAt, createdAt, ...clientObj } = clients.toObject();
       res.status(200).json(clientObj);
     } else {
@@ -250,11 +254,11 @@ exports.getEmployee = async (req, res, next) => {
         if (Array.isArray(employee.name)) {
           employee.imageUrl = await Promise.all(
             employee.image.map(async (image) => {
-              return await getSignedUrlFromS3(`${image}`);
+              return await getSignedUrlFromS3(DEFAULT_EMPLOYEE_IMAGE);
             })
           );
         } else if (employee.name) {
-          employee.imageUrl = await getSignedUrlFromS3(`${employee.image}`);
+          employee.imageUrl = await getSignedUrlFromS3(DEFAULT_EMPLOYEE_IMAGE);
         }
       }
     }
@@ -289,12 +293,14 @@ exports.getOneEmployee = async (req, res, next) => {
       // Fetch and update client logos
       await Promise.all(
         employee.clients.map(async (client) => {
-          client.clientLogo = client?.clientName?.length > 0 ? await getSignedUrlFromS3(
-            `${client?.clientName?.split("-")[0]?.trim()}.png` || ""
-          ) : "";
+          client.clientLogo = await getSignedUrlFromS3(
+            DEFAULT_CLIENT_IMAGE
+          );
         })
       );
-      employee.imageUrl = employee?.image?.length > 0 ? await getSignedUrlFromS3(`${employee?.image}`) : "";
+      employee.imageUrl = await getSignedUrlFromS3(
+        DEFAULT_EMPLOYEE_IMAGE
+      );
 
       res.status(200).json({ employee });
     } else {
@@ -459,9 +465,7 @@ exports.getClientEmployeeRel = async (req, res) => {
                 ? `${clientInfo.name} - ${clientWork}`
                 : null,
               progressValue: client?.progressValue || null,
-              clientLogo: clientInfo?.logo
-                ? await getSignedUrlFromS3(`${clientInfo.logo}`)
-                : null,
+              clientLogo: await getSignedUrlFromS3(DEFAULT_CLIENT_IMAGE),
               logo: clientInfo?.logo || null,
               _id: clientInfo?._id || null,
               createdAt: clientInfo?.createdAt || null,
