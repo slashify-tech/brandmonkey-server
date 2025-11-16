@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const axios = require("axios");
 const Employees = require("../models/employee");
 const { getSignedUrlFromS3 } = require("../utils/s3Utils");
+const { DEFAULT_EMPLOYEE_IMAGE } = require("../utils/constants");
 
 dotenv.config();
 
@@ -51,7 +52,7 @@ exports.login = async (req, res) => {
         const picture = response.data.picture;
         console.log(name, email);
 
-        const employee = await Employees.findOne({email: { $regex: new RegExp(email, 'i') } , isDeleted: false });
+        const employee = await Employees.findOne({email: { $regex: new RegExp(email, "i") } , isDeleted: false });
         console.log(employee);
 
         if (!employee)
@@ -76,7 +77,7 @@ exports.login = async (req, res) => {
 
     try {
       // Fetch user from the database based on the provided email
-      const employee = await Employees.findOne({email: { $regex: new RegExp(email, 'i') }, isDeleted: false });
+      const employee = await Employees.findOne({email: { $regex: new RegExp(email, "i") }, isDeleted: false });
 
       // Check if the employee exists
       if (!employee) {
@@ -118,7 +119,7 @@ exports.getUser = async (req, res, next) => {
       error.statusCode = 404;
       console.log(error);
     }
-    employee.imageUrl = employee?.name?.length > 0 ? await getSignedUrlFromS3(`${employee?.name}` + ".jpg") : "";
+    employee.imageUrl = await getSignedUrlFromS3(DEFAULT_EMPLOYEE_IMAGE);
     res.status(200).json({ employee });
   } catch (err) {
     console.log(err);
